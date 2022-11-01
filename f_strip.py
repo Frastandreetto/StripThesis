@@ -5,7 +5,6 @@
 # updated to be used on the new version of the software of LSPE-STRIP
 # October 29th 2022, Brescia (Italy)
 
-
 import numpy as np
 from striptease import DataFile, DataStorage, Tag
 from pathlib import Path
@@ -44,7 +43,6 @@ def pol_list(path_dataset: Path) -> list:
 # Parameter: array
 # the mean on each couple of samples of even-odd index is computed
 # -------------------------------------------------------------------------------------------------------------------
-
 @njit  # optimize calculations
 def mean_cons(v):
     n = (len(v) // 2) * 2
@@ -57,7 +55,6 @@ def mean_cons(v):
 # Parameter: array
 # The difference between each sample of even-odd index is computed
 # -------------------------------------------------------------------------------------------------------------------
-
 @njit
 def diff_cons(v):
     n = (len(v) // 2) * 2
@@ -72,7 +69,6 @@ def diff_cons(v):
 # - a number of element per line fixed by the parameter window
 # - the first element of the row j is the j element of the vector
 # -----------------------------------------------------------------------------------------------------
-
 @njit
 def rolling_window(a, window):
     shape = a.shape[:-1] + (a.shape[-1] - window + 1, window)
@@ -84,7 +80,6 @@ def rolling_window(a, window):
 # Calculate a mobile mean on a number of elements given by smooth_len, used to smooth plots
 # Parameters: array, smooth length
 # ------------------------------------------------------------------------------------------------------
-
 @njit
 def mob_mean(a, smooth_len):
     m = np.zeros(len(a) - smooth_len + 1)

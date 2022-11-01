@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 from striptease import DataStorage
 
@@ -55,7 +56,7 @@ class Polarimeter:
     # Load only a specific typer of dataset "PWR" or "DEM" in the polarimeter
     # Parameter: str
     # ------------------------------------------------------------------------------------------------------------------
-    def Load_X(self, type):
+    def Load_X(self, type: str):
 
         for exit in ["Q1", "Q2", "U1", "U2"]:
             self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.tag, polarimeter=self.name,
@@ -106,8 +107,8 @@ class Polarimeter:
     # Parameter: norm_mode (int) can be set in two ways:
     # 0) the output is expressed in function of the number of samples
     # 1) the output is expressed in function of the time in s from the beginning of the experience
-    # -------------------------------------------------------------------------------------------------------------------
-    def Norm(self, norm_mode):
+    # ------------------------------------------------------------------------------------------------------------------
+    def Norm(self, norm_mode: int):
         # Number of samples
         if norm_mode == 0:
             self.times = np.arange(len(self.times))
@@ -121,7 +122,7 @@ class Polarimeter:
     # 2. Calculate Strip Sampling Frequency
     # 3. Normalize timestamps
     # ------------------------------------------------------------------------------------------------------------
-    def Prepare(self, norm_mode):
+    def Prepare(self, norm_mode: int):
         self.norm_mode = norm_mode
 
         self.Clip_Values()
@@ -136,3 +137,23 @@ class Polarimeter:
         ###################################################################
         # NOTA: Migliorare usando la libreria di logging
         ###################################################################
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Plot Functions
+    # ------------------------------------------------------------------------------------------------------------------
+    # Plot the 4 exits DEM or PWR of the Polarimeter
+    # ------------------------------------------------------------------------------------------------------------------
+    def Plot(self, type: str, begin: int, end: int):
+        fig = plt.figure(figsize=(20, 4))
+        o = 0
+        for exit in ["Q1", "Q2", "U1", "U2"]:
+            o = o+1
+            ax = fig.add_subplot(1, 4, o)
+            ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
+            ax.set_title(f"{exit}")
+            ax.set_xlabel("Time [s]")
+            ax.set_ylabel(f"Output {type}")
+
+        fig.savefig(
+            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}.png')
+        plt.close(fig)
