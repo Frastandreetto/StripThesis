@@ -13,6 +13,8 @@ from matplotlib import pyplot as plt
 
 from striptease import DataStorage
 
+import f_strip as fz
+
 
 ########################################################################################################
 # Class for a Polarimeter
@@ -116,12 +118,12 @@ class Polarimeter:
         if norm_mode == 1:
             self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ
 
-    # ----------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     # Prepare the polarimeter in three steps:
     # 1. Clean dataset with Clip_Values()
     # 2. Calculate Strip Sampling Frequency
     # 3. Normalize timestamps
-    # ------------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     def Prepare(self, norm_mode: int):
         self.norm_mode = norm_mode
 
@@ -134,6 +136,10 @@ class Polarimeter:
         self.Norm(norm_mode)
 
         print("The dataset is now normalized.")
+        if norm_mode == 0:
+            print("Dataset in function of sample number [#]")
+        if norm_mode == 1:
+            print("Dataset in function of time [s].")
         ###################################################################
         # NOTA: Migliorare usando la libreria di logging
         ###################################################################
@@ -147,7 +153,7 @@ class Polarimeter:
         fig = plt.figure(figsize=(20, 4))
         o = 0
         for exit in ["Q1", "Q2", "U1", "U2"]:
-            o = o+1
+            o = o + 1
             ax = fig.add_subplot(1, 4, o)
             ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
             ax.set_title(f"{exit}")
@@ -157,3 +163,89 @@ class Polarimeter:
         fig.savefig(
             f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}.png')
         plt.close(fig)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Plot of:
+    # 1) Scientific data DEM or PWR
+    # 2) RMS using Rolling Window method
+    # Parameters:
+    # - kind (str) of data DEM or PWR
+    # - n_samples (int): number of samples I want to plot
+    # - smooth_len (int): used for the mobile mean
+    # - even, odd, every (int): used for the transparency of the datas (0=transparent, 1=visible)
+    # - y_scale (bool) True -> Homogeneous scale on y-axis. Default: False
+    # ------------------------------------------------------------------------------------------------------------------
+    def Color_Smooth(self, type: str, n_samples: int, smooth_len: int, even: int, odd: int, every: int, y_scale=False):
+
+        chunk_length = 5 * self.STRIP_SAMPLING_FREQ
+        up = [-np.inf, -np.inf]
+        down = [np.inf, np.inf]
+
+        print(f"{type} data are now plotted.")
+        # True: Homogeneous scale on Y-axis
+        if y_scale:
+            print("Homogeneous scale on Y-axis.")
+            # Look up for max & min -------------------------------------------
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                # Output
+                up[0] = np.max([up[0], np.max(self.data[type][exit][:n_samples - 1:2])])
+                down[0] = np.min([down[0], np.min(self.data[type][exit][1:n_samples:2])])
+                # RMS
+                up[1] = np.max([up[1], np.max(np.std(self.data[type][exit][:n_samples - 1:2]))])
+                down[1] = np.min([down[1], np.min(np.std(self.data[type][exit][1:n_samples:2]))])
+
+            # Sth more clever needed
+            up[0] = np.max(up[0]) + np.max(up[0]) / 3
+            down[0] = np.min(down[0]) - np.abs(np.min(down[0]) / 3)
+            up[1] = np.max(up[1]) + np.max(up[1]) / 3
+            down[1] = np.min(down[1]) - np.abs(np.min(down[1]) / 3)
+        # -----------------------------------------------------------------
+
+        f1 = plt.figure(figsize=(15, 4))
+        f2 = plt.figure(figsize=(15, 4))
+
+        n = 0  # type: int
+        for exit in ["Q1", "Q2", "U1", "U2"]:
+            n = n + 1
+            # Output Plot
+            ax1 = f1.add_subplot(1, 4, n)
+            ax1.plot(self.times[0:-1:2], self.data[f"{type}"][exit][0:-1:2], ".b", alpha=even, label="Even Datas")
+            ax1.plot(self.times[1::2], self.data[f"{type}"][exit][1::2], ".r", alpha=odd, label="Odd Datas")
+            ax1.plot(self.times, self.data[f"{type}"][exit], ".g", alpha=every, label="All datas")
+
+            # RMS Plot
+            ax2 = f2.add_subplot(1, 4, n)
+            ax2.plot((self.times[:n_samples - 1:2])[:-smooth_len - chunk_length + 2], fz.mob_mean(
+                np.std(fz.rolling_window(self.data[type][exit][:n_samples - 1:2], chunk_length), axis=1), smooth_len),
+                     "b", alpha=even, label="Even Datas")
+            ax2.plot((self.times[1:n_samples:2])[:-smooth_len - chunk_length + 2], fz.mob_mean(
+                np.std(fz.rolling_window(self.data[type][exit][1:n_samples:2], chunk_length), axis=1), smooth_len),
+                     "r", alpha=odd, label="Odd Datas")
+            ax2.plot((self.times[:n_samples])[:-smooth_len - chunk_length + 2], fz.mob_mean(
+                np.std(fz.rolling_window(self.data[type][exit][:n_samples], chunk_length), axis=1), smooth_len), "g",
+                     alpha=every, label="All Datas")
+            # Title
+            ax1.set_title(f'{type} {exit}')
+            ax2.set_title(f'{type} {exit}')
+            # X-axis
+            if self.norm_mode == 0:
+                ax1.set_xlabel("# Samples")
+                ax2.set_xlabel("# Samples")
+            if self.norm_mode == 1:
+                ax1.set_xlabel("Time [s]")
+                ax2.set_xlabel("Time [s]")
+            # Y-axis
+            ax1.set_ylabel(f"Output [{type}]")
+            ax2.set_ylabel(f"RMS Rolling [{type}] {exit}")
+            # True: Homogeneous scale on y-axis
+            if y_scale:
+                ax1.set_ylim(down[0], up[0])
+                ax2.set_ylim(down[1], up[1])
+            # Legend
+            ax1.legend(prop={'size': 9})
+            ax2.legend(prop={'size': 9})
+
+        f1.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_EOA.png')
+        plt.close(f1)
+        f2.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_EOA_RMS.png')
+        plt.close(f2)
