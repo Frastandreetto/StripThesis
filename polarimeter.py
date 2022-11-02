@@ -166,7 +166,7 @@ class Polarimeter:
 
     # ------------------------------------------------------------------------------------------------------------------
     # Plot of:
-    # 1) Scientific data DEM or PWR
+    # 1) Raw data DEM or PWR
     # 2) RMS using Rolling Window method
     # Parameters:
     # - kind (str) of data DEM or PWR
@@ -175,7 +175,7 @@ class Polarimeter:
     # - even, odd, every (int): used for the transparency of the datas (0=transparent, 1=visible)
     # - y_scale (bool) True -> Homogeneous scale on y-axis. Default: False
     # ------------------------------------------------------------------------------------------------------------------
-    def Color_Smooth(self, type: str, n_samples: int, smooth_len: int, even: int, odd: int, every: int, y_scale=False):
+    def Analyze(self, type: str, n_samples: int, smooth_len: int, even: int, odd: int, every: int, y_scale=False):
 
         chunk_length = 5 * self.STRIP_SAMPLING_FREQ
         up = [-np.inf, -np.inf]
