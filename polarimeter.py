@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import List, Dict, Any
 
 import numpy as np
+import scipy as scipy
 from matplotlib import pyplot as plt
 
 import f_strip
@@ -22,14 +23,13 @@ import f_strip as fz
 ########################################################################################################
 class Polarimeter:
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Constructor
-    # Parameters:
-    # - name_pol (str): name of the polarimeter
-    # - path_file (Path): location of the data file (without the name of the file)
-    # ------------------------------------------------------------------------------------------------------------------
     def __init__(self, name_pol: str, path_file: Path):
-
+        """
+        Constructor
+        Parameters:
+        - name_pol (str): name of the polarimeter
+        - path_file (Path): location of the data file (without the name of the file)
+        """
         self.name = name_pol
         self.path_file = path_file
 
@@ -50,33 +50,33 @@ class Polarimeter:
         dem = {}
         self.data = {"DEM": dem, "PWR": power}
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Load all dataset in the polarimeter
-    # ------------------------------------------------------------------------------------------------------------------
     def Load_Pol(self):
-
+        """
+        Load all dataset in the polarimeter
+        All type "DEM" and "PWR"
+        All the exit "Q1", "Q2", "U1", "U2"
+        """
         for type in ["DEM", "PWR"]:
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.tag, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
         self.start_time = self.times[0].unix
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Load only a specific typer of dataset "PWR" or "DEM" in the polarimeter
-    # Parameter: type (str) "DEM" or "PWR"
-    # ------------------------------------------------------------------------------------------------------------------
     def Load_X(self, type: str):
-
+        """
+        Load only a specific type of dataset "PWR" or "DEM" in the polarimeter
+        Parameter: type (str) "DEM" or "PWR"
+        """
         for exit in ["Q1", "Q2", "U1", "U2"]:
             self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.tag, polarimeter=self.name,
                                                                  data_type=type, detector=exit)
         self.start_time = self.times[0].unix
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Data cleansing: scientific data with value zero at the beginning and at the end are removed from the dataset
-    # Control that a channel doesn't turn on before the others (maybe unuseful)
-    # ------------------------------------------------------------------------------------------------------------------
     def Clip_Values(self):
+        """
+        Data cleansing: scientific data with value zero at the beginning and at the end are removed from the dataset
+        Control that a channel doesn't turn on before the others (maybe unuseful)
+        """
 
         start_idx = np.inf
         end_idx = 0
@@ -98,12 +98,12 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.data[type][exit] = self.data[type][exit][start_idx:end_idx + 1]
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Strip Sampling Frequency
-    # It depends on the electronics hence it's the same for all polarimeters
-    # Note: it must be defined before time normalization
-    # ------------------------------------------------------------------------------------------------------------------
     def STRIP_SAMPLING_FREQUENCY_HZ(self):
+        """
+        Strip Sampling Frequency
+        It depends on the electronics hence it's the same for all polarimeters
+        Note: it must be defined before time normalization
+        """
         type = "DEM"
         if self.data[type] == {}:
             type = "PWR"
@@ -111,27 +111,25 @@ class Polarimeter:
         self.STRIP_SAMPLING_FREQ = int(
             len(self.data[type]["Q1"]) / (self.times[-1].datetime - self.times[0].datetime).total_seconds())
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Timestamp Normalization
-    # Parameter: norm_mode (int) can be set in two ways:
-    # 0) the output is expressed in function of the number of samples
-    # 1) the output is expressed in function of the time in s from the beginning of the experience
-    # ------------------------------------------------------------------------------------------------------------------
     def Norm(self, norm_mode: int):
-        # Number of samples
+        """
+        Timestamp Normalization
+        Parameter: norm_mode (int) can be set in two ways:
+        0) the output is expressed in function of the number of samples
+        1) the output is expressed in function of the time in s from the beginning of the experience
+        """
         if norm_mode == 0:
-            self.times = np.arange(len(self.times))
-        # Seconds
+            self.times = np.arange(len(self.times))  # Number of samples
         if norm_mode == 1:
-            self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ
+            self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ  # Seconds
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Prepare the polarimeter in three steps:
-    # 1. Clean dataset with Clip_Values()
-    # 2. Calculate Strip Sampling Frequency
-    # 3. Normalize timestamps
-    # ------------------------------------------------------------------------------------------------------------------
     def Prepare(self, norm_mode: int):
+        """
+        Prepare the polarimeter in three steps:\n
+            1. Clean dataset with Clip_Values()
+            2. Calculate Strip Sampling Frequency
+            3. Normalize timestamps
+        """
         self.norm_mode = norm_mode
 
         self.Clip_Values()
@@ -151,15 +149,15 @@ class Polarimeter:
         # NOTE: logging library still needed
         ###################################################################
 
-    # ---------------------------------------------------------------------------------------------------------------------
-    # Demodulation
-    # Calculate the Scientific data DEMODULATED or TOTAL POWER at 50Hz
-    # Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data
-    # Parameters:
-    # - exit (str) "Q1", "Q2", "U1", "U2"
-    # - type (str) "DEM" or "PWR"
-    # ---------------------------------------------------------------------------------------------------------------------
     def Demodulation(self, type: str, exit: str) -> Dict[str, Any]:
+        """
+        Demodulation\n
+        Calculate the Scientific data DEMODULATED or TOTAL POWER at 50Hz\n
+        Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data\n
+        Parameters:\n
+        - exit (str) "Q1", "Q2", "U1", "U2"\n
+        - type (str) of data "DEM" or "PWR"
+        """
         times = fz.mean_cons(self.times)
         data = {}
         if type == "PWR":
@@ -171,14 +169,16 @@ class Polarimeter:
         return sci_data
 
     # ------------------------------------------------------------------------------------------------------------------
-    # Plot Functions
+    # PLOT FUNCTIONS
     # ------------------------------------------------------------------------------------------------------------------
-    # Plot the 4 exits PWR or DEM of the Polarimeter
-    # Parameters:
-    # type (str) "PWR" or "DEM"
-    # begin, end (int): interval of dataset that has to be considered
-    # ------------------------------------------------------------------------------------------------------------------
+
     def Plot_Output(self, type: str, begin: int, end: int):
+        """
+        Plot the 4 exits PWR or DEM of the Polarimeter\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"\n
+        - begin, end (int): interval of dataset that has to be considered\n
+        """
         fig = plt.figure(figsize=(20, 4))
         o = 0
         for exit in ["Q1", "Q2", "U1", "U2"]:
@@ -193,15 +193,16 @@ class Polarimeter:
             f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}.png')
         plt.close(fig)
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Plot of Raw data DEM or PWR (Even, Odd or All)
-    # Parameters:
-    # - type (str) of data DEM or PWR
-    # - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
-    # - begin, end (int): interval of the samples I want to plot
-    # Note: plots on two rows (uniform Y-scale below)
-    # ------------------------------------------------------------------------------------------------------------------
-    def Plot_EvenOddAll(self, type: str, even: int, odd: int, all: int, begin=100, end=-100):
+    def Plot_EvenOddAll(self, type: str, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Raw data DEM or PWR (Even, Odd or All)\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"\n
+        - even, odd, all (int): used to set the transparency of the dataset (0=transparent, 1=visible)\n
+        - begin, end (int): interval of dataset that has to be considered\n
+        - smooth_len (int): number of elements on which the mobile mean is calculated
+        Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
+        """
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
         n = 0  # type: int
@@ -211,12 +212,15 @@ class Polarimeter:
                 # Output Plot
                 axs = fig.add_subplot(2, 4, n)
 
-                axs.plot(self.times[begin:end - 1:2],
-                         self.data[type][exit][begin:end - 1:2], ".b", alpha=even, label="Even Datas")
-                axs.plot(self.times[begin + 1:end:2],
-                         self.data[type][exit][begin + 1:end:2], ".r", alpha=odd, label="Odd Datas")
-                axs.plot(self.times,
-                         self.data[type][exit], ".g", alpha=all, label="All datas")
+                axs.plot(self.times[begin:end - 1:2][:- smooth_len],
+                         fz.mob_mean(self.data[type][exit][begin:end - 2:2], smooth_len=smooth_len),
+                         "b", alpha=even, label="Even Datas")
+                axs.plot(self.times[begin + 1:end:2][:- smooth_len],
+                         fz.mob_mean(self.data[type][exit][begin + 1:end-1:2], smooth_len=smooth_len),
+                         "r", alpha=odd, label="Odd Datas")
+                axs.plot(self.times[begin:end][:- smooth_len],
+                         fz.mob_mean(self.data[type][exit][begin:end-1], smooth_len=smooth_len),
+                         "g", alpha=all, label="All datas")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(self.data[type][exit])])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(self.data[type][exit])])
@@ -234,30 +238,33 @@ class Polarimeter:
                 # Legend
                 axs.legend(prop={'size': 9})
 
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_EOA_{all}.png')
+        eoa = EOA(even=even, odd=odd, all=all)
+        fig.savefig(
+            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_{eoa}_smooth={smooth_len}.png')
         plt.close(fig)
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Plot of Raw data DEM or PWR (Even, Odd or All)
-    # Parameters:
-    # - type (str) of data DEM or PWR
-    # - window: number of elements on which the RMS is calculated
-    # - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
-    # - begin, end (int): interval of the samples I want to plot
-    # - smooth_len (int): used for the mobile mean
-    # Note: plots on two rows (uniform Y-scale below)
-    # ------------------------------------------------------------------------------------------------------------------
     def Plot_RMS_EOA(self, type: str, window: int, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Raw data DEM or PWR (Even, Odd or All)\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"
+        - window (int): number of elements on which the RMS is calculated
+        - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
+        - begin, end (int): interval of dataset that has to be considered
+        - smooth_len (int): number of elements on which the mobile mean is calculated
+        Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
+        """
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
         n = 0  # type: int
+
         for i in range(2):
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 n = n + 1
                 axs = fig.add_subplot(2, 4, n)
-
                 rms_all = fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end),
                                       smooth_len=smooth_len)
+
                 axs.plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
                          fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
                                      smooth_len=smooth_len),
@@ -286,17 +293,19 @@ class Polarimeter:
                 # Legend
                 axs.legend(prop={'size': 9})
 
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_RMS_EOA={all}_smooth={smooth_len}.png')
+        eoa = EOA(even=even, odd=odd, all=all)
+        fig.savefig(
+            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.png')
         plt.close(fig)
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # Plot of Scientific data DEMODULATED or TOTAL POWER
-    # Parameters:
-    # - type (str) of data DEM or PWR
-    # - begin, end (int): interval of the samples I want to plot
-    # Note: plots on two rows (uniform Y-scale below)
-    # ------------------------------------------------------------------------------------------------------------------
     def Plot_SciData(self, type: str, begin=100, end=-100):
+        """
+        Plot of Scientific data DEMODULATED or TOTAL POWER\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"\n
+        - begin, end (int): interval of dataset that has to be considered\n
+        Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
+        """
         y_scale_limits = [np.inf, -np.inf]
         if type == "DEM":
             data_name = "DEMODULATED"
@@ -333,18 +342,16 @@ class Polarimeter:
         fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{data_name}.png')
         plt.close(fig)
 
-    # ------------------------------------------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------------------------------------------
-    # Plot of Raw data DEM or PWR (Even, Odd or All)
-    # Parameters:
-    # - type (str) of data DEM or PWR
-    # - window: number of elements on which the RMS is calculated
-    # - begin, end (int): interval of the samples I want to plot
-    # - smooth_len (int): used for the mobile mean
-    # Note: plots on two rows (uniform Y-scale below)
-    # ------------------------------------------------------------------------------------------------------------------
     def Plot_RMS_SciData(self, type: str, window: int, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Raw data DEM or PWR (Even, Odd or All)\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"
+        - window (int): number of elements on which the RMS is calculated
+        - begin, end (int): interval of dataset that has to be considered
+        - smooth_len (int): number of elements on which the mobile mean is calculated
+        Note: the 4 plots are repeated on two rows (uniform Y-scale below)
+        """
         y_scale_limits = [np.inf, -np.inf]
         if type == "DEM":
             data_name = "DEMODULATED"
@@ -384,20 +391,104 @@ class Polarimeter:
         fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{data_name}_RMS_smooth={smooth_len}.png')
         plt.close(fig)
 
+    # ------------------------------------------------------------------------------------------------------------------
+    # TIMESTAMPS JUMP ANALYSIS
+    # ------------------------------------------------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------------------------------------------------
-# Calculate the RMS of a vector using the rolling window
-# Parameters:
-# - data is a dictionary with four keys (exits) of a particular type "DEM" or "PWR"
-# - window: number of elements on which the RMS is calculated
-# - exit (str) "Q1", "Q2", "U1", "U2"
-# - eoa (int): flag in order to calculate RMS for
-#           all samples (eoa=0), can be used for Demodulated and Total Power scientific data (50Hz)
-#           odd samples (eoa=1)
-#           even samples (eoa=2)
-# begin, end (int): interval of dataset that has to be considered
-# ---------------------------------------------------------------------------------------------------------------------
+    def Jump_Plot(self, norm_mode: int):
+        """
+        Load and Prepare the polarimeter.
+        Then plot the timestamps and of the Delta time between two consecutive Timestamps\n
+        Parameter:
+            norm_mode (int) can be set in two ways:
+                0) the output is expressed in function of the number of samples
+                1) the output is expressed in function of the time in s from the beginning of the experience
+        """
+        self.Load_Pol()
+        self.Prepare(norm_mode=norm_mode)
+
+        fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(13, 3))
+        # Times, we should see dot-shape jumps
+        axs = fig.add_subplot(1, 2, 1)
+        axs.plot(np.arange(len(self.times)), self.times, '*')
+        axs.set_title(f"{self.name} Timestamps")
+        axs.set_xlabel("# Sample")
+        axs.set_ylabel("Time [s]")
+
+        # Delta t
+        axs = fig.add_subplot(1, 2, 2)
+        deltat = fz.diff_cons(self.times)
+        axs.plot(deltat, "*g")
+        axs.set_title(f"Delta t {self.name}")
+        axs.set_xlabel("# Sample")
+        axs.set_ylabel("Delta t [s]")
+        axs.set_ylim(-1.0, 1.0)
+
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_Timestamps.png')
+        plt.close(fig)
+
+    def Plot_FFT_EvenOdd(self, type: str, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Fourier Spectra of Even Odd data\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"
+        - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
+        - begin, end (int): interval of dataset that has to be considered
+        - smooth_len (int): number of elements on which the mobile mean is calculated
+        Note: plots on two rows (uniform Y-scale below)
+        """
+        # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
+        fs = self.STRIP_SAMPLING_FREQ / 2
+        scaling = "spectrum"
+        y_scale_limits = [np.inf, -np.inf]
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+        n = 0  # type: int
+
+        for i in range(2):
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                n = n + 1
+                axs = fig.add_subplot(2, 4, n)
+
+                f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs, scaling=scaling)
+                axs.plot(f[smooth_len:-smooth_len], fz.mob_mean(s, smooth_len), alpha=all, label="All samples")
+
+                if i == 0:
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s)])
+
+                f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs, scaling=scaling)
+                axs.plot(f[smooth_len:-smooth_len], fz.mob_mean(s, smooth_len), alpha=even, label=f"Even samples")
+
+                f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs, scaling=scaling)
+                axs.plot(f[smooth_len:-smooth_len], fz.mob_mean(s, smooth_len), alpha=odd, label=f"Odd samples")
+
+                axs.set_yscale('log')
+                axs.set_xscale('log')
+                axs.set_title(f"FFT {type} {exit}")
+                plt.xlabel("Frequency [Hz]")
+                plt.ylabel(f"FFT [{type}]")
+                if i == 1:
+                    axs.set_ylim(y_scale_limits[0], y_scale_limits[1])
+                # Legend
+                plt.legend(prop={'size': 6})
+
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_{type}_EOA={all}_smooth={smooth_len}.png')
+        plt.close(fig)
+
+
 def RMS(data, window: int, exit: str, eoa: int, begin=100, end=-100):
+    """
+    Calculate the RMS of a vector using the rolling window
+    Parameters:
+    - data is a dictionary with four keys (exits) of a particular type "DEM" or "PWR"
+    - window: number of elements on which the RMS is calculated
+    - exit (str) "Q1", "Q2", "U1", "U2"
+    - eoa (int): flag in order to calculate RMS for
+        all samples (eoa=0), can be used for Demodulated and Total Power scientific data (50Hz)
+        odd samples (eoa=1)
+        even samples (eoa=2)
+    - begin, end (int): interval of dataset that has to be considered
+    """
     if eoa == 0:
         rms = np.std(fz.rolling_window(data[exit][begin:end], window), axis=1)
     if eoa == 1:
@@ -406,3 +497,19 @@ def RMS(data, window: int, exit: str, eoa: int, begin=100, end=-100):
         rms = np.std(fz.rolling_window(data[exit][begin:end - 1:2], window), axis=1)
     return rms
 
+
+def EOA(even: int, odd: int, all: int) -> str:
+    """
+    Return a string that contains the letters of the samples plotted:
+    "E" for even (int)
+    "O" for odd (int)
+    "A" for all (int)
+    """
+    eoa = " "
+    if even != 0:
+        eoa += "E"
+    if odd != 0:
+        eoa += "O"
+    if all != 0:
+        eoa += "A"
+    return eoa
