@@ -6,11 +6,12 @@
 # November 1st 2022, Brescia (Italy)
 
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 
 import numpy as np
 from matplotlib import pyplot as plt
 
+import f_strip
 from striptease import DataStorage
 
 import f_strip as fz
@@ -21,6 +22,12 @@ import f_strip as fz
 ########################################################################################################
 class Polarimeter:
 
+    # ------------------------------------------------------------------------------------------------------------------
+    # Constructor
+    # Parameters:
+    # - name_pol (str): name of the polarimeter
+    # - path_file (Path): location of the data file (without the name of the file)
+    # ------------------------------------------------------------------------------------------------------------------
     def __init__(self, name_pol: str, path_file: Path):
 
         self.name = name_pol
@@ -28,8 +35,8 @@ class Polarimeter:
 
         self.ds = DataStorage(self.path_file)
 
-        # find a better way to set the start time
-        # Esiste un modo per dedurre dal nome del file hdf5 il range temporale dei dati? NOTA: gli passo un path
+        # Find a better way to set the start time
+        # How to get it from the name of the file? Is more useful to pass a time interval?
         tag = self.ds.get_tags(mjd_range=("2021-01-01 00:00:00", "2023-01-01 00:00:00"))
         self.tag = [x for x in tag if f"pol{name_pol}" in x.name][0]
 
@@ -56,7 +63,7 @@ class Polarimeter:
 
     # ------------------------------------------------------------------------------------------------------------------
     # Load only a specific typer of dataset "PWR" or "DEM" in the polarimeter
-    # Parameter: str
+    # Parameter: type (str) "DEM" or "PWR"
     # ------------------------------------------------------------------------------------------------------------------
     def Load_X(self, type: str):
 
@@ -105,7 +112,7 @@ class Polarimeter:
             len(self.data[type]["Q1"]) / (self.times[-1].datetime - self.times[0].datetime).total_seconds())
 
     # ------------------------------------------------------------------------------------------------------------------
-    # Timestamp nomalization
+    # Timestamp Normalization
     # Parameter: norm_mode (int) can be set in two ways:
     # 0) the output is expressed in function of the number of samples
     # 1) the output is expressed in function of the time in s from the beginning of the experience
@@ -141,15 +148,37 @@ class Polarimeter:
         if norm_mode == 1:
             print("Dataset in function of time [s].")
         ###################################################################
-        # NOTA: Migliorare usando la libreria di logging
+        # NOTE: logging library still needed
         ###################################################################
+
+    # ---------------------------------------------------------------------------------------------------------------------
+    # Demodulation
+    # Calculate the Scientific data DEMODULATED or TOTAL POWER at 50Hz
+    # Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data
+    # Parameters:
+    # - exit (str) "Q1", "Q2", "U1", "U2"
+    # - type (str) "DEM" or "PWR"
+    # ---------------------------------------------------------------------------------------------------------------------
+    def Demodulation(self, exit: str, type: str) -> Dict[str, Any]:
+        times = fz.mob_mean(self.times)
+        data = {}
+        if type == "PWR":
+            data = fz.mean_cons(self.data[type][exit])
+        if type == "DEM":
+            data = fz.diff_cons(self.data[type][exit])
+
+        sci_data = {"sci_data": data, "times": times}
+        return sci_data
 
     # ------------------------------------------------------------------------------------------------------------------
     # Plot Functions
     # ------------------------------------------------------------------------------------------------------------------
-    # Plot the 4 exits DEM or PWR of the Polarimeter
+    # Plot the 4 exits PWR or DEM of the Polarimeter
+    # Parameters:
+    # type (str) "PWR" or "DEM"
+    # begin, end (int): interval of dataset that has to be considered
     # ------------------------------------------------------------------------------------------------------------------
-    def Plot(self, type: str, begin: int, end: int):
+    def Plot_Output(self, type: str, begin: int, end: int):
         fig = plt.figure(figsize=(20, 4))
         o = 0
         for exit in ["Q1", "Q2", "U1", "U2"]:
@@ -165,87 +194,121 @@ class Polarimeter:
         plt.close(fig)
 
     # ------------------------------------------------------------------------------------------------------------------
-    # Plot of:
-    # 1) Raw data DEM or PWR
-    # 2) RMS using Rolling Window method
+    # Plot of Raw data DEM or PWR (Even, Odd or All)
     # Parameters:
-    # - kind (str) of data DEM or PWR
-    # - n_samples (int): number of samples I want to plot
-    # - smooth_len (int): used for the mobile mean
-    # - even, odd, every (int): used for the transparency of the datas (0=transparent, 1=visible)
-    # - y_scale (bool) True -> Homogeneous scale on y-axis. Default: False
+    # - type (str) of data DEM or PWR
+    # - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
+    # - begin, end (int): interval of the samples I want to plot
     # ------------------------------------------------------------------------------------------------------------------
-    def Analyze(self, type: str, n_samples: int, smooth_len: int, even: int, odd: int, every: int, y_scale=False):
-
-        chunk_length = 5 * self.STRIP_SAMPLING_FREQ
-        up = [-np.inf, -np.inf]
-        down = [np.inf, np.inf]
-
-        print(f"{type} data are now plotted.")
-        # True: Homogeneous scale on Y-axis
-        if y_scale:
-            print("Homogeneous scale on Y-axis.")
-            # Look up for max & min -------------------------------------------
-            for exit in ["Q1", "Q2", "U1", "U2"]:
-                # Output
-                up[0] = np.max([up[0], np.max(self.data[type][exit][:n_samples - 1:2])])
-                down[0] = np.min([down[0], np.min(self.data[type][exit][1:n_samples:2])])
-                # RMS
-                up[1] = np.max([up[1], np.max(np.std(self.data[type][exit][:n_samples - 1:2]))])
-                down[1] = np.min([down[1], np.min(np.std(self.data[type][exit][1:n_samples:2]))])
-
-            # Sth more clever needed
-            up[0] = np.max(up[0]) + np.max(up[0]) / 3
-            down[0] = np.min(down[0]) - np.abs(np.min(down[0]) / 3)
-            up[1] = np.max(up[1]) + np.max(up[1]) / 3
-            down[1] = np.min(down[1]) - np.abs(np.min(down[1]) / 3)
-        # -----------------------------------------------------------------
-
-        f1 = plt.figure(figsize=(15, 4))
-        f2 = plt.figure(figsize=(15, 4))
-
+    def Plot_EvenOddAll(self, type: str, even: int, odd: int, all: int, begin=100, end=-100):
+        # Put a double line, uno con true yaxis e uno con false
+        y_scale_limits = [np.inf, -np.inf]
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
         n = 0  # type: int
-        for exit in ["Q1", "Q2", "U1", "U2"]:
-            n = n + 1
-            # Output Plot
-            ax1 = f1.add_subplot(1, 4, n)
-            ax1.plot(self.times[0:-1:2], self.data[f"{type}"][exit][0:-1:2], ".b", alpha=even, label="Even Datas")
-            ax1.plot(self.times[1::2], self.data[f"{type}"][exit][1::2], ".r", alpha=odd, label="Odd Datas")
-            ax1.plot(self.times, self.data[f"{type}"][exit], ".g", alpha=every, label="All datas")
+        for i in range(2):
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                n = n + 1
+                # Output Plot
+                axs = fig.add_subplot(2, 4, n)
 
-            # RMS Plot
-            ax2 = f2.add_subplot(1, 4, n)
-            ax2.plot((self.times[:n_samples - 1:2])[:-smooth_len - chunk_length + 2], fz.mob_mean(
-                np.std(fz.rolling_window(self.data[type][exit][:n_samples - 1:2], chunk_length), axis=1), smooth_len),
-                     "b", alpha=even, label="Even Datas")
-            ax2.plot((self.times[1:n_samples:2])[:-smooth_len - chunk_length + 2], fz.mob_mean(
-                np.std(fz.rolling_window(self.data[type][exit][1:n_samples:2], chunk_length), axis=1), smooth_len),
-                     "r", alpha=odd, label="Odd Datas")
-            ax2.plot((self.times[:n_samples])[:-smooth_len - chunk_length + 2], fz.mob_mean(
-                np.std(fz.rolling_window(self.data[type][exit][:n_samples], chunk_length), axis=1), smooth_len), "g",
-                     alpha=every, label="All Datas")
-            # Title
-            ax1.set_title(f'{type} {exit}')
-            ax2.set_title(f'{type} {exit}')
-            # X-axis
-            if self.norm_mode == 0:
-                ax1.set_xlabel("# Samples")
-                ax2.set_xlabel("# Samples")
-            if self.norm_mode == 1:
-                ax1.set_xlabel("Time [s]")
-                ax2.set_xlabel("Time [s]")
-            # Y-axis
-            ax1.set_ylabel(f"Output [{type}]")
-            ax2.set_ylabel(f"RMS Rolling [{type}] {exit}")
-            # True: Homogeneous scale on y-axis
-            if y_scale:
-                ax1.set_ylim(down[0], up[0])
-                ax2.set_ylim(down[1], up[1])
-            # Legend
-            ax1.legend(prop={'size': 9})
-            ax2.legend(prop={'size': 9})
+                axs.plot(self.times[begin:end - 1:2],
+                         self.data[f"{type}"][exit][begin:end - 1:2], ".b", alpha=even, label="Even Datas")
+                axs.plot(self.times[begin + 1:end:2],
+                         self.data[f"{type}"][exit][begin + 1:end:2], ".r", alpha=odd, label="Odd Datas")
+                axs.plot(self.times,
+                         self.data[f"{type}"][exit], ".g", alpha=all, label="All datas")
+                if i == 0:
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(self.data[f"{type}"][exit])])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(self.data[f"{type}"][exit])])
+                # Title
+                axs.set_title(f'{type} {exit}')
+                # X-axis
+                if self.norm_mode == 0:
+                    axs.set_xlabel("# Samples")
+                if self.norm_mode == 1:
+                    axs.set_xlabel("Time [s]")
+                # Y-axis
+                axs.set_ylabel(f"Output [{type}]")
+                if i == 1:
+                    axs.set_ylim(y_scale_limits[0], y_scale_limits[1])
+                # Legend
+                axs.legend(prop={'size': 9})
 
-        f1.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_EOA.png')
-        plt.close(f1)
-        f2.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_EOA_RMS.png')
-        plt.close(f2)
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_EOA_{all}.png')
+        plt.close(fig)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Plot of Raw data DEM or PWR (Even, Odd or All)
+    # Parameters:
+    # - type (str) of data DEM or PWR
+    # - window: number of elements on which the RMS is calculated
+    # - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
+    # - begin, end (int): interval of the samples I want to plot
+    # - smooth_len (int): used for the mobile mean
+    # ------------------------------------------------------------------------------------------------------------------
+    def Plot_RMS_EOA(self, type: str, window: int, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
+        # Put a double line, uno con true yaxis e uno con false
+        y_scale_limits = [np.inf, -np.inf]
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+        n = 0  # type: int
+        for i in range(2):
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                n = n + 1
+                # Output Plot
+                axs = fig.add_subplot(2, 4, n)
+
+                rms_all = fz.mob_mean(RMS(self.data, window=window, type=type, exit=exit, eoa=0, begin=begin, end=end),
+                                      smooth_len=smooth_len)
+                axs.plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
+                         fz.mob_mean(RMS(self.data, window=window, type=type, exit=exit, eoa=2, begin=begin, end=end),
+                                     smooth_len=smooth_len),
+                         "b", alpha=even, label="Even Datas")
+                axs.plot(self.times[begin + 1:end:2][:-window - smooth_len + 2],
+                         fz.mob_mean(RMS(self.data, window=window, type=type, exit=exit, eoa=1, begin=begin, end=end),
+                                     smooth_len=smooth_len),
+                         "r", alpha=odd, label="Odd Datas")
+                axs.plot(self.times[begin:end][:-window - smooth_len + 2],
+                         rms_all,
+                         "g", alpha=all, label="All datas")
+                if i == 0:
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(rms_all)])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(rms_all)])
+                # Title
+                axs.set_title(f'RMS {type} {exit}')
+                # X-axis
+                if self.norm_mode == 0:
+                    axs.set_xlabel("# Samples")
+                if self.norm_mode == 1:
+                    axs.set_xlabel("Time [s]")
+                # Y-axis
+                axs.set_ylabel(f"RMS [{type}]")
+                if i == 1:
+                    axs.set_ylim(y_scale_limits[0], y_scale_limits[1])
+                # Legend
+                axs.legend(prop={'size': 9})
+
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_RMS_EOA={all}_smooth={smooth_len}.png')
+        plt.close(fig)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Calculate the RMS of a vector using the rolling window
+# Parameters:
+# - window: number of elements on which the RMS is calculated
+# - type (str) "DEM" or "PWR"
+# - exit (str) "Q1", "Q2", "U1", "U2"
+# - eoa (int): flag in order to calculate RMS for
+#           all samples (eoa=0), can be used for Demodulated and Total Power scientific data (50Hz)
+#           odd samples (eoa=1)
+#           even samples (eoa=2)
+# begin, end (int): interval of dataset that has to be considered
+# ---------------------------------------------------------------------------------------------------------------------
+def RMS(data, window: int, type: str, exit: str, eoa: int, begin=100, end=-100):
+    if eoa == 0:
+        rms = np.std(fz.rolling_window(data[type][exit][begin:end], window), axis=1)
+    if eoa == 1:
+        rms = np.std(fz.rolling_window(data[type][exit][begin + 1:end:2], window), axis=1)
+    if eoa == 2:
+        rms = np.std(fz.rolling_window(data[type][exit][begin:end - 1:2], window), axis=1)
+    return rms
+
