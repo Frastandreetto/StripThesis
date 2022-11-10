@@ -205,38 +205,37 @@ class Polarimeter:
         """
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
-        n = 0  # type: int
-        for i in range(2):
-            for exit in ["Q1", "Q2", "U1", "U2"]:
-                n = n + 1
-                # Output Plot
-                axs = fig.add_subplot(2, 4, n)
 
-                axs.plot(self.times[begin:end - 1:2][:- smooth_len],
-                         fz.mob_mean(self.data[type][exit][begin:end - 2:2], smooth_len=smooth_len),
-                         "b", alpha=even, label="Even Datas")
-                axs.plot(self.times[begin + 1:end:2][:- smooth_len],
-                         fz.mob_mean(self.data[type][exit][begin + 1:end-1:2], smooth_len=smooth_len),
-                         "r", alpha=odd, label="Odd Datas")
-                axs.plot(self.times[begin:end][:- smooth_len],
-                         fz.mob_mean(self.data[type][exit][begin:end-1], smooth_len=smooth_len),
-                         "g", alpha=all, label="All datas")
+        for i in range(2):
+            n = 0  # type: int
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                axs[i, n].plot(self.times[begin:end - 1:2][:- smooth_len],
+                               fz.mob_mean(self.data[type][exit][begin:end - 2:2], smooth_len=smooth_len),
+                               "b", alpha=even, label="Even Datas")
+                axs[i, n].plot(self.times[begin + 1:end:2][:- smooth_len],
+                               fz.mob_mean(self.data[type][exit][begin + 1:end - 1:2], smooth_len=smooth_len),
+                               "r", alpha=odd, label="Odd Datas")
+                axs[i, n].plot(self.times[begin:end][:- smooth_len],
+                               fz.mob_mean(self.data[type][exit][begin:end - 1], smooth_len=smooth_len),
+                               "g", alpha=all, label="All datas")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(self.data[type][exit])])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(self.data[type][exit])])
                 # Title
-                axs.set_title(f'{type} {exit}')
+                axs[i, n].set_title(f'{type} {exit}')
                 # X-axis
                 if self.norm_mode == 0:
-                    axs.set_xlabel("# Samples")
+                    axs[i, n].set_xlabel("# Samples")
                 if self.norm_mode == 1:
-                    axs.set_xlabel("Time [s]")
+                    axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
-                axs.set_ylabel(f"Output [{type}]")
+                axs[i, n].set_ylabel(f"Output [{type}]")
                 if i == 1:
-                    axs.set_ylim(y_scale_limits[0], y_scale_limits[1])
+                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
-                axs.legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9})
+
+                n += 1
 
         eoa = EOA(even=even, odd=odd, all=all)
         fig.savefig(
@@ -256,54 +255,55 @@ class Polarimeter:
         """
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
-        n = 0  # type: int
 
         for i in range(2):
+            n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
-                n = n + 1
-                axs = fig.add_subplot(2, 4, n)
                 rms_all = fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end),
                                       smooth_len=smooth_len)
 
-                axs.plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
-                         fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
-                                     smooth_len=smooth_len),
-                         "b", alpha=even, label="Even Datas")
-                axs.plot(self.times[begin + 1:end:2][:-window - smooth_len + 2],
-                         fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
-                                     smooth_len=smooth_len),
-                         "r", alpha=odd, label="Odd Datas")
-                axs.plot(self.times[begin:end][:-window - smooth_len + 2],
-                         rms_all,
-                         "g", alpha=all, label="All datas")
+                axs[i, n].plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
+                               fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
+                                           smooth_len=smooth_len),
+                               "b", alpha=even, label="Even Datas")
+                axs[i, n].plot(self.times[begin + 1:end:2][:-window - smooth_len + 2],
+                               fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
+                                           smooth_len=smooth_len),
+                               "r", alpha=odd, label="Odd Datas")
+                axs[i, n].plot(self.times[begin:end][:-window - smooth_len + 2],
+                               rms_all,
+                               "g", alpha=all, label="All datas")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(rms_all)])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(rms_all)])
                 # Title
-                axs.set_title(f'RMS {type} {exit}')
+                axs[i, n].set_title(f'RMS {type} {exit}')
                 # X-axis
                 if self.norm_mode == 0:
-                    axs.set_xlabel("# Samples")
+                    axs[i, n].set_xlabel("# Samples")
                 if self.norm_mode == 1:
-                    axs.set_xlabel("Time [s]")
+                    axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
-                axs.set_ylabel(f"RMS [{type}]")
+                axs[i, n].set_ylabel(f"RMS [{type}]")
                 if i == 1:
-                    axs.set_ylim(y_scale_limits[0], y_scale_limits[1])
+                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
-                axs.legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9})
+
+                n += 1
 
         eoa = EOA(even=even, odd=odd, all=all)
         fig.savefig(
             f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.png')
         plt.close(fig)
 
-    def Plot_SciData(self, type: str, begin=100, end=-100):
+    def Plot_SciData(self, type: str, begin=100, end=-100, smooth_len=1):
         """
         Plot of Scientific data DEMODULATED or TOTAL POWER\n
         Parameters:\n
         - type (str) of data "DEM" or "PWR"\n
         - begin, end (int): interval of dataset that has to be considered\n
+        - smooth_len (int): number of elements on which the mobile mean is calculated
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
         y_scale_limits = [np.inf, -np.inf]
@@ -313,33 +313,34 @@ class Polarimeter:
             data_name = "TOT_POWER"
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
-        n = 0  # type: int
         for i in range(2):
+            n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 sci_data = self.Demodulation(type=type, exit=exit)
 
-                n = n + 1
-                axs = fig.add_subplot(2, 4, n)
-                axs.plot(sci_data["times"][begin:end - 1], sci_data["sci_data"][exit][begin:end - 1],
-                         label=f"{data_name}")
+                axs[i, n].plot(sci_data["times"][begin:end - 1][:-smooth_len],
+                               fz.mob_mean(sci_data["sci_data"][exit][begin:end - 2], smooth_len=smooth_len),
+                               label=f"{data_name}")
                 if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(sci_data["sci_data"][exit][begin:end - 1])])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(sci_data["sci_data"][exit][begin:end - 1])])
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(sci_data["sci_data"][exit][begin:end - 2])])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(sci_data["sci_data"][exit][begin:end - 2])])
                 # Title
-                axs.set_title(f'{data_name} {exit}')
+                axs[i, n].set_title(f'{data_name} {exit}')
                 # X-axis
                 if self.norm_mode == 0:
-                    axs.set_xlabel("# Samples")
+                    axs[i, n].set_xlabel("# Samples")
                 if self.norm_mode == 1:
-                    axs.set_xlabel("Time [s]")
+                    axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
-                axs.set_ylabel(f"{data_name}")
+                axs[i, n].set_ylabel(f"{data_name}")
                 if i == 1:
-                    axs.set_ylim(y_scale_limits[0], y_scale_limits[1])
+                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
-                axs.legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9})
 
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{data_name}.png')
+                n += 1
+
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{data_name}_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_RMS_SciData(self, type: str, window: int, begin=100, end=-100, smooth_len=1):
@@ -359,34 +360,35 @@ class Polarimeter:
             data_name = "TOT_POWER"
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
-        n = 0  # type: int
+
         for i in range(2):
+            n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 sci_data = self.Demodulation(type=type, exit=exit)
                 rms_all = fz.mob_mean(RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end),
                                       smooth_len=smooth_len)
-                n = n + 1
-                axs = fig.add_subplot(2, 4, n)
 
-                axs.plot(sci_data["times"][begin:end][:-window - smooth_len + 2], rms_all,
-                         "b", label=f"RMS {data_name}")
+                axs[i, n].plot(sci_data["times"][begin:end][:-window - smooth_len + 2], rms_all,
+                               "b", label=f"RMS {data_name}")
 
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(rms_all)])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(rms_all)])
                 # Title
-                axs.set_title(f'RMS {data_name} {exit}')
+                axs[i, n].set_title(f'RMS {data_name} {exit}')
                 # X-axis
                 if self.norm_mode == 0:
-                    axs.set_xlabel("# Samples")
+                    axs[i, n].set_xlabel("# Samples")
                 if self.norm_mode == 1:
-                    axs.set_xlabel("Time [s]")
+                    axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
-                axs.set_ylabel(f"RMS {data_name}")
+                axs[i, n].set_ylabel(f"RMS {data_name}")
                 if i == 1:
-                    axs.set_ylim(y_scale_limits[0], y_scale_limits[1])
+                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
-                axs.legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9})
+
+                n += 1
 
         fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{data_name}_RMS_smooth={smooth_len}.png')
         plt.close(fig)
@@ -409,70 +411,20 @@ class Polarimeter:
 
         fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(13, 3))
         # Times, we should see dot-shape jumps
-        axs = fig.add_subplot(1, 2, 1)
-        axs.plot(np.arange(len(self.times)), self.times, '*')
-        axs.set_title(f"{self.name} Timestamps")
-        axs.set_xlabel("# Sample")
-        axs.set_ylabel("Time [s]")
+        axs[0].plot(np.arange(len(self.times)), self.times, '*')
+        axs[0].set_title(f"{self.name} Timestamps")
+        axs[0].set_xlabel("# Sample")
+        axs[0].set_ylabel("Time [s]")
 
         # Delta t
-        axs = fig.add_subplot(1, 2, 2)
         deltat = fz.diff_cons(self.times)
-        axs.plot(deltat, "*g")
-        axs.set_title(f"Delta t {self.name}")
-        axs.set_xlabel("# Sample")
-        axs.set_ylabel("Delta t [s]")
-        axs.set_ylim(-1.0, 1.0)
+        axs[1].plot(deltat, "*g")
+        axs[1].set_title(f"Delta t {self.name}")
+        axs[1].set_xlabel("# Sample")
+        axs[1].set_ylabel("Delta t [s]")
+        axs[1].set_ylim(-1.0, 1.0)
 
         fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_Timestamps.png')
-        plt.close(fig)
-
-    def Plot_FFT_EvenOdd(self, type: str, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
-        """
-        Plot of Fourier Spectra of Even Odd data\n
-        Parameters:\n
-        - type (str) of data "DEM" or "PWR"
-        - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
-        - begin, end (int): interval of dataset that has to be considered
-        - smooth_len (int): number of elements on which the mobile mean is calculated
-        Note: plots on two rows (uniform Y-scale below)
-        """
-        # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
-        fs = self.STRIP_SAMPLING_FREQ / 2
-        scaling = "spectrum"
-        y_scale_limits = [np.inf, -np.inf]
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
-        n = 0  # type: int
-
-        for i in range(2):
-            for exit in ["Q1", "Q2", "U1", "U2"]:
-                n = n + 1
-                axs = fig.add_subplot(2, 4, n)
-
-                f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs, scaling=scaling)
-                axs.plot(f[smooth_len:-smooth_len], fz.mob_mean(s, smooth_len), alpha=all, label="All samples")
-
-                if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s)])
-
-                f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs, scaling=scaling)
-                axs.plot(f[smooth_len:-smooth_len], fz.mob_mean(s, smooth_len), alpha=even, label=f"Even samples")
-
-                f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs, scaling=scaling)
-                axs.plot(f[smooth_len:-smooth_len], fz.mob_mean(s, smooth_len), alpha=odd, label=f"Odd samples")
-
-                axs.set_yscale('log')
-                axs.set_xscale('log')
-                axs.set_title(f"FFT {type} {exit}")
-                plt.xlabel("Frequency [Hz]")
-                plt.ylabel(f"FFT [{type}]")
-                if i == 1:
-                    axs.set_ylim(y_scale_limits[0], y_scale_limits[1])
-                # Legend
-                plt.legend(prop={'size': 6})
-
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_{type}_EOA={all}_smooth={smooth_len}.png')
         plt.close(fig)
 
 
