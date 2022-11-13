@@ -209,15 +209,16 @@ class Polarimeter:
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
+
                 axs[i, n].plot(self.times[begin:end - 1:2][:- smooth_len],
-                               fz.mob_mean(self.data[type][exit][begin:end - 2:2], smooth_len=smooth_len),
-                               "b", alpha=even, label="Even Datas")
+                               fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len)[:-1],
+                               "b", alpha=even, label="Even Data")
                 axs[i, n].plot(self.times[begin + 1:end:2][:- smooth_len],
-                               fz.mob_mean(self.data[type][exit][begin + 1:end - 1:2], smooth_len=smooth_len),
-                               "r", alpha=odd, label="Odd Datas")
+                               fz.mob_mean(self.data[type][exit][begin + 1:end:2], smooth_len=smooth_len)[:-1],
+                               "r", alpha=odd, label="Odd Data")
                 axs[i, n].plot(self.times[begin:end][:- smooth_len],
-                               fz.mob_mean(self.data[type][exit][begin:end - 1], smooth_len=smooth_len),
-                               "g", alpha=all, label="All datas")
+                               fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len)[:-1],
+                               "g", alpha=all, label="All data")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(self.data[type][exit])])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(self.data[type][exit])])
@@ -248,7 +249,7 @@ class Polarimeter:
         Parameters:\n
         - type (str) of data "DEM" or "PWR"
         - window (int): number of elements on which the RMS is calculated
-        - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
+        - even, odd, all (int): used for the transparency of the data (0=transparent, 1=visible)
         - begin, end (int): interval of dataset that has to be considered
         - smooth_len (int): number of elements on which the mobile mean is calculated
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
@@ -265,14 +266,14 @@ class Polarimeter:
                 axs[i, n].plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
                                fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
                                            smooth_len=smooth_len),
-                               "b", alpha=even, label="Even Datas")
+                               "b", alpha=even, label="Even Data")
                 axs[i, n].plot(self.times[begin + 1:end:2][:-window - smooth_len + 2],
                                fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
                                            smooth_len=smooth_len),
-                               "r", alpha=odd, label="Odd Datas")
+                               "r", alpha=odd, label="Odd Data")
                 axs[i, n].plot(self.times[begin:end][:-window - smooth_len + 2],
                                rms_all,
-                               "g", alpha=all, label="All datas")
+                               "g", alpha=all, label="All data")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(rms_all)])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(rms_all)])
@@ -295,6 +296,94 @@ class Polarimeter:
         eoa = EOA(even=even, odd=odd, all=all)
         fig.savefig(
             f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.png')
+        plt.close(fig)
+
+    def Plot_Correlation_EvenOdd(self, type: str, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Raw data DEM or PWR: Even vs Odd to see the correlation\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"\n
+        - begin, end (int): interval of dataset that has to be considered\n
+        - smooth_len (int): number of elements on which the mobile mean is calculated
+        Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
+        """
+        y_scale_limits = [np.inf, -np.inf]
+        x_scale_limits = [np.inf, -np.inf]
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+
+        for i in range(2):
+            n = 0  # type: int
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                x = fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len)
+                y = fz.mob_mean(self.data[type][exit][begin + 1:end:2], smooth_len=smooth_len)
+                axs[i, n].plot(x, y, "*", color="orange", label="Corr Data")
+                if i == 0:
+                    x_scale_limits[0] = np.min([x_scale_limits[0], np.min(x) - 0.2 * np.abs(np.mean(x))])
+                    x_scale_limits[1] = np.max([x_scale_limits[1], np.max(x) + 0.2 * np.abs(np.mean(x))])
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(y) - 0.2 * np.abs(np.mean(y))])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(y) + 0.2 * np.abs(np.mean(y))])
+                # Title
+                axs[i, n].set_title(f'Corr {type} {exit}')
+                # XY-axis
+                axs[i, n].set_xlabel("Even Samples")
+                axs[i, n].set_ylabel(f"Odd Samples")
+                if i == 1:
+                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
+                    axs[i, n].set_xlim(x_scale_limits[0], x_scale_limits[1])
+                # Legend
+                axs[i, n].legend(prop={'size': 9})
+
+                n += 1
+
+        fig.savefig(
+            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_Correlation_EO_smooth={smooth_len}.png')
+        plt.close(fig)
+
+    def Plot_Correlation_RMS_EO(self, type: str, window: int, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Raw data DEM or PWR: Even vs Odd to see the correlation\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"\n
+        - window (int): number of elements on which the RMS is calculated
+        - begin, end (int): interval of dataset that has to be considered\n
+        - smooth_len (int): number of elements on which the mobile mean is calculated
+        Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
+        """
+        y_scale_limits = [np.inf, -np.inf, 0]  # type: []
+        x_scale_limits = [np.inf, -np.inf, 0]  # type: []
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+
+        for i in range(2):
+            n = 0  # type: int
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                x = fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
+                                smooth_len=smooth_len)
+                y = fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
+                                smooth_len=smooth_len)
+                axs[i, n].plot(x, y, "*", color="teal", label="Corr RMS")
+
+                if i == 0:
+                    x_scale_limits[0] = np.min([x_scale_limits[0], np.min(x) - 0.2 * np.abs(np.mean(x))])
+                    x_scale_limits[1] = np.max([x_scale_limits[1], np.max(x) + 0.2 * np.abs(np.mean(x))])
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(y) - 0.2 * np.abs(np.mean(y))])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(y) + 0.2 * np.abs(np.mean(y))])
+                # Title
+                axs[i, n].set_title(f'RMS Corr {type} {exit}')
+                # XY-axis
+                axs[i, n].set_xlabel("RMS Even Samples")
+                axs[i, n].set_ylabel(f"RMS Odd Samples")
+                if i == 1:
+                    axs[i, n].set_ylim(y_scale_limits[0],
+                                       y_scale_limits[1])
+                    axs[i, n].set_xlim(x_scale_limits[0],
+                                       x_scale_limits[1])
+                # Legend
+                axs[i, n].legend(prop={'size': 9})
+
+                n += 1
+
+        fig.savefig(
+            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_Correlation_RMS_EO_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_SciData(self, type: str, begin=100, end=-100, smooth_len=1):
