@@ -212,13 +212,13 @@ class Polarimeter:
 
                 axs[i, n].plot(self.times[begin:end - 1:2][:- smooth_len],
                                fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len)[:-1],
-                               "b", alpha=even, label="Even Data")
+                               color="royalblue", alpha=even, label="Even Data")
                 axs[i, n].plot(self.times[begin + 1:end:2][:- smooth_len],
                                fz.mob_mean(self.data[type][exit][begin + 1:end:2], smooth_len=smooth_len)[:-1],
-                               "r", alpha=odd, label="Odd Data")
+                               color="crimson", alpha=odd, label="Odd Data")
                 axs[i, n].plot(self.times[begin:end][:- smooth_len],
                                fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len)[:-1],
-                               "g", alpha=all, label="All data")
+                               color="limegreen", alpha=all, label="All data")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(self.data[type][exit])])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(self.data[type][exit])])
@@ -266,14 +266,14 @@ class Polarimeter:
                 axs[i, n].plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
                                fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
                                            smooth_len=smooth_len),
-                               "b", alpha=even, label="Even Data")
+                               color="royalblue", alpha=even, label="Even Data")
                 axs[i, n].plot(self.times[begin + 1:end:2][:-window - smooth_len + 2],
                                fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
                                            smooth_len=smooth_len),
-                               "r", alpha=odd, label="Odd Data")
+                               color="crimson", alpha=odd, label="Odd Data")
                 axs[i, n].plot(self.times[begin:end][:-window - smooth_len + 2],
                                rms_all,
-                               "g", alpha=all, label="All data")
+                               color="limegreen", alpha=all, label="All data")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(rms_all)])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(rms_all)])
@@ -409,7 +409,7 @@ class Polarimeter:
 
                 axs[i, n].plot(sci_data["times"][begin:end - 1][:-smooth_len],
                                fz.mob_mean(sci_data["sci_data"][exit][begin:end - 2], smooth_len=smooth_len),
-                               label=f"{data_name}")
+                               color="mediumpurple", label=f"{data_name}")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(sci_data["sci_data"][exit][begin:end - 2])])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(sci_data["sci_data"][exit][begin:end - 2])])
@@ -458,7 +458,7 @@ class Polarimeter:
                                       smooth_len=smooth_len)
 
                 axs[i, n].plot(sci_data["times"][begin:end][:-window - smooth_len + 2], rms_all,
-                               "b", label=f"RMS {data_name}")
+                               color="mediumvioletred", label=f"RMS {data_name}")
 
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(rms_all)])
@@ -507,13 +507,229 @@ class Polarimeter:
 
         # Delta t
         deltat = fz.diff_cons(self.times)
-        axs[1].plot(deltat, "*g")
+        axs[1].plot(deltat, "*forestgreen")
         axs[1].set_title(f"Delta t {self.name}")
         axs[1].set_xlabel("# Sample")
         axs[1].set_ylabel("Delta t [s]")
         axs[1].set_ylim(-1.0, 1.0)
 
         fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_Timestamps.png')
+        plt.close(fig)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # FOURIER SPECTRA ANALYSIS
+    # ------------------------------------------------------------------------------------------------------------------
+
+    def Plot_FFT_EvenOdd(self, type: str, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Fourier Spectra of Even Odd data\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"
+        - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
+        - begin, end (int): interval of dataset that has to be considered
+        - smooth_len (int): number of elements (of the dataset before the FFT is computed)
+        on which the mobile mean is calculated
+        Note: plots on two rows (uniform Y-scale below)
+        """
+        # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
+        fs = self.STRIP_SAMPLING_FREQ / 2
+        scaling = "spectrum"
+        y_scale_limits = [np.inf, -np.inf]
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+
+        for i in range(2):
+            n = 0  # type: int
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+
+                f, s = scipy.signal.welch(fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len),
+                                          fs=fs, scaling=scaling)
+                axs[i, n].plot(f, s, color="limegreen", alpha=all, label="All samples")
+
+                if i == 0:
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
+
+                f, s = scipy.signal.welch(fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len),
+                                          fs=fs, scaling=scaling)
+                axs[i, n].plot(f, s, color="royalblue", alpha=even, label=f"Even samples")
+
+                f, s = scipy.signal.welch(fz.mob_mean(self.data[type][exit][begin + 1:end:2], smooth_len=smooth_len),
+                                          fs=fs, scaling=scaling)
+                axs[i, n].plot(f, s, color="crimson", alpha=odd, label=f"Odd samples")
+
+                axs[i, n].set_yscale('log')
+                axs[i, n].set_xscale('log')
+                axs[i, n].set_title(f"FFT {type} {exit}")
+                axs[i, n].set_xlabel("Frequency [Hz]")
+                axs[i, n].set_ylabel(f"FFT [{type}]")
+                if i == 1:
+                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
+                # Legend
+                axs[i, n].legend(prop={'size': 6})
+
+                n += 1
+
+        eoa = EOA(even=even, odd=odd, all=all)
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_{type}_{eoa}_smooth={smooth_len}.png')
+        plt.close(fig)
+
+    def Plot_FFT_RMS_EO(self, type: str, window: int, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Fourier Spectra of the RMS of Even Odd data\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"
+        - window (int): number of elements on which the RMS is calculated
+        - even, odd, all (int): used for the transparency of the datas (0=transparent, 1=visible)
+        - begin, end (int): interval of dataset that has to be considered
+        - smooth_len (int): number of elements (of the dataset before the FFT is computed)
+        on which the mobile mean is calculated
+        Note: plots on two rows (uniform Y-scale below)
+        """
+        # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
+        fs = self.STRIP_SAMPLING_FREQ / 2
+        scaling = "spectrum"
+        y_scale_limits = [np.inf, -np.inf]
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+
+        for i in range(2):
+            n = 0  # type: int
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+
+                rms = fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end),
+                                  smooth_len=smooth_len)
+                f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
+                axs[i, n].plot(f, s, color="limegreen", alpha=all, label="All samples")
+
+                if i == 0:
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
+
+                rms = fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
+                                  smooth_len=smooth_len)
+                f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
+                axs[i, n].plot(f, s, color="royalblue", alpha=even, label=f"Even samples")
+
+                rms = fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
+                                  smooth_len=smooth_len)
+                f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
+                axs[i, n].plot(f, s, color="crimson", alpha=odd, label=f"Odd samples")
+
+                axs[i, n].set_yscale('log')
+                axs[i, n].set_xscale('log')
+                axs[i, n].set_title(f"FFT {type} {exit}")
+                axs[i, n].set_xlabel("Frequency [Hz]")
+                axs[i, n].set_ylabel(f"FFT [{type}]")
+                if i == 1:
+                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
+                # Legend
+                axs[i, n].legend(prop={'size': 6})
+
+                n += 1
+
+        eoa = EOA(even=even, odd=odd, all=all)
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_RMS_{type}_{eoa}_smooth={smooth_len}.png')
+        plt.close(fig)
+
+    def Plot_FFT_SciData(self, type: str, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Fourier Spectra of Scientific data\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"
+        - begin, end (int): interval of dataset that has to be considered
+        - smooth_len (int): number of elements (of the dataset before the FFT is computed)
+        on which the mobile mean is calculated
+        Note: plots on two rows (uniform Y-scale below)
+        """
+        # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
+        fs = self.STRIP_SAMPLING_FREQ / 2
+        scaling = "spectrum"
+        y_scale_limits = [np.inf, -np.inf]
+        if type == "DEM":
+            data_name = "DEMODULATED"
+        if type == "PWR":
+            data_name = "TOT_POWER"
+
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+
+        for i in range(2):
+            n = 0  # type: int
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                sci_data = self.Demodulation(type=type, exit=exit)
+
+                f, s = scipy.signal.welch(fz.mob_mean(sci_data["sci_data"][exit][begin:end], smooth_len=smooth_len),
+                                          fs=fs, scaling=scaling)
+                axs[i, n].plot(f, s, color="mediumpurple", label=f"{data_name}")
+
+                if i == 0:
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
+
+                axs[i, n].set_yscale('log')
+                axs[i, n].set_xscale('log')
+                axs[i, n].set_title(f"FFT {data_name} {exit}")
+                axs[i, n].set_xlabel("Frequency [Hz]")
+                axs[i, n].set_ylabel(f"FFT [{data_name}]")
+                if i == 1:
+                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
+                # Legend
+                axs[i, n].legend(prop={'size': 6})
+
+                n += 1
+
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_{data_name}_smooth={smooth_len}.png')
+        plt.close(fig)
+
+    def Plot_FFT_RMS_SciData(self, type: str, window: int, begin=100, end=-100, smooth_len=1):
+        """
+        Plot of Fourier Spectra of the RMS of Scientific data\n
+        Parameters:\n
+        - type (str) of data "DEM" or "PWR"
+        - window (int): number of elements on which the RMS is calculated
+        - begin, end (int): interval of dataset that has to be considered
+        - smooth_len (int): number of elements (of the dataset before the FFT is computed)
+        on which the mobile mean is calculated
+        Note: plots on two rows (uniform Y-scale below)
+        """
+        # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
+        fs = self.STRIP_SAMPLING_FREQ / 2
+        scaling = "spectrum"
+        y_scale_limits = [np.inf, -np.inf]
+        if type == "DEM":
+            data_name = "DEMODULATED"
+        if type == "PWR":
+            data_name = "TOT_POWER"
+
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+
+        for i in range(2):
+            n = 0  # type: int
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                sci_data = self.Demodulation(type=type, exit=exit)
+
+                f, s = scipy.signal.welch(
+                    fz.mob_mean(RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end),
+                                smooth_len=smooth_len),
+                    fs=fs, scaling=scaling)
+
+                axs[i, n].plot(f, s, color="mediumvioletred", label=f"RMS {data_name}")
+
+                if i == 0:
+                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
+                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
+
+                axs[i, n].set_yscale('log')
+                axs[i, n].set_xscale('log')
+                axs[i, n].set_title(f"FFT RMS {data_name} {exit}")
+                axs[i, n].set_xlabel("Frequency [Hz]")
+                axs[i, n].set_ylabel(f"FFT RMS [{data_name}]")
+                if i == 1:
+                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
+                # Legend
+                axs[i, n].legend(prop={'size': 6})
+
+                n += 1
+
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_RMS_{data_name}_smooth={smooth_len}.png')
         plt.close(fig)
 
 
