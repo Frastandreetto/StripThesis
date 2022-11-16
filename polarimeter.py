@@ -190,7 +190,7 @@ class Polarimeter:
             ax.set_ylabel(f"Output {type}")
 
         fig.savefig(
-            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}.png')
+            f'/home/francesco/Scrivania/Tesi/plot/Output/{self.name}_{type}.png')
         plt.close(fig)
 
     def Plot_EvenOddAll(self, type: str, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
@@ -240,7 +240,8 @@ class Polarimeter:
 
         eoa = EOA(even=even, odd=odd, all=all)
         fig.savefig(
-            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_{eoa}_smooth={smooth_len}.png')
+            f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/'
+            f'EOA_Output/{self.name}/{self.name}_{type}_{eoa}_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_RMS_EOA(self, type: str, window: int, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
@@ -295,7 +296,8 @@ class Polarimeter:
 
         eoa = EOA(even=even, odd=odd, all=all)
         fig.savefig(
-            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.png')
+            f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/'
+            f'EOA_RMS/{self.name}/{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_Correlation_EvenOdd(self, type: str, begin=100, end=-100, smooth_len=1):
@@ -336,7 +338,8 @@ class Polarimeter:
                 n += 1
 
         fig.savefig(
-            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_Correlation_EO_smooth={smooth_len}.png')
+            f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/'
+            f'Correlation/EO_Output/{self.name}/{self.name}_{type}_Correlation_EO_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_Correlation_RMS_EO(self, type: str, window: int, begin=100, end=-100, smooth_len=1):
@@ -383,7 +386,8 @@ class Polarimeter:
                 n += 1
 
         fig.savefig(
-            f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{type}_Correlation_RMS_EO_smooth={smooth_len}.png')
+            f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/'
+            f'Correlation/EO_RMS/{self.name}/{self.name}_{type}_Correlation_RMS_EO_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_SciData(self, type: str, begin=100, end=-100, smooth_len=1):
@@ -429,7 +433,8 @@ class Polarimeter:
 
                 n += 1
 
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{data_name}_smooth={smooth_len}.png')
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/SciData_Analysis/'
+                    f'SciData_Output/{self.name}/{self.name}_{data_name}_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_RMS_SciData(self, type: str, window: int, begin=100, end=-100, smooth_len=1):
@@ -479,7 +484,8 @@ class Polarimeter:
 
                 n += 1
 
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_{data_name}_RMS_smooth={smooth_len}.png')
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/SciData_Analysis/'
+                    f'SciData_RMS/{self.name}/{self.name}_{data_name}_RMS_smooth={smooth_len}.png')
         plt.close(fig)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -513,7 +519,8 @@ class Polarimeter:
         axs[1].set_ylabel("Delta t [s]")
         axs[1].set_ylim(-1.0, 1.0)
 
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_Timestamps.png')
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/Timestamps_Jump_Analysis/'
+                    f'{self.name}_Timestamps.png')
         plt.close(fig)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -570,7 +577,8 @@ class Polarimeter:
                 n += 1
 
         eoa = EOA(even=even, odd=odd, all=all)
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_{type}_{eoa}_smooth={smooth_len}.png')
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/'
+                    f'FFT_EOA_Output/{self.name}/{self.name}_FFT_{type}_{eoa}_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_FFT_RMS_EO(self, type: str, window: int, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1):
@@ -627,7 +635,8 @@ class Polarimeter:
                 n += 1
 
         eoa = EOA(even=even, odd=odd, all=all)
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_RMS_{type}_{eoa}_smooth={smooth_len}.png')
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/'
+                    f'FFT_EOA_RMS/{self.name}/{self.name}_FFT_RMS_{type}_{eoa}_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_FFT_SciData(self, type: str, begin=100, end=-100, smooth_len=1):
@@ -676,7 +685,8 @@ class Polarimeter:
 
                 n += 1
 
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_{data_name}_smooth={smooth_len}.png')
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/SciData_Analysis/'
+                    f'FFT_Output_SciData/{self.name}/{self.name}_FFT_{data_name}_smooth={smooth_len}.png')
         plt.close(fig)
 
     def Plot_FFT_RMS_SciData(self, type: str, window: int, begin=100, end=-100, smooth_len=1):
@@ -729,7 +739,8 @@ class Polarimeter:
 
                 n += 1
 
-        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/{self.name}_FFT_RMS_{data_name}_smooth={smooth_len}.png')
+        fig.savefig(f'/home/francesco/Scrivania/Tesi/plot/SciData_Analysis/'
+                    f'FFT_RMS_SciData/{self.name}/{self.name}_FFT_RMS_{data_name}_smooth={smooth_len}.png')
         plt.close(fig)
 
 
