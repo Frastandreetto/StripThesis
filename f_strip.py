@@ -144,11 +144,12 @@ def remove_spike(v, N=10, threshold=1.4, window=5, gauss=True):
         of the spike is i>2, with the following odd/even otherwise.
     """
     s = find_spike(v=v, threshold=threshold, window=window)
+    a, b, c, d = 0, 0, 0, 0
 
     n_spike = len(s)
     if n_spike == 0:
         return "No spikes detected in the dataset.\n"
-    for n in range(n_spike):
+    for n in range(n_spike+1):
         for i in s:
 
             if gauss:
@@ -156,23 +157,19 @@ def remove_spike(v, N=10, threshold=1.4, window=5, gauss=True):
                 Gaussian substitution
                 """
                 if i == 0:
-                    a = b = 0
                     c = 1
                     d = 1 + 2 * N
                 if 0 < i < N:
                     N = i  # type: int
                     a = -N
-                    b = 0
                     c = 1
                     d = 1 + N
                 if N < i < (len(v) - N):
                     a = -N
-                    b = 0
                     c = 1
                     d = 1 + N
                 if i > (len(v) - N - 1):
                     a = -2 * N
-                    b = c = d = 0
 
                 new_d = np.concatenate((v[i + a:i + b], v[i + c: i + d]))
                 new_m = np.mean(new_d)
