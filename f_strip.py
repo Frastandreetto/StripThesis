@@ -115,22 +115,23 @@ def find_spike(v, threshold=8.5) -> []:
     mad_dif = scs.median_abs_deviation(dif)
 
     spike_idx = []
+    v_threshold = (threshold / 2.7) * mad_v
 
     for idx, item in enumerate(dif):
         # spike up in differences
         if item > med_dif + threshold * mad_dif:
-            if v[idx * 2] > med_v + (threshold / 2.7) * mad_v:
+            if v[idx * 2] > med_v + v_threshold:
                 print(f"found spike up: {idx}")
                 spike_idx.append(idx * 2)
-            if v[idx * 2 + 1] < med_v - (threshold / 2.7) * mad_v:
+            if v[idx * 2 + 1] < med_v - v_threshold:
                 print(f"found spike down: {idx}")
                 spike_idx.append(idx * 2 + 1)
         # spike down in differences
         if item < med_dif - threshold * mad_dif:
-            if v[idx * 2] < med_v - (threshold / 2.7) * mad_v:
+            if v[idx * 2] < med_v - v_threshold:
                 print(f"found spike down: {idx}")
                 spike_idx.append(idx * 2)
-            if v[idx * 2 + 1] > med_v + (threshold / 2.7) * mad_v:
+            if v[idx * 2 + 1] > med_v + v_threshold:
                 print(f"found spike up: {idx}")
                 spike_idx.append(idx * 2 + 1)
 
@@ -165,15 +166,11 @@ def remove_spike(v, N=10, threshold=8.5, gauss=True):
             """
             Gaussian substitution
             """
-            if i == 0:
-                print(f"Spike in position zero: using the following {2 * N} samples")
+            if i == 0 or 0 < i < N:
+                print(f"Spike in low position ({i}): using the following {2 * N} samples")
+                a = 0
                 c = 1
-                d = 1 + 2 * N
-            if 0 < i < N:
-                print(f"Spike in low position ({i}): using 2N samples with N={i}")
-                a = -i  # N = i
-                c = 1
-                d = 1 + i
+                d = 1 + 2*i
             if N < i < (len(v) - N):
                 print(f"Spike in position {i}: using {2 * N} samples, {N} before e {N} after")
                 a = -N
