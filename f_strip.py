@@ -138,9 +138,9 @@ def find_spike(v, threshold=8.5) -> []:
     return spike_idx
 
 
-def remove_spike(v, N=10, threshold=8.5, gauss=True):
+def replace_spike(v, N=10, threshold=8.5, gauss=True):
     """
-    Find the 'spikes' in a given array and remove them.
+    Find the 'spikes' in a given array and replace them as follows.
     Parameters:\n
     - **v** is an array\n
     - **N** (int): number of elements used to calculate the mean and the std_dev to substitute the spike (see below).
