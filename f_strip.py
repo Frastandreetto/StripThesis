@@ -6,6 +6,8 @@
 # October 29th 2022, Brescia (Italy)
 
 import numpy as np
+import scipy.stats as scs
+import scipy.ndimage as scn
 from striptease import DataFile
 from pathlib import Path
 from numba import njit
@@ -97,40 +99,52 @@ def mob_mean(v, smooth_len: int):
     return m
 
 
-def find_spike(v, threshold=1.4, window=5) -> []:
+@njit
+def find_spike(v, threshold=8.5) -> []:
     """
-    Look up for 'spikes' in a given array.\n
-    Calculate the mean of the max and the min of the array
-    Parameters:\n
-    - **v** is an array
-    - **threshold** (int): value used to discern what a spike is
-    """
-    s = []
-
-    std = np.std(v)
-    max_mean = np.mean(np.max(rolling_window(v, window=window), axis=1))
-    min_mean = np.mean(np.min(rolling_window(v, window=window), axis=1))
-
-    n = 0
-    for i in v:
+        Look up for 'spikes' in a given array.\n
+        Calculate the mean of the max and the min of the array
+        Parameters:\n
+        - **v** is an array
+        - **threshold** (int): value used to discern what a spike is
         """
-        Condition to discern a spike
-        """
-        if i > (max_mean + threshold * np.abs(std)) or i < (min_mean - threshold * np.abs(std)):
-            s.append(n)
-        n += 1
+    med_v = scn.median(v)  # type:float
+    mad_v = scs.median_abs_deviation(v)
 
-    return s
+    dif = diff_cons(v)
+    med_dif = scn.median(dif)
+    mad_dif = scs.median_abs_deviation(dif)
+
+    spike_idx = []
+
+    for idx, item in enumerate(dif):
+        # spike up in differences
+        if item > med_dif + threshold * mad_dif:
+            if v[idx * 2] > med_v + (threshold / 2.7) * mad_v:
+                print(f"found spike up: {idx}")
+                spike_idx.append(idx * 2)
+            if v[idx * 2 + 1] < med_v - (threshold / 2.7) * mad_v:
+                print(f"found spike down: {idx}")
+                spike_idx.append(idx * 2 + 1)
+        # spike down in differences
+        if item < med_dif - threshold * mad_dif:
+            if v[idx * 2] < med_v - (threshold / 2.7) * mad_v:
+                print(f"found spike down: {idx}")
+                spike_idx.append(idx * 2)
+            if v[idx * 2 + 1] > med_v + (threshold / 2.7) * mad_v:
+                print(f"found spike up: {idx}")
+                spike_idx.append(idx * 2 + 1)
+
+    return spike_idx
 
 
-def remove_spike(v, N=10, threshold=1.4, window=5, gauss=True):
+def remove_spike(v, N=10, threshold=8.5, gauss=True):
     """
     Find the 'spikes' in a given array and remove them.
     Parameters:\n
     - **v** is an array\n
     - **N** (int): number of elements used to calculate the mean and the std_dev to substitute the spike (see below).
     - **threshold** (int): value used to discern what a spike is (see find_spike above).
-    - **window** (int): number of element on which the mobile mean is calculated.
     - **gauss** (bool):\n
 
         *True* -> The element of the array is substituted with a number extracted with a Gaussian distribution
@@ -140,51 +154,47 @@ def remove_spike(v, N=10, threshold=1.4, window=5, gauss=True):
         \t iii) An equal number of elements N taken before and after the spike if the spike itself is in a position i>N
         \t iv)  The 2N previous elements if the spike is in a position i bigger than the length of the array minus N\n
 
-        *False* -> The element of the array is substituted with the previous even/odd element of the array if the position
-        of the spike is i>2, with the following odd/even otherwise.
+        *False* -> The element of the array is substituted with the median of the array.
     """
-    s = find_spike(v=v, threshold=threshold, window=window)
+    s = find_spike(v=v, threshold=threshold)
     a, b, c, d = 0, 0, 0, 0
-
-    n_spike = len(s)
-    if n_spike == 0:
+    if len(s) == 0:
         return "No spikes detected in the dataset.\n"
-    for n in range(n_spike+1):
-        for i in s:
+    for i in s:
+        print("\nStarting new removal run")
+        if gauss:
+            """
+            Gaussian substitution
+            """
+            if i == 0:
+                print(f"Spike in position zero: using the following {2 * N} samples")
+                c = 1
+                d = 1 + 2 * N
+            if 0 < i < N:
+                print(f"Spike in low position ({i}): using 2N samples with N={i}")
+                a = -i  # N = i
+                c = 1
+                d = 1 + i
+            if N < i < (len(v) - N):
+                print(f"Spike in position {i}: using {2 * N} samples, {N} before e {N} after")
+                a = -N
+                c = 1
+                d = 1 + N
+            if i > (len(v) - N - 1):
+                print(f"Spike in high position ({i}): using the previous {2 * N} samples")
+                a = -2 * N
 
-            if gauss:
-                """
-                Gaussian substitution
-                """
-                if i == 0:
-                    c = 1
-                    d = 1 + 2 * N
-                if 0 < i < N:
-                    N = i  # type: int
-                    a = -N
-                    c = 1
-                    d = 1 + N
-                if N < i < (len(v) - N):
-                    a = -N
-                    c = 1
-                    d = 1 + N
-                if i > (len(v) - N - 1):
-                    a = -2 * N
+            new_d = np.concatenate((v[i + a:i + b], v[i + c: i + d]))
+            new_m = scn.median(new_d)
+            new_s = scs.median_abs_deviation(new_d)
+            new_a = np.random.normal(new_m, new_s)
 
-                new_d = np.concatenate((v[i + a:i + b], v[i + c: i + d]))
-                new_m = np.mean(new_d)
-                new_s = np.std(new_d)
-                new_a = np.random.normal(new_m, new_s)
+        else:
+            """
+            Non-Gaussian substitution
+            """
+            new_a = scn.median(v)
 
-            else:
-                """
-                Non-Gaussian substitution
-                """
-                if i > 2:
-                    new_a = v[i - 2]
-                else:
-                    new_a = v[i + 2]
+        v[i] = new_a
 
-            v[i] = new_a
-
-            s = find_spike(v, threshold=threshold, window=window)
+        s = find_spike(v=v, threshold=threshold)
