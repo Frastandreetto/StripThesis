@@ -99,7 +99,6 @@ def mob_mean(v, smooth_len: int):
     return m
 
 
-@njit
 def find_spike(v, threshold=8.5) -> []:
     """
         Look up for 'spikes' in a given array.\n
