@@ -12,10 +12,13 @@ import numpy as np
 import scipy as scipy
 from matplotlib import pyplot as plt
 
-import f_strip
-from striptease import DataStorage
+from striptease import DataStorage, DataFile
 
 import f_strip as fz
+from astropy.time import Time
+
+import pandas as pd
+import seaborn as sn  # This should be added to requirements.txt
 
 
 ########################################################################################################
@@ -23,15 +26,18 @@ import f_strip as fz
 ########################################################################################################
 class Polarimeter:
 
-    def __init__(self, name_pol: str, path_file: Path):
+    def __init__(self, name_pol: str, name_file: str):
         """
         Constructor
         Parameters:
         - **name_pol** (``str``): name of the polarimeter
-        - **path_file** (``Path``): location of the data file (without the name of the file)
+        - **name_file** (``str``): location of the data file (with the name of the file)
         """
         self.name = name_pol
-        self.path_file = path_file
+
+        self.name_file = name_file
+        self.df = DataFile(self.name_file)
+        self.path_file = name_file[:-22]
 
         self.ds = DataStorage(self.path_file)
 
@@ -41,7 +47,8 @@ class Polarimeter:
         self.tag = [x for x in tag if f"pol{name_pol}" in x.name][0]
 
         self.start_time = 0
-        self.date = self.tag.mjd_start   # Julian Date MJD
+        self.date = self.tag.mjd_start  # Julian Date MJD
+        self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
         self.STRIP_SAMPLING_FREQ = 0
         self.norm_mode = 0
 
@@ -61,6 +68,8 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.tag, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
+            # self.times, self.data[type][exit] = self.df.load_sci(polarimeter=self.name, data_type=type, detector=exit)
+
         self.start_time = self.times[0].unix
 
     def Load_X(self, type: str):
@@ -182,7 +191,8 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         """
         fig = plt.figure(figsize=(20, 6))
-        fig.suptitle(f'Output {type} - Date: {self.date}', fontsize=14)
+
+        fig.suptitle(f'Output {type} - Date: {self.gdate}', fontsize=14)
         o = 0
         for exit in ["Q1", "Q2", "U1", "U2"]:
             o = o + 1
@@ -216,7 +226,6 @@ class Polarimeter:
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
-
 
                 axs[i, n].plot(self.times[begin:end - 1:2][:- smooth_len],
                                fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len)[:-1],
@@ -569,6 +578,9 @@ class Polarimeter:
         - **type** (``str``) of data *"DEM"* or *"PWR"*
         - **even**, **odd**, **all** (``int``): used for the transparency of the datas (*0*=transparent, *1*=visible)
         - **begin**, **end** (``int``): interval of dataset that has to be considered
+        - **show** (bool):\n
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
@@ -622,6 +634,9 @@ class Polarimeter:
         - **window** (``int``): number of elements on which the RMS is calculated
         - **even**, **odd**, **all** (``int``): used for the transparency of the datas (0=transparent, 1=visible)
         - **begin**, **end** (``int``): interval of dataset that has to be considered
+        - **show** (bool):\n
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
@@ -676,6 +691,9 @@ class Polarimeter:
         Parameters:\n
         - **type** (``str``) of data *"DEM"* or *"PWR"*
         - **begin**, **end** (``int``): interval of dataset that has to be considered
+        - **show** (bool):\n
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
@@ -726,6 +744,9 @@ class Polarimeter:
         - **type** (``str``) of data *"DEM"* or *"PWR"*
         - **window** (``int``): number of elements on which the RMS is calculated
         - **begin**, **end** (``int``): interval of dataset that has to be considered
+        - **show** (bool):\n
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
@@ -769,6 +790,49 @@ class Polarimeter:
         path = f'/home/francesco/Scrivania/Tesi/plot/SciData_Analysis/FFT_RMS_SciData/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_FFT_RMS_{data_name}.png')
+        if show:
+            plt.show()
+        plt.close(fig)
+
+    def Plot_Correlation_Mat(self, type: str, scientific=True, show=False):
+        """
+       Plot the 4x4 Correlation Matrix of the four channel Q1, Q2, U1 and U2.\n
+       Choose between of the Output or the Scientific Data.\n
+       Parameters:\n
+       - **type** (``str``) of data *"DEM"* or *"PWR"*
+       - **scientific** (``bool``):\n
+            *True* -> Scientific data are processed\n
+            *False* -> Outputs are processed
+       - **show** (bool):\n
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only
+       """
+        assert (type == "DEM" or type == "PWR"), "Typo: kind must be the string 'DEM' or 'PWR'"
+        sci = {}
+        if scientific:
+            for exit in self.data[type].keys():
+                sci[exit] = fz.diff_cons(self.data[type][exit])
+                if type == "DEM":
+                    word = "DEMODULATED Data"
+                elif type == "PWR":
+                    word = "TOT POWER Data"
+        else:
+            for exit in self.data[type].keys():
+                sci[exit] = self.data[type][exit]
+                word = f"{type} OUTPUT Data"
+
+        sci_data = pd.DataFrame(sci)
+        corr_matrix = sci_data.corr()
+        for i in corr_matrix.keys():
+            corr_matrix[i][i] = np.nan
+
+        fig, axs = plt.subplots(nrows=1, ncols=1, constrained_layout=True, figsize=(10, 10))
+        sn.heatmap(corr_matrix, annot=True)
+        axs.set_title(f"Correlation {word}", fontsize=18)
+
+        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/{self.name}/'
+        Path(path).mkdir(parents=True, exist_ok=True)
+        fig.savefig(f'{path}{self.name}_CorrMat_{word[:-5]}.png')
         if show:
             plt.show()
         plt.close(fig)
