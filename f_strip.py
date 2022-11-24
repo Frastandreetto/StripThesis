@@ -17,10 +17,9 @@ def tab_cap_time(path_dataset: Path):
     """
     Create a new file txt and write the caption of a tabular\n
     Parameters:\n
-    - **path_dataset** (Path: without the name of the file?)\n
-    This specific function creates a tabular that collects the jumps in the dataset (JT)
+    - **path_dataset** (Path: comprehensive of the name of the file)\n
+    This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
-    # Found bug here. Need to be fixed
     new_file_name = f"JT_{path_dataset.stem}.txt"
     cap = "Name_Polarimeter\tIndex\tDelta_t\tJHD\n"
 
