@@ -83,6 +83,15 @@ class Polarimeter:
         self.start_time = self.times[0].unix
 
     def Date_Update(self, n_samples: int, modify=True) -> Time:
+        """
+        Calculates and returns the new Gregorian date in which the experience begins, given a number of samples that
+        must be skipped from the beginning of the dataset.
+        Parameters:\n
+        **n_samples** (``int``) number of samples that must be skipped\n
+        **modify** (``bool``)\n
+        \t*"True"* -> The beginning date is definitely modified and provided.\n
+        \t*"False"* -> A copy of the beginning date is modified and provided.\n
+        """
         s = 1 / 86_400
         if modify:
             self.date += s * (n_samples / 100)  # Julian Date increased
