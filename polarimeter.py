@@ -48,7 +48,7 @@ class Polarimeter:
 
         self.start_time = 0
         self.date = self.tag.mjd_start  # Julian Date MJD
-        self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+        self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
         self.STRIP_SAMPLING_FREQ = 0
         self.norm_mode = 0
 
@@ -64,7 +64,7 @@ class Polarimeter:
         All type "DEM" and "PWR"
         All the exit "Q1", "Q2", "U1", "U2"
         """
-        for type in ["DEM", "PWR"]:
+        for type in self.data.keys():
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.tag, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
@@ -82,31 +82,46 @@ class Polarimeter:
                                                                  data_type=type, detector=exit)
         self.start_time = self.times[0].unix
 
+    def Date_Update(self, n_samples: int, modify=True) -> Time:
+        s = 1 / 86_400
+        if modify:
+            self.date += s * (n_samples / 100)  # Julian Date increased
+            self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
+            return self.gdate
+        else:
+            new_jdate = self.date
+            new_jdate += s * (n_samples / 100)  # Julian Date increased
+            new_date = Time(new_jdate, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
+            return new_date
+
     def Clip_Values(self):
         """
         Data cleansing: scientific data with value zero at the beginning and at the end are removed from the dataset
         Control that a channel doesn't turn on before the others (maybe unuseful)
         """
+        begin_zerovalues_idx = 0
+        end_zerovalues_idx = 10_000_000
 
-        start_idx = np.inf
-        end_idx = 0
-        dem_idx = {}
-        pwr_idx = {}
-        nonzero_idx = {"DEM": dem_idx, "PWR": pwr_idx}
-        for type in [x for x in ["DEM", "PWR"] if not self.data[x] == {}]:
+        for type in [x for x in self.data.keys() if not self.data[x] == {}]:
             for exit in ["Q1", "Q2", "U1", "U2"]:
-                # This array contains the indexes of all nonzero values
-                nonzero_idx[type][exit] = np.arange(len(self.data[type][exit]))[self.data[type][exit] != 0]
-                if start_idx > np.min(nonzero_idx[type][exit]):  # start_idx is the position of the first nonzero value
-                    start_idx = np.min(nonzero_idx[type][exit])
-                if end_idx < np.max(nonzero_idx[type][exit]):  # end_idx is the position of the last nonzero value
-                    end_idx = np.max(nonzero_idx[type][exit])
 
-        # Cleaning operations
-        self.times = self.times[start_idx:end_idx + 1]
-        for type in [x for x in ["DEM", "PWR"] if not self.data[x] == {}]:
+                for count, item in reversed(list(enumerate(self.data[type][exit]))):
+                    if item != 0:
+                        end_zerovalues_idx = np.min([end_zerovalues_idx, count + 1])
+                        break
+                for count, item in enumerate(self.data[type][exit]):
+                    if item != 0:
+                        begin_zerovalues_idx = np.max([begin_zerovalues_idx, count])
+                        break
+
+        # Cleansing operations
+        self.times = self.times[begin_zerovalues_idx:end_zerovalues_idx + 1]
+        for type in [x for x in self.data.keys() if not self.data[x] == {}]:
             for exit in ["Q1", "Q2", "U1", "U2"]:
-                self.data[type][exit] = self.data[type][exit][start_idx:end_idx + 1]
+                self.data[type][exit] = self.data[type][exit][begin_zerovalues_idx:end_zerovalues_idx + 1]
+
+        # Updating the new beginning time of the dataset
+        _ = self.Date_Update(n_samples=begin_zerovalues_idx, modify=True)
 
     def STRIP_SAMPLING_FREQUENCY_HZ(self):
         """
@@ -192,7 +207,8 @@ class Polarimeter:
         """
         fig = plt.figure(figsize=(20, 6))
 
-        fig.suptitle(f'Output {type} - Date: {self.gdate}', fontsize=14)
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'Output {type} - Date: {begin_date}', fontsize=14)
         o = 0
         for exit in ["Q1", "Q2", "U1", "U2"]:
             o = o + 1
