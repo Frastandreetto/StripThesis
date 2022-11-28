@@ -247,6 +247,10 @@ class Polarimeter:
         """
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+        eoa = EOA(even=even, odd=odd, all=all)
+
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'Plot {eoa} {type} - Date: {begin_date}', fontsize=14)
 
         for i in range(2):
             n = 0  # type: int
@@ -281,8 +285,6 @@ class Polarimeter:
 
                 n += 1
 
-        eoa = EOA(even=even, odd=odd, all=all)
-
         path = f"/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/EOA_Output/{self.name}/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_{eoa}_smooth={smooth_len}.png')
@@ -306,6 +308,9 @@ class Polarimeter:
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
 
+        eoa = EOA(even=even, odd=odd, all=all)
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'RMS {eoa} {type} - Date: {begin_date}', fontsize=14)
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
@@ -342,8 +347,6 @@ class Polarimeter:
 
                 n += 1
 
-        eoa = EOA(even=even, odd=odd, all=all)
-
         path = f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/EOA_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.png')
@@ -363,6 +366,9 @@ class Polarimeter:
         y_scale_limits = [np.inf, -np.inf]
         x_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(20, 12))
+
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'Correlation {type} - Date: {begin_date}', fontsize=14)
 
         for i in range(2):
             n = 0  # type: int
@@ -409,6 +415,9 @@ class Polarimeter:
         y_scale_limits = [np.inf, -np.inf, 0]  # type: []
         x_scale_limits = [np.inf, -np.inf, 0]  # type: []
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'Correlation RMS {type} - Date: {begin_date}', fontsize=14)
 
         for i in range(2):
             n = 0  # type: int
@@ -462,6 +471,10 @@ class Polarimeter:
             data_name = "TOT_POWER"
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'Plot Scientific data {data_name} - Date: {begin_date}', fontsize=14)
+
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
@@ -514,6 +527,9 @@ class Polarimeter:
             data_name = "TOT_POWER"
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'Plot RMS Scientific data {data_name} - Date: {begin_date}', fontsize=14)
 
         for i in range(2):
             n = 0  # type: int
@@ -614,6 +630,10 @@ class Polarimeter:
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
 
+        eoa = EOA(even=even, odd=odd, all=all)
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'FFT Output {eoa} {type} - Date: {begin_date}', fontsize=14)
+
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
@@ -669,6 +689,10 @@ class Polarimeter:
         scaling = "spectrum"
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+
+        eoa = EOA(even=even, odd=odd, all=all)
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'FFT RMS {eoa} {type} - Date: {begin_date}', fontsize=14)
 
         for i in range(2):
             n = 0  # type: int
@@ -732,6 +756,9 @@ class Polarimeter:
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
 
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'FFT Scientific data {data_name} - Date: {begin_date}', fontsize=14)
+
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
@@ -784,6 +811,9 @@ class Polarimeter:
             data_name = "TOT_POWER"
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'FFT RMS Scientific Data {data_name} - Date: {begin_date}', fontsize=14)
 
         for i in range(2):
             n = 0  # type: int
