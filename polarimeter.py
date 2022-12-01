@@ -265,7 +265,7 @@ class Polarimeter:
                                color="crimson", alpha=odd, label="Odd Data")
                 axs[i, n].plot(self.times[begin:end][:- smooth_len],
                                fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len)[:-1],
-                               color="limegreen", alpha=all, label="All data")
+                               color="forestgreen", alpha=all, label="All data")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(self.data[type][exit])])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(self.data[type][exit])])
@@ -327,7 +327,7 @@ class Polarimeter:
                                color="crimson", alpha=odd, label="Odd Data")
                 axs[i, n].plot(self.times[begin:end][:-window - smooth_len + 2],
                                rms_all,
-                               color="limegreen", alpha=all, label="All data")
+                               color="forestgreen", alpha=all, label="All data")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(rms_all)])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(rms_all)])
@@ -639,7 +639,7 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
 
                 f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs, scaling=scaling)
-                axs[i, n].plot(f, s, color="limegreen", alpha=all, label="All samples")
+                axs[i, n].plot(f, s, color="forestgreen", alpha=all, label="All samples")
 
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
@@ -700,7 +700,7 @@ class Polarimeter:
 
                 rms = RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
                 f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
-                axs[i, n].plot(f, s, color="limegreen", alpha=all, label="All samples")
+                axs[i, n].plot(f, s, color="forestgreen", alpha=all, label="All samples")
 
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
@@ -848,50 +848,7 @@ class Polarimeter:
         if show:
             plt.show()
         plt.close(fig)
-
-    def Plot_Correlation_Mat(self, type: str, scientific=True, show=False):
-        """
-       Plot the 4x4 Correlation Matrix of the four channel Q1, Q2, U1 and U2.\n
-       Choose between of the Output or the Scientific Data.\n
-       Parameters:\n
-       - **type** (``str``) of data *"DEM"* or *"PWR"*
-       - **scientific** (``bool``):\n
-            *True* -> Scientific data are processed\n
-            *False* -> Outputs are processed
-       - **show** (bool):\n
-            *True* -> show the plot and save the figure\n
-            *False* -> save the figure only
-       """
-        assert (type == "DEM" or type == "PWR"), "Typo: kind must be the string 'DEM' or 'PWR'"
-        sci = {}
-        if scientific:
-            for exit in self.data[type].keys():
-                sci[exit] = fz.diff_cons(self.data[type][exit])
-                if type == "DEM":
-                    word = "DEMODULATED Data"
-                elif type == "PWR":
-                    word = "TOT POWER Data"
-        else:
-            for exit in self.data[type].keys():
-                sci[exit] = self.data[type][exit]
-                word = f"{type} OUTPUT Data"
-
-        sci_data = pd.DataFrame(sci)
-        corr_matrix = sci_data.corr()
-        for i in corr_matrix.keys():
-            corr_matrix[i][i] = np.nan
-
-        fig, axs = plt.subplots(nrows=1, ncols=1, constrained_layout=True, figsize=(10, 10))
-        sn.heatmap(corr_matrix, annot=True)
-        axs.set_title(f"Correlation {word}", fontsize=18)
-
-        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/{self.name}/'
-        Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_CorrMat_{word[:-5]}.png')
-        if show:
-            plt.show()
-        plt.close(fig)
-
+        
 
 def RMS(data, window: int, exit: str, eoa: int, begin=100, end=-100):
     """
