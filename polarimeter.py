@@ -848,8 +848,112 @@ class Polarimeter:
         if show:
             plt.show()
         plt.close(fig)
-        
 
+        def Plot_Correlation_Mat(self, type: str, begin=100, end=-100, scientific=True, show=False):
+            """
+           Plot the 4x4 Correlation Matrix of the four channel Q1, Q2, U1 and U2.\n
+           Choose between of the Output or the Scientific Data.\n
+           Parameters:\n
+           - **type** (``str``) of data *"DEM"* or *"PWR"*
+           - **begin**, **end** (``int``): interval of dataset that has to be considered
+           - **scientific** (``bool``):\n
+                *True* -> Scientific data are processed\n
+                *False* -> Outputs are processed
+           - **show** (bool):\n
+                *True* -> show the plot and save the figure\n
+                *False* -> save the figure only
+           """
+            assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
+            sci = {}
+            data_name = ""  # type: str
+            if scientific:
+                for exit in self.data[type].keys():
+                    if type == "DEM":
+                        data_name = "DEMODULATED Data"
+                        sci[exit] = fz.diff_cons(self.data[type][exit][begin:end])
+                    elif type == "PWR":
+                        data_name = "TOT POWER Data"
+                        sci[exit] = fz.mean_cons(self.data[type][exit][begin:end])
+            else:
+                for exit in self.data[type].keys():
+                    sci[exit] = self.data[type][exit][begin:end]
+                    data_name = f"{type} OUTPUT Data"
+
+            fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(14, 7))
+
+            begin_date = self.Date_Update(n_samples=begin, modify=False)
+            fig.suptitle(f'Correlation Matrix {data_name} - Date: {begin_date}', fontsize=14)
+
+            sci_data = pd.DataFrame(sci)
+            corr_matrix = sci_data.corr()
+            for i in corr_matrix.keys():
+                corr_matrix[i][i] = np.nan
+
+            pl_m1 = sn.heatmap(corr_matrix, annot=True, ax=axs[0], cmap='coolwarm')
+            pl_m1.set_title(f"Correlation {data_name}", fontsize=18)
+            pl_m2 = sn.heatmap(corr_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
+            pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=18)
+
+            path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/{self.name}/'
+            Path(path).mkdir(parents=True, exist_ok=True)
+            fig.savefig(f'{path}{self.name}_CorrMat_{data_name[:-5]}.png')
+            if show:
+                plt.show()
+            plt.close(fig)
+
+    def Plot_Correlation_Mat(self, type: str, begin=100, end=-100, scientific=True, show=False):
+        """
+       Plot the 4x4 Correlation Matrix of the four channel Q1, Q2, U1 and U2.\n
+       Choose between of the Output or the Scientific Data.\n
+       Parameters:\n
+       - **type** (``str``) of data *"DEM"* or *"PWR"*
+       - **begin**, **end** (``int``): interval of dataset that has to be considered
+       - **scientific** (``bool``):\n
+            *True* -> Scientific data are processed\n
+            *False* -> Outputs are processed
+       - **show** (bool):\n
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only
+       """
+        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
+        sci = {}
+        data_name = ""  # type: str
+        if scientific:
+            for exit in self.data[type].keys():
+                if type == "DEM":
+                    data_name = "DEMODULATED Data"
+                    sci[exit] = fz.diff_cons(self.data[type][exit][begin:end])
+                elif type == "PWR":
+                    data_name = "TOT POWER Data"
+                    sci[exit] = fz.mean_cons(self.data[type][exit][begin:end])
+        else:
+            for exit in self.data[type].keys():
+                sci[exit] = self.data[type][exit][begin:end]
+                data_name = f"{type} OUTPUT Data"
+
+        fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(14, 7))
+
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'Correlation Matrix {data_name} - Date: {begin_date}', fontsize=14)
+
+        sci_data = pd.DataFrame(sci)
+        corr_matrix = sci_data.corr()
+        for i in corr_matrix.keys():
+            corr_matrix[i][i] = np.nan
+
+        pl_m1 = sn.heatmap(corr_matrix, annot=True, ax=axs[0], cmap='coolwarm')
+        pl_m1.set_title(f"Correlation {data_name}", fontsize=18)
+        pl_m2 = sn.heatmap(corr_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
+        pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=18)
+
+        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/{self.name}/'
+        Path(path).mkdir(parents=True, exist_ok=True)
+        fig.savefig(f'{path}{self.name}_CorrMat_{data_name[:-5]}.png')
+        if show:
+            plt.show()
+        plt.close(fig)
+
+        
 def RMS(data, window: int, exit: str, eoa: int, begin=100, end=-100):
     """
     Calculate the RMS of a vector using the rolling window
