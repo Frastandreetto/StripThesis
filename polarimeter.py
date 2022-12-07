@@ -26,29 +26,25 @@ import seaborn as sn  # This should be added to requirements.txt
 ########################################################################################################
 class Polarimeter:
 
-    def __init__(self, name_pol: str, name_file: str):
+    def __init__(self, name_pol: str, path_file: str, start_datetime: str, end_datetime: str):
         """
         Constructor
         Parameters:
         - **name_pol** (``str``): name of the polarimeter
-        - **name_file** (``str``): location of the data file (with the name of the file)
+        - **path_file** (``str``): location of the data file (without the name of the file)
+        - **start_datetime** (``str``): start time
+        - **end_datetime** (``str``): end time
         """
         self.name = name_pol
+        self.ds = DataStorage(path_file)
 
-        self.name_file = name_file
-        self.df = DataFile(self.name_file)
-        self.path_file = name_file[:-22]
-
-        self.ds = DataStorage(self.path_file)
-
-        # Find a better way to set the start time
-        # How to get it from the name of the file? Is more useful to pass a time interval?
-        tag = self.ds.get_tags(mjd_range=("2021-01-01 00:00:00", "2023-01-01 00:00:00"))
-        self.tag = [x for x in tag if f"pol{name_pol}" in x.name][0]
+        tag = self.ds.get_tags(mjd_range=(start_datetime, end_datetime))
+        self.tag = [x for x in tag if f"{name_pol}" in x.name][0]
 
         self.start_time = 0
         self.date = self.tag.mjd_start  # Julian Date MJD
-        self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
+        # self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
+        self.gdate = start_datetime
         self.STRIP_SAMPLING_FREQ = 0
         self.norm_mode = 0
 
@@ -68,8 +64,6 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.tag, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
-            # self.times, self.data[type][exit] = self.df.load_sci(polarimeter=self.name, data_type=type, detector=exit)
-
         self.start_time = self.times[0].unix
 
     def Load_X(self, type: str):
@@ -174,7 +168,7 @@ class Polarimeter:
         self.STRIP_SAMPLING_FREQUENCY_HZ()
         self.Norm(norm_mode)
 
-        print("The dataset is now normalized.")
+        print(f"Pol {self.name}: the dataset is now normalized.")
         if norm_mode == 0:
             print("Dataset in function of sample number [#]")
         if norm_mode == 1:
@@ -217,7 +211,7 @@ class Polarimeter:
         fig = plt.figure(figsize=(20, 6))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'Output {type} - Date: {begin_date}', fontsize=14)
+        fig.suptitle(f'{self.name} Output {type} - Date: {begin_date}', fontsize=14)
         o = 0
         for exit in ["Q1", "Q2", "U1", "U2"]:
             o = o + 1
@@ -226,7 +220,8 @@ class Polarimeter:
             ax.set_title(f"{exit}")
             ax.set_xlabel("Time [s]")
             ax.set_ylabel(f"Output {type}")
-
+        plt.tight_layout()
+        
         path = "/home/francesco/Scrivania/Tesi/plot/Output/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}.png')
@@ -953,7 +948,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-        
+
 def RMS(data, window: int, exit: str, eoa: int, begin=100, end=-100):
     """
     Calculate the RMS of a vector using the rolling window
