@@ -5,12 +5,14 @@
 # updated to be used on the new version of the software of LSPE-STRIP
 # October 29th 2022, Brescia (Italy)
 
+import logging
 import numpy as np
 import scipy.stats as scs
 import scipy.ndimage as scn
 from striptease import DataFile
 from pathlib import Path
 from numba import njit
+from rich.logging import RichHandler
 
 
 def tab_cap_time(path_dataset: Path):
@@ -38,7 +40,7 @@ def pol_list(path_dataset: Path) -> list:
     d.read_file_metadata()
     pols = []
     for cur_pol in sorted(d.polarimeters):
-        pols.append(f"POL_{cur_pol}")
+        pols.append(f"{cur_pol}")
     return pols
 
 
@@ -116,22 +118,25 @@ def find_spike(v, threshold=8.5) -> []:
     spike_idx = []
     v_threshold = (threshold / 2.7) * mad_v
 
+    logging.basicConfig(level="INFO", format='%(message)s',
+                        datefmt="[%X]", handlers=[RichHandler()])  # <3
+
     for idx, item in enumerate(dif):
         # spike up in differences
         if item > med_dif + threshold * mad_dif:
             if v[idx * 2] > med_v + v_threshold:
-                print(f"found spike up: {idx}")
+                logging.info(f"found spike up: {idx}")
                 spike_idx.append(idx * 2)
             if v[idx * 2 + 1] < med_v - v_threshold:
-                print(f"found spike down: {idx}")
+                logging.info(f"found spike down: {idx}")
                 spike_idx.append(idx * 2 + 1)
         # spike down in differences
         if item < med_dif - threshold * mad_dif:
             if v[idx * 2] < med_v - v_threshold:
-                print(f"found spike down: {idx}")
+                logging.info(f"found spike down: {idx}")
                 spike_idx.append(idx * 2)
             if v[idx * 2 + 1] > med_v + v_threshold:
-                print(f"found spike up: {idx}")
+                logging.info(f"found spike up: {idx}")
                 spike_idx.append(idx * 2 + 1)
 
     return spike_idx
@@ -155,28 +160,31 @@ def replace_spike(v, N=10, threshold=8.5, gauss=True):
 
         *False* -> The element of the array is substituted with the median of the array.
     """
+    logging.basicConfig(level="INFO", format='%(message)s',
+                        datefmt="[%X]", handlers=[RichHandler()])  # <3
+
     s = find_spike(v=v, threshold=threshold)
     a, b, c, d = 0, 0, 0, 0
     if len(s) == 0:
         return "No spikes detected in the dataset.\n"
     for i in s:
-        print("\nStarting new removal run")
+        logging.info("\nStarting new removal run")
         if gauss:
             """
             Gaussian substitution
             """
             if i == 0 or 0 < i < N:
-                print(f"Spike in low position ({i}): using the following {2 * N} samples")
+                logging.info(f"Spike in low position ({i}): using the following {2 * N} samples")
                 a = 0
                 c = 1
                 d = 1 + 2*i
             if N < i < (len(v) - N):
-                print(f"Spike in position {i}: using {2 * N} samples, {N} before e {N} after")
+                logging.info(f"Spike in position {i}: using {2 * N} samples, {N} before e {N} after")
                 a = -N
                 c = 1
                 d = 1 + N
             if i > (len(v) - N - 1):
-                print(f"Spike in high position ({i}): using the previous {2 * N} samples")
+                logging.info(f"Spike in high position ({i}): using the previous {2 * N} samples")
                 a = -2 * N
 
             new_d = np.concatenate((v[i + a:i + b], v[i + c: i + d]))
