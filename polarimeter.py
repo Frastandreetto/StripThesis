@@ -41,14 +41,25 @@ class Polarimeter:
         self.ds = DataStorage(path_file)
 
         tag = self.ds.get_tags(mjd_range=(start_datetime, end_datetime))
-        self.tag = [x for x in tag if f"{name_pol}" in x.name][0]
+
+        # noinspection PyBroadException
+        try:
+            self.tag = [x for x in tag if f"{name_pol}" in x.name][0]
+        except:
+            logging.error("No tags found in the mjd range requested: probably the polarimeter was switched off. "
+                          "Please insert a valid one.")
 
         self.start_time = 0
-        self.date = self.tag.mjd_start  # Julian Date MJD
-        # self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
-        self.gdate = start_datetime
         self.STRIP_SAMPLING_FREQ = 0
         self.norm_mode = 0
+
+        try:
+            self.date = self.tag.mjd_start  # Julian Date MJD
+        except:
+            logging.warning("No tags no date.")
+
+        # self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
+        self.gdate = start_datetime
 
         self.times = []  # type: List[float]
 
