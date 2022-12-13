@@ -40,26 +40,22 @@ class Polarimeter:
         self.name = name_pol
         self.ds = DataStorage(path_file)
 
-        tag = self.ds.get_tags(mjd_range=(start_datetime, end_datetime))
-
-        # noinspection PyBroadException
-        try:
-            self.tag = [x for x in tag if f"{name_pol}" in x.name][0]
-        except:
-            logging.error("No tags found in the mjd range requested: probably the polarimeter was switched off. "
-                          "Please insert a valid one.")
+        # tag = self.ds.get_tags(mjd_range=(Time(start_datetime), Time(end_datetime)))
+        # try:
+        #    self.tag = [x for x in tag if f"{name_pol}" in x.name][0]
+        # except:
+        #    logging.error("No tags found in the mjd range requested: probably the polarimeter was switched off. "
+        #                  "Please insert a valid one.")
 
         self.start_time = 0
         self.STRIP_SAMPLING_FREQ = 0
         self.norm_mode = 0
 
-        try:
-            self.date = self.tag.mjd_start  # Julian Date MJD
-        except:
-            logging.warning("No tags no date.")
-
-        # self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
-        self.gdate = start_datetime
+        # Julian Date MJD
+        self.date = [Time(start_datetime).mjd, Time(end_datetime).mjd]  # self.tag.mjd_start
+        # Gregorian Date [in string format]
+        self.gdate = [Time(start_datetime), Time(end_datetime)]
+        # Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
         self.times = []  # type: List[float]
 
@@ -75,7 +71,7 @@ class Polarimeter:
         """
         for type in self.data.keys():
             for exit in ["Q1", "Q2", "U1", "U2"]:
-                self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.tag, polarimeter=self.name,
+                self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
         self.start_time = self.times[0].unix
 
@@ -85,7 +81,7 @@ class Polarimeter:
         Parameters:\n **type** (``str``) *"DEM"* or *"PWR"*
         """
         for exit in ["Q1", "Q2", "U1", "U2"]:
-            self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.tag, polarimeter=self.name,
+            self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                  data_type=type, detector=exit)
         self.start_time = self.times[0].unix
 
@@ -101,11 +97,11 @@ class Polarimeter:
         """
         s = 1 / 86_400
         if modify:
-            self.date += s * (n_samples / 100)  # Julian Date increased
-            self.gdate = Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
-            return self.gdate
+            self.date[0] += s * (n_samples / 100)  # Julian Date increased
+            self.gdate[0] = Time(self.date[0], format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian
+            return self.gdate[0]
         else:
-            new_jdate = self.date
+            new_jdate = self.date[0]
             new_jdate += s * (n_samples / 100)  # Julian Date increased
             new_date = Time(new_jdate, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")  # Gregorian Date
             return new_date
