@@ -1,5 +1,13 @@
 # Test report of polarimeter ${name_polarimeter}
 
+# Table of Contents
+0. [General Info](#intro)
+1. [Even-Odd Analysis](#sec1)
+2. [Scientific Data Analysis](#sec2)
+3. [Correlation Analysis](#sec3)
+
+<div id='intro'/>
+# General Info
 The plots were loaded from the following path: ${plot_dir}
 
 The analysis was run on ${analysis_date} with the following command line:
@@ -18,10 +26,11 @@ Plot of Output ${type}:
 % endfor
 \pagebreak
 
+<div id='sec1'/>
 # Even-Odd Analysis
 % for type in ["DEM","PWR"]:
 
-## Output
+# Output
 Plot of Output of all data ${type} with different smoothing lengths.
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
@@ -30,7 +39,7 @@ Plot of Output of all data ${type} with different smoothing lengths.
 % endfor
 
 \pagebreak
-## Output
+# Output
 Plot of Output of even-odd data ${type} with different smoothing lengths.
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
@@ -49,7 +58,7 @@ Plot of Output of even-odd and all data ${type}  with different smoothing length
 % endfor
 
 \pagebreak
-## RMS
+# RMS
 % for type in ["DEM","PWR"]:
 Plot of RMS of all data ${type} with different smoothing lengths.
 
@@ -77,7 +86,7 @@ Plot of RMS of even-odd and all data ${type}  with different smoothing lengths:
 % endfor
 
 \pagebreak
-## FFT
+# FFT
 % for type in ["DEM","PWR"]:
 Plot of FFT ${type}:
 
@@ -95,6 +104,7 @@ Plot of FFT of the RMS ${type}:
 \pagebreak
 % endfor
 
+<div id='sec2'/>
 # Scientific Data Analysis
 % for type in ["DEMODULATED", "TOT_POWER"]:
 
@@ -108,7 +118,7 @@ Plot of Output of ${type} with different smoothing lengths.
 \pagebreak
 % endfor
 \pagebreak
-## RMS
+# RMS
 % for type in ["DEMODULATED", "TOT_POWER"]:
 
 Plot of RMS of all data ${type} with different smoothing lengths.
@@ -122,7 +132,7 @@ Plot of RMS of all data ${type} with different smoothing lengths.
 % endfor
 
 \pagebreak
-## FFT
+# FFT
 % for type in ["DEMODULATED", "TOT_POWER"]:
 
 Plot of FFT ${type}:
@@ -136,6 +146,7 @@ Plot of FFT of the RMS ${type}:
 \pagebreak
 % endfor
 
+<div id='sec3'/>
 # Correlation Analysis
 
 % for type in ["DEM_OUTPUT", "PWR_OUTPUT", "DEMODULATED", "TOT_POWER"]:
@@ -146,7 +157,7 @@ Plot of ${type} Data correlation Matrices:
 
 % endfor
 
-
+# RMS
 % for type in ["DEM", "PWR", "DEMODULATED", "TOT_POWER"]:
 
 Plot of ${type} RMS correlation Matrices:
@@ -156,7 +167,7 @@ Plot of ${type} RMS correlation Matrices:
 % endfor
 
 
-## Even Odd Correlations
+# Even Odd Correlations
 
 % for type in ["DEM", "PWR"]:
 
