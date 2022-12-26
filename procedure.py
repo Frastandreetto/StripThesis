@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-# This file contains a 2nd version (0.0.2) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
+# This file contains a 3rd version (0.0.3) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
 # December 7th 2022, Brescia (Italy)
 
 # Libraries & Modules
@@ -17,13 +17,13 @@ import polarimeter as pol
 
 def main():
     """
-    Produce a scan of a single polarimeter performing a complete analysis on Even-Odd Output, Scientific Data, FFT and
-    correlation Matrices.
+    Produce a scan of a polarimeter or a list of polarimeters performing a complete analysis including:
+    Even-Odd Output, Scientific Data, FFT and correlation Matrices.
     Parameters:
-        - **name_pol** (``str``): name of the polarimeter
         - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
         - **start_datetime** (``str``): start time
         - **end_datetime** (``str``): end time
+        - **name_pol** (``str``): name of the polarimeter (can be a list of string)
     """
     logging.basicConfig(level="INFO", format='%(message)s',
                         datefmt="[%X]", handlers=[RichHandler()])  # <3
