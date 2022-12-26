@@ -628,8 +628,8 @@ class Polarimeter:
             *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
-        # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
-        fs = self.STRIP_SAMPLING_FREQ / 2
+        # Note: The Sampling Frequency for the Even-Odd Data is 50Hz the half of STRIP one
+        fs = self.STRIP_SAMPLING_FREQ
         scaling = "spectrum"
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
@@ -643,16 +643,16 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
 
                 f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs, scaling=scaling)
-                axs[i, n].plot(f, s, color="forestgreen", alpha=all, label="All samples")
+                axs[i, n].plot(f[:-1], s[:-1], color="forestgreen", alpha=all, label="All samples")
 
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
 
-                f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs, scaling=scaling)
+                f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs / 2, scaling=scaling)
                 axs[i, n].plot(f, s, color="royalblue", alpha=even, label=f"Even samples")
 
-                f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs, scaling=scaling)
+                f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs / 2, scaling=scaling)
                 axs[i, n].plot(f, s, color="crimson", alpha=odd, label=f"Odd samples")
 
                 axs[i, n].set_yscale('log')
@@ -689,7 +689,7 @@ class Polarimeter:
         Note: plots on two rows (uniform Y-scale below)
         """
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
-        fs = self.STRIP_SAMPLING_FREQ / 2
+        fs = self.STRIP_SAMPLING_FREQ
         scaling = "spectrum"
         y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
@@ -704,18 +704,18 @@ class Polarimeter:
 
                 rms = RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
                 f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
-                axs[i, n].plot(f, s, color="forestgreen", alpha=all, label="All samples")
+                axs[i, n].plot(f[:-1], s[:-1], color="forestgreen", alpha=all, label="All samples")
 
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
                     y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
 
                 rms = RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
-                f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
+                f, s = scipy.signal.welch(rms, fs=fs / 2, scaling=scaling)
                 axs[i, n].plot(f, s, color="royalblue", alpha=even, label=f"Even samples")
 
                 rms = RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
-                f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
+                f, s = scipy.signal.welch(rms, fs=fs / 2, scaling=scaling)
                 axs[i, n].plot(f, s, color="crimson", alpha=odd, label=f"Odd samples")
 
                 axs[i, n].set_yscale('log')
@@ -855,7 +855,7 @@ class Polarimeter:
 
     def Plot_Correlation_Mat(self, type: str, begin=100, end=-100, scientific=True, show=False):
         """
-       Plot the 4x4 Correlation Matrix of the four channel Q1, Q2, U1 and U2.\n
+       Plot the 4x4 Correlation Matrix of the outputs of the four channel Q1, Q2, U1 and U2.\n
        Choose between of the Output or the Scientific Data.\n
        Parameters:\n
        - **type** (``str``) of data *"DEM"* or *"PWR"*
@@ -905,6 +905,60 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
+    def Plot_Correlation_Mat_RMS(self, type: str, begin=100, end=-100, scientific=True, show=False):
+        """
+       Plot the 4x4 Correlation Matrix of the RMS of the outputs of the four channel Q1, Q2, U1 and U2.\n
+       Choose between of the Output or the Scientific Data.\n
+       Parameters:\n
+       - **type** (``str``) of data *"DEM"* or *"PWR"*
+       - **begin**, **end** (``int``): interval of dataset that has to be considered
+       - **scientific** (``bool``):\n
+            *True* -> Scientific data are processed\n
+            *False* -> Outputs are processed
+       - **show** (bool):\n
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only
+       """
+        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
+        sci = {}
+        data_name = ""  # type: str
+        if scientific:
+            for exit in self.data[type].keys():
+                sci_data = self.Demodulation(type=type, exit=exit)
+                sci[exit] = RMS(sci_data["sci_data"], window=100, exit=exit, eoa=0, begin=0, end=-1)
+
+                if type == "DEM":
+                    data_name = "RMS_DEMODULATED"
+                elif type == "PWR":
+                    data_name = "RMS_TOT_POWER"
+        else:
+            for exit in self.data[type].keys():
+                sci[exit] = RMS(self.data[type],
+                                window=100, exit=exit, eoa=0, begin=0, end=-1)
+                data_name = f"RMS_{type}"
+
+        fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(14, 7))
+
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'Correlation Matrix {data_name} - Date: {begin_date}', fontsize=14)
+
+        sci_data = pd.DataFrame(sci)
+        corr_matrix = sci_data.corr()
+        for i in corr_matrix.keys():
+            corr_matrix[i][i] = np.nan
+
+        pl_m1 = sn.heatmap(corr_matrix, annot=True, ax=axs[0], cmap='coolwarm')
+        pl_m1.set_title(f"Correlation {data_name}", fontsize=18)
+        pl_m2 = sn.heatmap(corr_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
+        pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=18)
+
+        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/{self.name}/'
+        Path(path).mkdir(parents=True, exist_ok=True)
+        fig.savefig(f'{path}{self.name}_CorrMat_{data_name}.png')
+        if show:
+            plt.show()
+        plt.close(fig)
+
 
 def RMS(data, window: int, exit: str, eoa: int, begin=100, end=-100):
     """
@@ -937,7 +991,7 @@ def EOA(even: int, odd: int, all: int) -> str:
     "O" for odd (``int``)\n
     "A" for all (``int``)\n
     """
-    eoa = " "
+    eoa = ""
     if even != 0:
         eoa += "E"
     if odd != 0:
