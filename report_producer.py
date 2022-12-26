@@ -10,7 +10,7 @@ from mako.template import Template
 from rich.logging import RichHandler
 
 
-# This file contains a program to produce a report of a polarimeter.
+# This file contains the 2nd version (0.0.2) of the procedure to produce a report of a polarimeter.
 # December 20th 2022, Brescia (Italy)
 
 
