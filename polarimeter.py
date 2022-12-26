@@ -960,6 +960,30 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
+    def Write_Jump(self, path_dataset: Path):
+        logging.basicConfig(level="INFO", format='%(message)s',
+                            datefmt="[%X]", handlers=[RichHandler()])  # <3
+
+        logging.warning("I'm going to produce the caption for the file.")
+        fz.tab_cap_time(path_dataset=path_dataset)
+        logging.warning("Done.\n")
+        new_file_name = f"JT_{path_dataset.stem}.txt"
+        logging.warning("Looking for jumps now.")
+        jumps = fz.find_jump(self.times)
+        logging.warning("Done.\n")
+
+        if len(jumps["position"]) == 0:
+            logging.warning("No Time Jumps found in the dataset.")
+        else:
+            logging.warning(f"In the dataset there are {len(jumps['position'])} Time Jumps.")
+            i = 1
+            for idx, j_value in zip(jumps["position"], jumps["entity"]):
+                jump_time = float(self.date[0]) + ((idx/100.)/86_400.)
+                greg_jump_time = Time(jump_time, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+                with open(new_file_name, "at") as new_file:
+                    new_file.write(f"{self.name}\t{i}\t{j_value}\t{jump_time}\t{greg_jump_time}\n")
+                i += 1
+
 
 def RMS(data, window: int, exit: str, eoa: int, begin=100, end=-100):
     """
