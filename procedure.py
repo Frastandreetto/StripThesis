@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-# This file contains a 3rd version (0.0.3) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
+# This file contains a 4th version (0.0.4) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
 # December 7th 2022, Brescia (Italy)
 
 # Libraries & Modules
@@ -122,6 +122,7 @@ def main():
             for s in [True, False]:
                 logging.info(f"Going to plot {type} Correlation Matrix with scientific parameter = {s}")
                 p.Plot_Correlation_Mat(type=type, scientific=s, show=False)
+                p.Plot_Correlation_Mat_RMS(type=type, scientific=s, show=False)
 
         logging.info("Analysis completed.\nProducing the report now.")
 
