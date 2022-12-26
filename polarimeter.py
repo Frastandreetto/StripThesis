@@ -484,9 +484,9 @@ class Polarimeter:
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 sci_data = self.Demodulation(type=type, exit=exit)
+                y = fz.mob_mean(sci_data["sci_data"][exit][begin:end - 2], smooth_len=smooth_len)
 
-                axs[i, n].plot(sci_data["times"][begin:end - 1][:-smooth_len],
-                               fz.mob_mean(sci_data["sci_data"][exit][begin:end - 2], smooth_len=smooth_len),
+                axs[i, n].plot(sci_data["times"][begin:len(y)+begin], y,
                                color="mediumpurple", label=f"{data_name}")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(sci_data["sci_data"][exit][begin:end - 2])])
@@ -543,7 +543,7 @@ class Polarimeter:
                 rms_all = fz.mob_mean(RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end),
                                       smooth_len=smooth_len)
 
-                axs[i, n].plot(sci_data["times"][begin:end][:-window - smooth_len + 2], rms_all,
+                axs[i, n].plot(sci_data["times"][begin:len(rms_all)+begin], rms_all,
                                color="mediumvioletred", label=f"RMS {data_name}")
 
                 if i == 0:
