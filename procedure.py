@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-# This file contains a first version (0.0.1) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
+# This file contains a 2nd version (0.0.2) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
 # December 7th 2022, Brescia (Italy)
 
 # Libraries & Modules
