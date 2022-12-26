@@ -186,7 +186,7 @@ class Polarimeter:
         if norm_mode == 1:
             logging.info("Dataset in function of time [s].")
 
-    def Demodulation(self, type: str, exit: str) -> Dict[str, Any]:
+    def Demodulation(self, type: str, exit: str, begin=0, end=-1) -> Dict[str, Any]:
         """
         Demodulation\n
         Calculate the Scientific data DEMODULATED or TOTAL POWER at 50Hz\n
@@ -194,13 +194,14 @@ class Polarimeter:
         Parameters:\n
         - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*\n
         - **type** (``str``) of data *"DEM"* or *"PWR"*
+        - **begin**, **end** (``int``): interval of dataset that has to be considered
         """
         times = fz.mean_cons(self.times)
         data = {}
         if type == "PWR":
-            data[exit] = fz.mean_cons(self.data[type][exit])
+            data[exit] = fz.mean_cons(self.data[type][exit][begin:end])
         if type == "DEM":
-            data[exit] = fz.diff_cons(self.data[type][exit])
+            data[exit] = fz.diff_cons(self.data[type][exit][begin:end])
 
         sci_data = {"sci_data": data, "times": times}
         return sci_data
@@ -872,12 +873,12 @@ class Polarimeter:
         data_name = ""  # type: str
         if scientific:
             for exit in self.data[type].keys():
+                sci_data = self.Demodulation(type=type, exit=exit, begin=begin, end=end)
+                sci[exit] = sci_data["sci_data"][exit]
                 if type == "DEM":
                     data_name = "DEMODULATED Data"
-                    sci[exit] = fz.diff_cons(self.data[type][exit][begin:end])
                 elif type == "PWR":
                     data_name = "TOT POWER Data"
-                    sci[exit] = fz.mean_cons(self.data[type][exit][begin:end])
         else:
             for exit in self.data[type].keys():
                 sci[exit] = self.data[type][exit][begin:end]
@@ -900,7 +901,7 @@ class Polarimeter:
 
         path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_CorrMat_{data_name[:-5]}.png')
+        fig.savefig(f'{path}{self.name}_Correlation_Matrix_{data_name[:-5]}.png')
         if show:
             plt.show()
         plt.close(fig)
@@ -954,7 +955,7 @@ class Polarimeter:
 
         path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_CorrMat_{data_name}.png')
+        fig.savefig(f'{path}{self.name}_Correlation_Matrix_{data_name}.png')
         if show:
             plt.show()
         plt.close(fig)
