@@ -23,7 +23,7 @@ def tab_cap_time(path_dataset: Path):
     This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
     new_file_name = f"JT_{path_dataset.stem}.txt"
-    cap = "Name_Polarimeter\tIndex\tDelta_t\tJHD\n"
+    cap = "Name_Polarimeter\tJump_Index\tDelta_t\tJHD\tGregorian Date\n"
 
     file = open(new_file_name, "w")
     file.write(cap)
@@ -177,7 +177,7 @@ def replace_spike(v, N=10, threshold=8.5, gauss=True):
                 logging.info(f"Spike in low position ({i}): using the following {2 * N} samples")
                 a = 0
                 c = 1
-                d = 1 + 2*i
+                d = 1 + 2 * i
             if N < i < (len(v) - N):
                 logging.info(f"Spike in position {i}: using {2 * N} samples, {N} before e {N} after")
                 a = -N
@@ -201,3 +201,58 @@ def replace_spike(v, N=10, threshold=8.5, gauss=True):
         v[i] = new_a
 
         s = find_spike(v=v, threshold=threshold)
+
+
+def find_jump(v, threshold=2) -> {}:
+    """
+        Find the 'jumps' in the timestamps of a given dataset and returns the positions and the entity of those jumps.
+        Parameters:\n
+        - **v** is an array that contains the time data\n
+        - **threshold** (``int``) is a value used to discern what is a jump and what is not\n
+    """
+    dif = diff_cons(v)
+
+    entity = []
+    position = []
+    jumps = {"entity": entity, "position": position}
+
+    logging.basicConfig(level="INFO", format='%(message)s',
+                        datefmt="[%X]", handlers=[RichHandler()])  # <3
+
+    for idx, item in enumerate(dif):
+
+        # NON TIENE CONTO DI JUMPS IN 0 E SULL'ULTIMO DATO DI V
+
+        if item > 0:
+            logging.warning("Found a positive Delta!")
+            if v[idx * 2 + 1] < v[idx * 2 + 2] - 0.01:
+                jumps["position"].append(idx * 2 + 1)
+                jumps["entity"].append(item)
+                logging.info(f"It was a backward jump of entity {entity}")
+            if v[idx * 2] > v[idx * 2 + 2]:
+                jumps["position"].append(idx * 2)
+                jumps["entity"].append(item)
+                logging.info(f"It was a frontward jump of entity {entity}")
+
+        if item == 0:
+            logging.warning("Found a Null Delta!")
+            if v[idx * 2 + 1] < v[idx * 2 + 2] - 0.01:
+                jumps["position"].append(idx * 2 + 1)
+                jumps["entity"].append(item)
+                logging.info(f"It was a backward jump of entity -0.01")
+            else:
+                jumps["position"].append(idx * 2)
+                jumps["entity"].append(item)
+                logging.info(f"It was a frontward jump of entity 0.01")
+
+        if item < -0.01 * threshold:
+            logging.warning("Found a very negative Delta!")
+            if v[idx * 2 + 1] > v[idx * 2 + 2]:
+                jumps["position"].append(idx * 2 + 1)
+                jumps["entity"].append(item)
+                logging.info(f"It was a frontward jump of entity {entity}")
+            if v[idx * 2] < v[idx * 2 + 2] - 0.01 * threshold:
+                jumps["position"].append(idx * 2)
+                jumps["entity"].append(item)
+                logging.info(f"It was a backward jump of entity {entity}")
+    return jumps
