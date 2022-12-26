@@ -878,11 +878,11 @@ class Polarimeter:
                 if type == "DEM":
                     data_name = "DEMODULATED Data"
                 elif type == "PWR":
-                    data_name = "TOT POWER Data"
+                    data_name = "TOT_POWER Data"
         else:
             for exit in self.data[type].keys():
                 sci[exit] = self.data[type][exit][begin:end]
-                data_name = f"{type} OUTPUT Data"
+                data_name = f"{type}_OUTPUT Data"
 
         fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(14, 7))
 
@@ -899,9 +899,9 @@ class Polarimeter:
         pl_m2 = sn.heatmap(corr_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
         pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=18)
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/{self.name}/'
+        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/Data/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_Correlation_Matrix_{data_name[:-5]}.png')
+        fig.savefig(f'{path}{self.name}_CorrMat_{data_name[:-5]}.png')
         if show:
             plt.show()
         plt.close(fig)
@@ -953,9 +953,9 @@ class Polarimeter:
         pl_m2 = sn.heatmap(corr_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
         pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=18)
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/{self.name}/'
+        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_Correlation_Matrix_{data_name}.png')
+        fig.savefig(f'{path}{self.name}_CorrMat_{data_name}.png')
         if show:
             plt.show()
         plt.close(fig)
