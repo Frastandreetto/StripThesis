@@ -17,13 +17,13 @@ from rich.logging import RichHandler
 
 def tab_cap_time(path_dataset: Path):
     """
-    Create a new file txt and write the caption of a tabular\n
+    Create a new file .txt and write the caption of a tabular\n
     Parameters:\n
     - **path_dataset** (Path: comprehensive of the name of the file)\n
     This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
     new_file_name = f"JT_{path_dataset.stem}.txt"
-    cap = "Name_Polarimeter\tJump_Index\tDelta_t\tJHD\tGregorian Date\n"
+    cap = "Name_Polarimeter\tJump_Index\tDelta_t before\tDelta_t after\tGregorian Date\t\tJHD\n"
 
     file = open(new_file_name, "w")
     file.write(cap)
@@ -203,56 +203,37 @@ def replace_spike(v, N=10, threshold=8.5, gauss=True):
         s = find_spike(v=v, threshold=threshold)
 
 
-def find_jump(v, threshold=2) -> {}:
+def find_jump(v) -> {}:  # v => Polarimeter.times
     """
-        Find the 'jumps' in the timestamps of a given dataset and returns the positions and the entity of those jumps.
-        Parameters:\n
-        - **v** is an array that contains the time data\n
-        - **threshold** (``int``) is a value used to discern what is a jump and what is not\n
+    Find the 'jumps' in the timestamps of a given dataset.
+    Returns the positions of those time-spikes and the time-delay with the previous and the following timestamp.\n
+    Parameters:\n
+    - **v** is an array that contains the time data\n
+    - **threshold** (``int``) is a value used to discern what is a jump and what is not\n
     """
-    dif = diff_cons(v)
-
-    entity = []
     position = []
-    jumps = {"entity": entity, "position": position}
+    jump_before = []
+    jump_after = []
+    jumps = {"position": position, "jump_before": jump_before, "jump_after": jump_after}
 
     logging.basicConfig(level="INFO", format='%(message)s',
                         datefmt="[%X]", handlers=[RichHandler()])  # <3
+    logging.warning("Producing the ideal vector")
+    v_ideal = np.arange(0, len(v) / 100, 0.01)
+    logging.warning("Done.\n Now I look for time errors.")
 
-    for idx, item in enumerate(dif):
-
-        # NON TIENE CONTO DI JUMPS IN 0 E SULL'ULTIMO DATO DI V
-
-        if item > 0:
-            logging.warning("Found a positive Delta!")
-            if v[idx * 2 + 1] < v[idx * 2 + 2] - 0.01:
-                jumps["position"].append(idx * 2 + 1)
-                jumps["entity"].append(item)
-                logging.info(f"It was a backward jump of entity {entity}")
-            if v[idx * 2] > v[idx * 2 + 2]:
-                jumps["position"].append(idx * 2)
-                jumps["entity"].append(item)
-                logging.info(f"It was a frontward jump of entity {entity}")
-
-        if item == 0:
-            logging.warning("Found a Null Delta!")
-            if v[idx * 2 + 1] < v[idx * 2 + 2] - 0.01:
-                jumps["position"].append(idx * 2 + 1)
-                jumps["entity"].append(item)
-                logging.info(f"It was a backward jump of entity -0.01")
+    for idx, item in enumerate(v_ideal):
+        if round(v_ideal[idx], 2) != v[idx]:
+            jumps["position"].append(idx)
+            logging.warning(f"Anomaly found in position: {idx}. Expected: {v_ideal[idx]}, got {v[idx]}")
+            if idx > 0:
+                before = v[idx] - v[idx-1]
+                jumps["jump_before"].append(round(before, 12))
             else:
-                jumps["position"].append(idx * 2)
-                jumps["entity"].append(item)
-                logging.info(f"It was a frontward jump of entity 0.01")
-
-        if item < -0.01 * threshold:
-            logging.warning("Found a very negative Delta!")
-            if v[idx * 2 + 1] > v[idx * 2 + 2]:
-                jumps["position"].append(idx * 2 + 1)
-                jumps["entity"].append(item)
-                logging.info(f"It was a frontward jump of entity {entity}")
-            if v[idx * 2] < v[idx * 2 + 2] - 0.01 * threshold:
-                jumps["position"].append(idx * 2)
-                jumps["entity"].append(item)
-                logging.info(f"It was a backward jump of entity {entity}")
+                jumps["jump_before"].append(np.nan)
+            if idx < len(v) - 1:
+                after = v[idx+1] - v[idx]
+                jumps["jump_after"].append(round(after, 12))
+            else:
+                jumps["jump_after"].append(np.nan)
     return jumps

@@ -961,6 +961,12 @@ class Polarimeter:
         plt.close(fig)
 
     def Write_Jump(self, path_dataset: Path):
+        """
+        Find the 'jumps' in the timestamps of a given dataset and produce a file .txt with a description for every jump,
+        including: Name_Polarimeter - Jump_Index - Delta_t before - tDelta_t after - Gregorian Date - JHD.\n
+        Parameters:\n
+        - **path_dataset** (Path: comprehensive of the name of the file)\n
+        """
         logging.basicConfig(level="INFO", format='%(message)s',
                             datefmt="[%X]", handlers=[RichHandler()])  # <3
 
@@ -977,11 +983,12 @@ class Polarimeter:
         else:
             logging.warning(f"In the dataset there are {len(jumps['position'])} Time Jumps.")
             i = 1
-            for idx, j_value in zip(jumps["position"], jumps["entity"]):
-                jump_time = float(self.date[0]) + ((idx/100.)/86_400.)
-                greg_jump_time = Time(jump_time, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+            for idx, j_bef, j_aft in zip(jumps["position"], jumps["jump_before"], jumps["jump_after"]):
+                jump_instant = float(self.date[0]) + ((idx/100.)/86_400.)
+                greg_jump_instant = Time(jump_instant, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
                 with open(new_file_name, "at") as new_file:
-                    new_file.write(f"{self.name}\t{i}\t{j_value}\t{jump_time}\t{greg_jump_time}\n")
+                    new_file.write(f"{self.name}"
+                                   f"\t\t\t{i}\t\t{j_bef}\t\t{j_aft}\t\t{greg_jump_instant}\t{jump_instant}\n")
                 i += 1
 
 
