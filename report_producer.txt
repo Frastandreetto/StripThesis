@@ -171,7 +171,7 @@ Plot of FFT of the RMS of ${type} data:
 <div id='sec3'/>
 # Correlation Analysis
 
-% for type in ["DEM_OUTPUT", "PWR_OUTPUT", "DEMODULATED", "TOT_POWER"]:
+% for type in ["DEM_OUTPUT", "DEM_OUTPUT_EVEN", "DEM_OUTPUT_ODD", "PWR_OUTPUT", "PWR_OUTPUT_EVEN", "PWR_OUTPUT_ODD", "DEMODULATED", "TOT_POWER"]:
 <font size="5"><br />**${type}**</font><br />
 
 Plot of ${type} Data correlation Matrices:
@@ -180,7 +180,7 @@ Plot of ${type} Data correlation Matrices:
 
 % endfor
 
-% for type in ["DEM", "PWR", "DEMODULATED", "TOT_POWER"]:
+% for type in ["DEM", "DEM_EVEN", "DEM_ODD", "PWR", "PWR_EVEN", "PWR_ODD", "DEMODULATED", "TOT_POWER"]:
 <font size="5"><br />**RMS ${type}**</font><br />
 
 Plot of ${type} RMS correlation Matrices:

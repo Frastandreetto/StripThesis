@@ -236,7 +236,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_EvenOddAll(self, type: str, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1, show=True):
+    def Plot_EvenOddAll(self, type: str, even: int, odd: int, all: int, begin=100, end=-1, smooth_len=1, show=True):
         """
         Plot of Raw data DEM or PWR (Even, Odd or All)\n
         Parameters:\n
@@ -294,7 +294,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_RMS_EOA(self, type: str, window: int, even: int, odd: int, all: int, begin=100, end=-100, smooth_len=1,
+    def Plot_RMS_EOA(self, type: str, window: int, even: int, odd: int, all: int, begin=100, end=-1, smooth_len=1,
                      show=True):
         """
         Plot of Raw data DEM or PWR (Even, Odd or All)\n
@@ -356,7 +356,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_Correlation_EvenOdd(self, type: str, begin=100, end=-100, show=True):
+    def Plot_Correlation_EvenOdd(self, type: str, begin=100, end=-1, show=True):
         """
         Plot of Raw data DEM or PWR: Even vs Odd to see the correlation\n
         Parameters:\n
@@ -404,7 +404,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_Correlation_RMS_EO(self, type: str, window: int, begin=100, end=-100, show=True):
+    def Plot_Correlation_RMS_EO(self, type: str, window: int, begin=100, end=-1, show=True):
         """
         Plot of Raw data DEM or PWR: Even vs Odd to see the correlation\n
         Parameters:\n
@@ -456,7 +456,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_SciData(self, type: str, begin=100, end=-100, smooth_len=1, show=True):
+    def Plot_SciData(self, type: str, begin=100, end=-1, smooth_len=1, show=True):
         """
         Plot of Scientific data DEMODULATED or TOTAL POWER\n
         Parameters:\n
@@ -466,6 +466,7 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
+        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         y_scale_limits = [np.inf, -np.inf]
         if type == "DEM":
             data_name = "DEMODULATED"
@@ -483,7 +484,7 @@ class Polarimeter:
                 sci_data = self.Demodulation(type=type, exit=exit)
                 y = fz.mob_mean(sci_data["sci_data"][exit][begin:end - 2], smooth_len=smooth_len)
 
-                axs[i, n].plot(sci_data["times"][begin:len(y)+begin], y,
+                axs[i, n].plot(sci_data["times"][begin:len(y) + begin], y,
                                color="mediumpurple", label=f"{data_name}")
                 if i == 0:
                     y_scale_limits[0] = np.min([y_scale_limits[0], np.min(sci_data["sci_data"][exit][begin:end - 2])])
@@ -511,7 +512,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_RMS_SciData(self, type: str, window: int, begin=100, end=-100, smooth_len=1, show=True):
+    def Plot_RMS_SciData(self, type: str, window: int, begin=0, end=-1, smooth_len=1, show=True):
         """
         Plot of Raw data DEM or PWR (Even, Odd or All)\n
         Parameters:\n
@@ -522,6 +523,7 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)
         """
+        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         y_scale_limits = [np.inf, -np.inf]
         if type == "DEM":
             data_name = "DEMODULATED"
@@ -540,7 +542,7 @@ class Polarimeter:
                 rms_all = fz.mob_mean(RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end),
                                       smooth_len=smooth_len)
 
-                axs[i, n].plot(sci_data["times"][begin:len(rms_all)+begin], rms_all,
+                axs[i, n].plot(sci_data["times"][begin:len(rms_all) + begin], rms_all,
                                color="mediumvioletred", label=f"RMS {data_name}")
 
                 if i == 0:
@@ -614,7 +616,7 @@ class Polarimeter:
     # FOURIER SPECTRA ANALYSIS
     # ------------------------------------------------------------------------------------------------------------------
 
-    def Plot_FFT_EvenOdd(self, type: str, even: int, odd: int, all: int, begin=100, end=-100, show=True):
+    def Plot_FFT_EvenOdd(self, type: str, even: int, odd: int, all: int, begin=0, end=-1, show=True):
         """
         Plot of Fourier Spectra of Even Odd data\n
         Parameters:\n
@@ -673,7 +675,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_FFT_RMS_EO(self, type: str, window: int, even: int, odd: int, all: int, begin=100, end=-100, show=True):
+    def Plot_FFT_RMS_EO(self, type: str, window: int, even: int, odd: int, all: int, begin=0, end=-1, show=True):
         """
         Plot of Fourier Spectra of the RMS of Even Odd data\n
         Parameters:\n
@@ -736,7 +738,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_FFT_SciData(self, type: str, begin=100, end=-100, show=True):
+    def Plot_FFT_SciData(self, type: str, begin=0, end=-1, show=True):
         """
         Plot of Fourier Spectra of Scientific data\n
         Parameters:\n
@@ -747,6 +749,7 @@ class Polarimeter:
             *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
+        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ / 2
         scaling = "spectrum"
@@ -791,7 +794,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_FFT_RMS_SciData(self, type: str, window: int, begin=100, end=-100, show=True):
+    def Plot_FFT_RMS_SciData(self, type: str, window: int, begin=0, end=-1, show=True):
         """
         Plot of Fourier Spectra of the RMS of Scientific data\n
         Parameters:\n
@@ -803,6 +806,7 @@ class Polarimeter:
             *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
+        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ / 2
         scaling = "spectrum"
@@ -851,7 +855,8 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_Correlation_Mat(self, type: str, begin=100, end=-100, scientific=True, show=False, warn_threshold=0.4):
+    def Plot_Correlation_Mat(self, type: str, begin=0, end=-1, scientific=True,
+                             even=False, odd=False, show=False, warn_threshold=0.4):
         """
        Plot the 4x4 Correlation Matrix of the outputs of the four channel Q1, Q2, U1 and U2.\n
        Choose between of the Output or the Scientific Data.\n
@@ -861,6 +866,12 @@ class Polarimeter:
        - **scientific** (``bool``):\n
             *True* -> Scientific data are processed\n
             *False* -> Outputs are processed
+       - **even** (``bool``):\n
+            *True* -> Even Outputs are processed\n
+            *False* -> Other Outputs are processed
+       - **odd** (``bool``):\n
+            *True* -> Odd Outputs are processed\n
+            *False* -> Other Outputs are processed
        - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
@@ -878,9 +889,18 @@ class Polarimeter:
                 elif type == "PWR":
                     data_name = "TOT_POWER Data"
         else:
-            for exit in self.data[type].keys():
-                sci[exit] = self.data[type][exit][begin:end]
-                data_name = f"{type}_OUTPUT Data"
+            if even:
+                for exit in self.data[type].keys():
+                    sci[exit] = self.data[type][exit][begin:end - 1]
+                    data_name = f"{type}_OUTPUT_EVEN Data"
+            elif odd:
+                for exit in self.data[type].keys():
+                    sci[exit] = self.data[type][exit][begin + 1:end]
+                    data_name = f"{type}_OUTPUT_ODD Data"
+            else:
+                for exit in self.data[type].keys():
+                    sci[exit] = self.data[type][exit][begin:end]
+                    data_name = f"{type}_OUTPUT Data"
 
         fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(14, 7))
 
@@ -892,21 +912,21 @@ class Polarimeter:
 
         keys = list(corr_matrix.keys())
         for i in corr_matrix.keys():
-            corr_matrix[i][i] = np.nan
             """
             Put at nan the values on the diagonal of the matrix (self correlations)
+            """
+            corr_matrix[i][i] = np.nan
+            """
+            Write a warning in the report if there is high correlation between the channels
             """
             keys.remove(i)
             for j in keys:
                 logging.debug(f"Correlation {i} with {j}.")
                 if corr_matrix[i][j] > warn_threshold:
-                    msg = f"High correlation ({round(corr_matrix[i][j],6)}) " \
+                    msg = f"High correlation ({round(corr_matrix[i][j], 6)}) " \
                           f"found in {data_name} between channel {i} and {j}."
                     logging.warning(msg)
                     self.warnings["corr_warning"].append(msg + "<br />")
-            """
-            Write a warning in the report if there is high correlation between the channels
-            """
 
         pl_m1 = sn.heatmap(corr_matrix, annot=True, ax=axs[0], cmap='coolwarm')
         pl_m1.set_title(f"Correlation {data_name}", fontsize=18)
@@ -920,7 +940,8 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_Correlation_Mat_RMS(self, type: str, begin=100, end=-100, scientific=True, show=False, warn_threshold=0.4):
+    def Plot_Correlation_Mat_RMS(self, type: str, begin=0, end=-1, scientific=True,
+                                 even=False, odd=False, show=False, warn_threshold=0.4):
         """
        Plot the 4x4 Correlation Matrix of the RMS of the outputs of the four channel Q1, Q2, U1 and U2.\n
        Choose between of the Output or the Scientific Data.\n
@@ -930,6 +951,12 @@ class Polarimeter:
        - **scientific** (``bool``):\n
             *True* -> Scientific data are processed\n
             *False* -> Outputs are processed
+        - **even** (``bool``):\n
+            *True* -> Even Outputs are processed\n
+            *False* -> Other Outputs are processed
+       - **odd** (``bool``):\n
+            *True* -> Odd Outputs are processed\n
+            *False* -> Other Outputs are processed
        - **show** (bool):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
@@ -941,17 +968,25 @@ class Polarimeter:
         if scientific:
             for exit in self.data[type].keys():
                 sci_data = self.Demodulation(type=type, exit=exit)
-                sci[exit] = RMS(sci_data["sci_data"], window=100, exit=exit, eoa=0, begin=0, end=-1)
+                sci[exit] = RMS(sci_data["sci_data"], window=100, exit=exit, eoa=0, begin=begin, end=end)
 
                 if type == "DEM":
                     data_name = "RMS_DEMODULATED"
                 elif type == "PWR":
                     data_name = "RMS_TOT_POWER"
         else:
+            if even:
+                data_name = f"RMS_{type}_EVEN"
+                eoa = 2
+            elif odd:
+                data_name = f"RMS_{type}_ODD"
+                eoa = 1
+            else:
+                data_name = f"RMS_{type}"
+                eoa = 0
             for exit in self.data[type].keys():
                 sci[exit] = RMS(self.data[type],
-                                window=100, exit=exit, eoa=0, begin=0, end=-1)
-                data_name = f"RMS_{type}"
+                                window=100, exit=exit, eoa=eoa, begin=begin, end=end)
 
         fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(14, 7))
 
@@ -963,21 +998,21 @@ class Polarimeter:
 
         keys = list(corr_matrix.keys())
         for i in corr_matrix.keys():
-            corr_matrix[i][i] = np.nan
             """
             Put at nan the values on the diagonal of the matrix (self correlations)
+            """
+            corr_matrix[i][i] = np.nan
+            """
+            Write a warning in the report if there is high correlation between the channels
             """
             keys.remove(i)
             for j in keys:
                 logging.debug(f"Correlation {i} with {j}.")
                 if corr_matrix[i][j] > warn_threshold:
-                    msg = f"High correlation ({round(corr_matrix[i][j],6)}) " \
+                    msg = f"High correlation ({round(corr_matrix[i][j], 6)}) " \
                           f"found in {data_name} between channel {i} and {j}."
                     logging.warning(msg)
                     self.warnings["corr_warning"].append(msg + "<br />")
-            """
-            Write a warning in the report if there is high correlation between the channels
-            """
 
         pl_m1 = sn.heatmap(corr_matrix, annot=True, ax=axs[0], cmap='coolwarm')
         pl_m1.set_title(f"Correlation {data_name}", fontsize=18)
@@ -1019,14 +1054,13 @@ class Polarimeter:
 
             logging.info("I'm going to produce the caption for the file.")
             cap = fz.tab_cap_time(file_name=start_datetime)
-            self.warnings["time_warning"].append("<br>**"+cap+"**<br>")
+            self.warnings["time_warning"].append("<br>**" + cap + "**<br>")
             logging.info("Done. I also wrote it in the report.\n")
             new_file_name = f"JT_{start_datetime}.txt"
 
             i = 1
             for pos, j_bef, j_aft in zip(jumps["position"], jumps["jump_before"], jumps["jump_after"]):
-
-                jump_instant = float(self.date[0]) + ((pos/100.)/86_400.)
+                jump_instant = float(self.date[0]) + ((pos / 100.) / 86_400.)
                 greg_jump_instant = Time(jump_instant, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
                 tab_content = f"{self.name}\t\t\t{i}\t\t{j_bef}\t\t{j_aft}\t{greg_jump_instant}\t\t{jump_instant}\n"
@@ -1041,7 +1075,7 @@ class Polarimeter:
                 i += 1
 
 
-def RMS(data, window: int, exit: str, eoa: int, begin=100, end=-100):
+def RMS(data, window: int, exit: str, eoa: int, begin=0, end=-1):
     """
     Calculate the RMS of a vector using the rolling window
     Parameters:\n

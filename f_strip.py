@@ -202,7 +202,7 @@ def replace_spike(v, N=10, threshold=8.5, gauss=True):
 
         v[i] = new_a
 
-        s = find_spike(v=v, threshold=threshold)
+        # s = find_spike(v=v, threshold=threshold)
 
 
 def find_jump(v) -> {}:  # v => Polarimeter.times
