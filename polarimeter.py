@@ -215,7 +215,7 @@ class Polarimeter:
         - **begin**, **end** (``int``): interval of dataset that has to be considered\n
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         """
-        fig = plt.figure(figsize=(20, 6))
+        fig = plt.figure(figsize=(17, 6))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'{self.name} Output {type} - Date: {begin_date}', fontsize=14)
@@ -247,8 +247,8 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
-        y_scale_limits = [np.inf, -np.inf]
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+
         eoa = EOA(even=even, odd=odd, all=all)
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
@@ -258,19 +258,22 @@ class Polarimeter:
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
 
-                axs[i, n].plot(self.times[begin:end - 1:2][:- smooth_len],
-                               fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len)[:-1],
-                               color="royalblue", alpha=even, label="Even Data")
+                if i == 1:
+                    axs[i, n].sharey(axs[1, 0])
 
-                axs[i, n].plot(self.times[begin + 1:end:2][:- smooth_len],
-                               fz.mob_mean(self.data[type][exit][begin + 1:end:2], smooth_len=smooth_len)[:-1],
-                               color="crimson", alpha=odd, label="Odd Data")
-                axs[i, n].plot(self.times[begin:end][:- smooth_len],
-                               fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len)[:-1],
-                               color="forestgreen", alpha=all, label="All data")
-                if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(self.data[type][exit])])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(self.data[type][exit])])
+                if even != 0:
+                    axs[i, n].plot(self.times[begin:end - 1:2][:- smooth_len],
+                                   fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len)[:-1],
+                                   color="royalblue", alpha=even, label="Even Data")
+
+                if odd != 0:
+                    axs[i, n].plot(self.times[begin + 1:end:2][:- smooth_len],
+                                   fz.mob_mean(self.data[type][exit][begin + 1:end:2], smooth_len=smooth_len)[:-1],
+                                   color="crimson", alpha=odd, label="Odd Data")
+                if all != 0:
+                    axs[i, n].plot(self.times[begin:end][:- smooth_len],
+                                   fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len)[:-1],
+                                   color="forestgreen", alpha=all, label="All data")
                 # Title
                 axs[i, n].set_title(f'{type} {exit}')
                 # X-axis
@@ -280,10 +283,8 @@ class Polarimeter:
                     axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
                 axs[i, n].set_ylabel(f"Output [{type}]")
-                if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
-                axs[i, n].legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
@@ -345,7 +346,7 @@ class Polarimeter:
                 if i == 1:
                     axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
-                axs[i, n].legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
@@ -393,7 +394,7 @@ class Polarimeter:
                     axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                     axs[i, n].set_xlim(x_scale_limits[0], x_scale_limits[1])
                 # Legend
-                axs[i, n].legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
@@ -445,7 +446,7 @@ class Polarimeter:
                     axs[i, n].set_xlim(x_scale_limits[0],
                                        x_scale_limits[1])
                 # Legend
-                axs[i, n].legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
@@ -501,7 +502,7 @@ class Polarimeter:
                 if i == 1:
                     axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
-                axs[i, n].legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
@@ -560,7 +561,7 @@ class Polarimeter:
                 if i == 1:
                     axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
-                axs[i, n].legend(prop={'size': 9})
+                axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
@@ -1101,7 +1102,7 @@ def EOA(even: int, odd: int, all: int) -> str:
     """
     Parameters:\n
     - **even**, **odd**, **all** (``int``)
-    Return a string that contains the letters of the samples plotted:\n
+    If the variables are different from zero, this returns a string that contains the letters of the samples plotted:\n
     "E" for even (``int``)\n
     "O" for odd (``int``)\n
     "A" for all (``int``)\n
