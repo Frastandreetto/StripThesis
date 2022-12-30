@@ -15,19 +15,21 @@ from numba import njit
 from rich.logging import RichHandler
 
 
-def tab_cap_time(path_dataset: Path):
+def tab_cap_time(file_name: str) -> str:
     """
     Create a new file .txt and write the caption of a tabular\n
     Parameters:\n
-    - **path_dataset** (Path: comprehensive of the name of the file)\n
+    - **file_name** (``str``): Name of the file to create and in which insert the caption\n
     This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
-    new_file_name = f"JT_{path_dataset.stem}.txt"
-    cap = "Name_Polarimeter\tJump_Index\tDelta_t before\tDelta_t after\tGregorian Date\t\tJHD\n"
+    new_file_name = f"JT_{file_name}.txt"
+    cap = "Name_Polarimeter |Jump_Index |\tDelta_t before |Delta_t after |\tGregorian Date\t\t|\tJHD\t\t\n"
 
     file = open(new_file_name, "w")
     file.write(cap)
     file.close()
+
+    return cap
 
 
 def pol_list(path_dataset: Path) -> list:
@@ -214,18 +216,23 @@ def find_jump(v) -> {}:  # v => Polarimeter.times
     position = []
     jump_before = []
     jump_after = []
-    jumps = {"position": position, "jump_before": jump_before, "jump_after": jump_after}
+    msg = []
+    jumps = {"position": position, "jump_before": jump_before, "jump_after": jump_after, "msg": msg}
 
     logging.basicConfig(level="INFO", format='%(message)s',
                         datefmt="[%X]", handlers=[RichHandler()])  # <3
-    logging.warning("Producing the ideal vector")
+    logging.info("Producing the ideal vector")
     v_ideal = np.arange(0, len(v) / 100, 0.01)
-    logging.warning("Done.\n Now I look for time errors.")
+    logging.info("Done.\n Now I look for time errors.")
 
     for idx, item in enumerate(v_ideal):
         if round(v_ideal[idx], 2) != v[idx]:
             jumps["position"].append(idx)
-            logging.warning(f"Anomaly found in position: {idx}. Expected: {v_ideal[idx]}, got {v[idx]}")
+
+            message = f"Time anomaly found in position: {idx}. Expected: {v_ideal[idx]}, got {v[idx]}.\n"
+            logging.warning(message)
+            jumps["msg"].append(message+"<br>")
+
             if idx > 0:
                 before = v[idx] - v[idx-1]
                 jumps["jump_before"].append(round(before, 12))

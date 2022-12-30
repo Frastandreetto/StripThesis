@@ -1,4 +1,4 @@
-# Test report of polarimeter ${name_polarimeter}
+<font size="7">**Test report of polarimeter ${name_polarimeter}**</font><br />
 
 # Table of Contents
 0. [General Info](#intro)
@@ -8,9 +8,9 @@
 
 <div id='intro'/>
 # General Info
-The plots were loaded from the following path: ${plot_dir}
+- The plots were loaded from the following path: ${plot_dir}
 
-The analysis was run on ${analysis_date} with the following command line:
+- The analysis was run on ${analysis_date} with the following command line:
 
 ```
 ${command_line}
@@ -18,138 +18,161 @@ ${command_line}
 
 - Time period: ${analysis_date}
 
+<font size="5"> <font color="firebrick"> **Warning list**</font> </font><br />
+
+- **Timestamp analysis**:
+
+${t_warnings}
+
+- **Correlation Analysis**:
+
+${corr_warnings}
+
 % for type in ["DEM","PWR"]:
 
-Plot of Output ${type}:
+<font size="5"><br />**Plot of Output ${type}:**</font><br />
 
 ![](${plot_dir}/Output/${name_polarimeter}_${type}.png)
 % endfor
-\pagebreak
 
 <div id='sec1'/>
 # Even-Odd Analysis
 % for type in ["DEM","PWR"]:
 
-# Output
+<font size="5"><br />**Output ${type} All**</font><br />
+
 Plot of Output of all data ${type} with different smoothing lengths.
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
-<center>Smooth = ${smooth}</center>
+<center><br /><br /> <font size="4">**Smooth = ${smooth}**</font><br /> </center> <br />
+
 ![](${plot_dir}/EvenOddAll_Analysis/EOA_Output/${name_polarimeter}/${name_polarimeter}_${type}_A_smooth=${smooth}.png)
 % endfor
 
-\pagebreak
-# Output
+<font size="5"><br />**Output ${type} Even-Odd**</font><br />
+
 Plot of Output of even-odd data ${type} with different smoothing lengths.
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
-<center>Smooth = ${smooth}</center>
+<center><br /><br /><font size="4">**Smooth = ${smooth}**</font><br /> </center> <br />
+
 ![](${plot_dir}/EvenOddAll_Analysis/EOA_Output/${name_polarimeter}/${name_polarimeter}_${type}_EO_smooth=${smooth}.png)
 % endfor
 
-\pagebreak
+<font size="5"><br />**Output ${type} Even-Odd-All**</font><br />
+
 Plot of Output of even-odd and all data ${type}  with different smoothing lengths.
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
-<center>Smooth = ${smooth}</center>
+<center><br /><br /><font size="4">**Smooth = ${smooth}**</font><br /> </center> <br />
+
 ![](${plot_dir}/EvenOddAll_Analysis/EOA_Output/${name_polarimeter}/${name_polarimeter}_${type}_EOA_smooth=${smooth}.png)
 % endfor
 
 % endfor
 
-\pagebreak
-# RMS
 % for type in ["DEM","PWR"]:
+
+<font size="5"><br />**RMS ${type} All**</font><br />
+
 Plot of RMS of all data ${type} with different smoothing lengths.
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
-<center>Smooth = ${smooth}</center>
+<center><br /><br /><font size="4">**Smooth = ${smooth}**</font><br /> </center> <br />
+
 ![](${plot_dir}/EvenOddAll_Analysis/EOA_RMS/${name_polarimeter}/${name_polarimeter}_${type}_RMS_A_smooth=${smooth}.png)
 % endfor
 
-\pagebreak
+<font size="5"><br />**RMS ${type} Even-Odd**</font><br />
+
 Plot of RMS of even-odd data ${type} with different smoothing lengths:
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
-<center>Smooth = ${smooth}</center>
+<center><br /><br /><font size="4">**Smooth = ${smooth}**</font><br /> </center> <br />
+
 ![](${plot_dir}/EvenOddAll_Analysis/EOA_RMS/${name_polarimeter}/${name_polarimeter}_${type}_RMS_EO_smooth=${smooth}.png)
 % endfor
 
-\pagebreak
+<font size="5"><br />**RMS ${type} Even-Odd-All**</font><br />
+
 Plot of RMS of even-odd and all data ${type}  with different smoothing lengths:
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
-<center>Smooth = ${smooth}</center>
+<center><br /><br /><font size="4">**Smooth = ${smooth}**</font><br /> </center> <br />
+
 ![](${plot_dir}/EvenOddAll_Analysis/EOA_RMS/${name_polarimeter}/${name_polarimeter}_${type}_RMS_EOA_smooth=${smooth}.png)
 % endfor
 
 % endfor
 
-\pagebreak
-# FFT
 % for type in ["DEM","PWR"]:
-Plot of FFT ${type}:
+<font size="5"><br />**FFT ${type} of Output**</font><br />
+
+Plot of FFT ${type} of all data, eve-odd data and even-odd-all data:
 
 ![](${plot_dir}/EvenOddAll_Analysis/FFT_EOA_Output/${name_polarimeter}/${name_polarimeter}_FFT_${type}_A.png)
 ![](${plot_dir}/EvenOddAll_Analysis/FFT_EOA_Output/${name_polarimeter}/${name_polarimeter}_FFT_${type}_EO.png)
 ![](${plot_dir}/EvenOddAll_Analysis/FFT_EOA_Output/${name_polarimeter}/${name_polarimeter}_FFT_${type}_EOA.png)
 
-\pagebreak
-Plot of FFT of the RMS ${type}:
+<font size="5"><br />**FFT ${type} of RMS**</font><br />
+
+Plot of FFT of the RMS ${type} of all data, eve-odd data and even-odd-all data:
 
 ![](${plot_dir}/EvenOddAll_Analysis/FFT_EOA_RMS/${name_polarimeter}/${name_polarimeter}_FFT_RMS_${type}_A.png)
 ![](${plot_dir}/EvenOddAll_Analysis/FFT_EOA_RMS/${name_polarimeter}/${name_polarimeter}_FFT_RMS_${type}_EO.png)
 ![](${plot_dir}/EvenOddAll_Analysis/FFT_EOA_RMS/${name_polarimeter}/${name_polarimeter}_FFT_RMS_${type}_EOA.png)
 
-\pagebreak
 % endfor
 
 <div id='sec2'/>
 # Scientific Data Analysis
-% for type in ["DEMODULATED", "TOT_POWER"]:
 
-Plot of Output of ${type} with different smoothing lengths.
+% for type in ["DEMODULATED", "TOT_POWER"]:
+<font size="5"><br />**Data ${type}**</font><br />
+
+Plot of ${type} Data with different smoothing lengths.
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
-<center>Smooth = ${smooth}</center>
+<center><br /><br /><font size="4">**Smooth = ${smooth}**</font><br /> </center> <br />
+
 ![](${plot_dir}/SciData_Analysis/SciData_Output/${name_polarimeter}/${name_polarimeter}_${type}_smooth=${smooth}.png)
 % endfor
 
-\pagebreak
 % endfor
-\pagebreak
-# RMS
+
 % for type in ["DEMODULATED", "TOT_POWER"]:
+<font size="5"><br />**RMS ${type}**</font><br />
 
 Plot of RMS of all data ${type} with different smoothing lengths.
 
 % for smooth in ["1", "100", "200", "400", "500", "1000"]:
-<center>Smooth = ${smooth}</center>
+<center><br /><br /><font size="4">**Smooth = ${smooth}**</font><br /> </center> <br />
+
 ![](${plot_dir}/SciData_Analysis/SciData_RMS/${name_polarimeter}/${name_polarimeter}_${type}_RMS_smooth=${smooth}.png)
 % endfor
 
-\pagebreak
 % endfor
 
-\pagebreak
-# FFT
 % for type in ["DEMODULATED", "TOT_POWER"]:
+<font size="5"><br />**FFT ${type} data**</font><br />
 
-Plot of FFT ${type}:
+Plot of FFT ${type} data:
 
 ![](${plot_dir}/SciData_Analysis/FFT_Output_SciData/${name_polarimeter}/${name_polarimeter}_FFT_${type}.png)
 
-Plot of FFT of the RMS ${type}:
+<font size="5"><br />**FFT of RMS ${type}**</font><br />
+
+Plot of FFT of the RMS of ${type} data:
 
 ![](${plot_dir}/SciData_Analysis/FFT_RMS_SciData/${name_polarimeter}/${name_polarimeter}_FFT_RMS_${type}.png)
 
-\pagebreak
 % endfor
 
 <div id='sec3'/>
 # Correlation Analysis
 
 % for type in ["DEM_OUTPUT", "PWR_OUTPUT", "DEMODULATED", "TOT_POWER"]:
+<font size="5"><br />**${type}**</font><br />
 
 Plot of ${type} Data correlation Matrices:
 
@@ -157,8 +180,8 @@ Plot of ${type} Data correlation Matrices:
 
 % endfor
 
-# RMS
 % for type in ["DEM", "PWR", "DEMODULATED", "TOT_POWER"]:
+<font size="5"><br />**RMS ${type}**</font><br />
 
 Plot of ${type} RMS correlation Matrices:
 
@@ -166,12 +189,10 @@ Plot of ${type} RMS correlation Matrices:
 
 % endfor
 
-
-# Even Odd Correlations
-
 % for type in ["DEM", "PWR"]:
+<font size="5"><br />**Even Odd Correlations ${type}**</font><br />
 
-Plot of ${type} Even-Odd correlation:
+Plot of ${type} Output Even-Odd correlation:
 
 ![](${plot_dir}/EvenOddAll_Analysis/Correlation/EO_Output/${name_polarimeter}/${name_polarimeter}_${type}_Correlation_EO.png)
 

@@ -7,7 +7,9 @@
 # Libraries & Modules
 import logging
 import sys
-from pipes import Template
+from pathlib import Path
+
+from mako.template import Template
 
 from rich.logging import RichHandler
 
@@ -25,7 +27,7 @@ def main():
         - **end_datetime** (``str``): end time
         - **name_pol** (``str``): name of the polarimeter (can be a list of string)
     """
-    logging.basicConfig(level="INFO", format='%(message)s',
+    logging.basicConfig(level="WARNING", format='%(message)s',
                         datefmt="[%X]", handlers=[RichHandler()])  # <3
 
     if len(sys.argv) < 5:
@@ -40,7 +42,7 @@ def main():
     end_datetime = sys.argv[3]  # type: str
     pol_list = list(sys.argv[4:])
 
-    logging.info(f"The procedure started.\n{len(pol_list)}")
+    logging.warning(f"The procedure started.\n{len(pol_list)}")
     for name_pol in pol_list:
         logging.warning(name_pol)
         p = pol.Polarimeter(name_pol=name_pol, path_file=path_file, start_datetime=start_datetime,
@@ -48,6 +50,7 @@ def main():
         p.Load_Pol()
         p.Prepare(1)
 
+        """
         logging.info(f"Analyzing polarimeter {name_pol}.\n")
         for type in p.data.keys():
             logging.info(f"Going to Plot {type} Output.")
@@ -117,6 +120,7 @@ def main():
             logging.info(f"{type}: {i}/2) RMS FFT plot done.")
 
         logging.info("Scientific Data Analysis is now completed. Correlation Matrices will be now produced.\n")
+        """
 
         for type in p.data.keys():
             for s in [True, False]:
@@ -124,7 +128,40 @@ def main():
                 p.Plot_Correlation_Mat(type=type, scientific=s, show=False)
                 p.Plot_Correlation_Mat_RMS(type=type, scientific=s, show=False)
 
+        #p.times[300] += 10
+        #p.times[789] -= 2
+        #p.times[1234] += 1
+
+        p.Write_Jump(start_datetime=start_datetime)
+
         logging.info("Analysis completed.\nProducing the report now.")
+
+        template = Template(filename="report_producer.txt")
+        plot_dir = "/home/francesco/Scrivania/Tesi/plot"
+        output_dir = plot_dir + "/reports"
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+        t_warner = ""
+        for bros in p.warnings["time_warning"]:
+            t_warner += bros
+
+        if len(p.warnings["corr_warning"]) == 0:
+            corr_warner = "Nothing to notify. All correlations seems ok."
+        else:
+            corr_warner = ""
+            for bros in p.warnings["corr_warning"]:
+                corr_warner += bros
+
+        with open(output_dir + f'/report_{name_pol}.md', "wt") as outf:
+            print(template.render(
+                name_polarimeter=name_pol,
+                analysis_date=str(f"{start_datetime} - {end_datetime}"),
+                output_dir=output_dir,
+                plot_dir=plot_dir,
+                command_line=" ".join(sys.argv),
+                t_warnings=t_warner,
+                corr_warnings=corr_warner
+            ), file=outf)
 
 
 if __name__ == "__main__":

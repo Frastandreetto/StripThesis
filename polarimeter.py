@@ -41,13 +41,7 @@ class Polarimeter:
         self.ds = DataStorage(path_file)
 
         # tag = self.ds.get_tags(mjd_range=(Time(start_datetime), Time(end_datetime)))
-        # try:
-        #    self.tag = [x for x in tag if f"{name_pol}" in x.name][0]
-        # except:
-        #    logging.error("No tags found in the mjd range requested: probably the polarimeter was switched off. "
-        #                  "Please insert a valid one.")
 
-        self.start_time = 0
         self.STRIP_SAMPLING_FREQ = 0
         self.norm_mode = 0
 
@@ -63,6 +57,11 @@ class Polarimeter:
         dem = {}
         self.data = {"DEM": dem, "PWR": power}
 
+        time_warning = []
+        corr_warning = []
+        eo_warning = []
+        self.warnings = {"time_warning": time_warning, "corr_warning": corr_warning, "eo_warning": eo_warning}
+
     def Load_Pol(self):
         """
         Load all dataset in the polarimeter
@@ -73,7 +72,6 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
-        self.start_time = self.times[0].unix
 
     def Load_X(self, type: str):
         """
@@ -83,7 +81,6 @@ class Polarimeter:
         for exit in ["Q1", "Q2", "U1", "U2"]:
             self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                  data_type=type, detector=exit)
-        self.start_time = self.times[0].unix
 
     def Date_Update(self, n_samples: int, modify=True) -> Time:
         """
@@ -854,7 +851,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_Correlation_Mat(self, type: str, begin=100, end=-100, scientific=True, show=False):
+    def Plot_Correlation_Mat(self, type: str, begin=100, end=-100, scientific=True, show=False, warn_threshold=0.4):
         """
        Plot the 4x4 Correlation Matrix of the outputs of the four channel Q1, Q2, U1 and U2.\n
        Choose between of the Output or the Scientific Data.\n
@@ -864,9 +861,10 @@ class Polarimeter:
        - **scientific** (``bool``):\n
             *True* -> Scientific data are processed\n
             *False* -> Outputs are processed
-       - **show** (bool):\n
+       - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
+       - **warn_threshold** (``int``): if it is overcome by one of the values of the matrix a warning is produced.\n
        """
         assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         sci = {}
@@ -891,8 +889,24 @@ class Polarimeter:
 
         sci_data = pd.DataFrame(sci)
         corr_matrix = sci_data.corr()
+
+        keys = list(corr_matrix.keys())
         for i in corr_matrix.keys():
             corr_matrix[i][i] = np.nan
+            """
+            Put at nan the values on the diagonal of the matrix (self correlations)
+            """
+            keys.remove(i)
+            for j in keys:
+                logging.debug(f"Correlation {i} with {j}.")
+                if corr_matrix[i][j] > warn_threshold:
+                    msg = f"High correlation ({round(corr_matrix[i][j],6)}) " \
+                          f"found in {data_name} between channel {i} and {j}."
+                    logging.warning(msg)
+                    self.warnings["corr_warning"].append(msg + "<br />")
+            """
+            Write a warning in the report if there is high correlation between the channels
+            """
 
         pl_m1 = sn.heatmap(corr_matrix, annot=True, ax=axs[0], cmap='coolwarm')
         pl_m1.set_title(f"Correlation {data_name}", fontsize=18)
@@ -906,7 +920,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_Correlation_Mat_RMS(self, type: str, begin=100, end=-100, scientific=True, show=False):
+    def Plot_Correlation_Mat_RMS(self, type: str, begin=100, end=-100, scientific=True, show=False, warn_threshold=0.4):
         """
        Plot the 4x4 Correlation Matrix of the RMS of the outputs of the four channel Q1, Q2, U1 and U2.\n
        Choose between of the Output or the Scientific Data.\n
@@ -919,6 +933,7 @@ class Polarimeter:
        - **show** (bool):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
+       - **warn_threshold** (``int``): if it is overcome by one of the values of the matrix a warning is produced.\n
        """
         assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         sci = {}
@@ -945,8 +960,24 @@ class Polarimeter:
 
         sci_data = pd.DataFrame(sci)
         corr_matrix = sci_data.corr()
+
+        keys = list(corr_matrix.keys())
         for i in corr_matrix.keys():
             corr_matrix[i][i] = np.nan
+            """
+            Put at nan the values on the diagonal of the matrix (self correlations)
+            """
+            keys.remove(i)
+            for j in keys:
+                logging.debug(f"Correlation {i} with {j}.")
+                if corr_matrix[i][j] > warn_threshold:
+                    msg = f"High correlation ({round(corr_matrix[i][j],6)}) " \
+                          f"found in {data_name} between channel {i} and {j}."
+                    logging.warning(msg)
+                    self.warnings["corr_warning"].append(msg + "<br />")
+            """
+            Write a warning in the report if there is high correlation between the channels
+            """
 
         pl_m1 = sn.heatmap(corr_matrix, annot=True, ax=axs[0], cmap='coolwarm')
         pl_m1.set_title(f"Correlation {data_name}", fontsize=18)
@@ -960,35 +991,53 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Write_Jump(self, path_dataset: Path):
+    def Write_Jump(self, start_datetime: str):
         """
         Find the 'jumps' in the timestamps of a given dataset and produce a file .txt with a description for every jump,
         including: Name_Polarimeter - Jump_Index - Delta_t before - tDelta_t after - Gregorian Date - JHD.\n
         Parameters:\n
-        - **path_dataset** (Path: comprehensive of the name of the file)\n
+        - **start_datetime** (``str``): start time, format "%Y-%m-%d %H:%M:%S"\n
         """
-        logging.basicConfig(level="INFO", format='%(message)s',
+        logging.basicConfig(level="WARNING", format='%(message)s',
                             datefmt="[%X]", handlers=[RichHandler()])  # <3
 
-        logging.warning("I'm going to produce the caption for the file.")
-        fz.tab_cap_time(path_dataset=path_dataset)
-        logging.warning("Done.\n")
-        new_file_name = f"JT_{path_dataset.stem}.txt"
-        logging.warning("Looking for jumps now.")
+        logging.info("Looking for jumps now.")
         jumps = fz.find_jump(self.times)
-        logging.warning("Done.\n")
+        logging.info("Done.\n")
 
         if len(jumps["position"]) == 0:
-            logging.warning("No Time Jumps found in the dataset.")
+            t_warn = "No Time Jumps found in the dataset."
+            logging.info(t_warn)
+            self.warnings["time_warning"].append(t_warn)
         else:
-            logging.warning(f"In the dataset there are {len(jumps['position'])} Time Jumps.")
+            t_warn = f"In the dataset there are {len(jumps['position'])} Time Jumps.\n\n"
+            logging.info(t_warn)
+            self.warnings["time_warning"].append(t_warn)
+
+            for anomalies in jumps["msg"]:
+                self.warnings["time_warning"].append(anomalies)
+
+            logging.info("I'm going to produce the caption for the file.")
+            cap = fz.tab_cap_time(file_name=start_datetime)
+            self.warnings["time_warning"].append("<br>**"+cap+"**<br>")
+            logging.info("Done. I also wrote it in the report.\n")
+            new_file_name = f"JT_{start_datetime}.txt"
+
             i = 1
-            for idx, j_bef, j_aft in zip(jumps["position"], jumps["jump_before"], jumps["jump_after"]):
-                jump_instant = float(self.date[0]) + ((idx/100.)/86_400.)
+            for pos, j_bef, j_aft in zip(jumps["position"], jumps["jump_before"], jumps["jump_after"]):
+
+                jump_instant = float(self.date[0]) + ((pos/100.)/86_400.)
                 greg_jump_instant = Time(jump_instant, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+
+                tab_content = f"{self.name}\t\t\t{i}\t\t{j_bef}\t\t{j_aft}\t{greg_jump_instant}\t\t{jump_instant}\n"
+                html_tab_content = f"<span style='margin: 0 70px'>{self.name}<span style='margin: 0 150px'>" \
+                                   f"{i}<span style='margin: 0 130px'>" \
+                                   f"{j_bef}<span style='margin: 0 90px'>{j_aft}<span style='margin: 0 80px'>" \
+                                   f"{greg_jump_instant}<span style='margin: 0 40px'>{jump_instant}<br>"
+                self.warnings["time_warning"].append(html_tab_content)
+
                 with open(new_file_name, "at") as new_file:
-                    new_file.write(f"{self.name}"
-                                   f"\t\t\t{i}\t\t{j_bef}\t\t{j_aft}\t\t{greg_jump_instant}\t{jump_instant}\n")
+                    new_file.write(tab_content)
                 i += 1
 
 
