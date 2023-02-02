@@ -23,7 +23,8 @@ def tab_cap_time(file_name: str) -> str:
     This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
     new_file_name = f"JT_{file_name}.txt"
-    cap = "Name_Polarimeter |Jump_Index |\tDelta_t before |Delta_t after |\tGregorian Date\t\t|\tJHD\t\t\n"
+    cap = "Name_Polarimeter |Jump_Index |\tDelta_t before |Delta_t after |\tGregorian Date" \
+          "<span style='margin: 0 40px'>|\tJHD\t\t\n"
 
     file = open(new_file_name, "w")
     file.write(cap)
@@ -51,7 +52,7 @@ def mean_cons(v):
     """
     Calculate consecutive means of an array.\n
     Parameters:\n
-    - **v** is an array\n
+    - **v** is an array-like object-like object\n
     The mean on each couple of samples of even-odd index is computed.
     """
     n = (len(v) // 2) * 2
@@ -64,7 +65,7 @@ def diff_cons(v):
     """
     Calculate consecutive difference of an array.\n
     Parameters:\n
-    - **v** is an array\n
+    - **v** is an array-like object\n
     The difference between each sample of even-odd index is computed.
     """
     n = (len(v) // 2) * 2
@@ -77,7 +78,7 @@ def rolling_window(v, window: int):
     """
     Rolling Window Function\n
     Parameters:\n
-    -  **v** is an array
+    -  **v** is an array-like object
     - **window** (int)
     Return a matrix with:\n
     - A number of element per row fixed by the parameter window
@@ -93,7 +94,7 @@ def mob_mean(v, smooth_len: int):
     """
     Calculate a mobile mean on a number of elements given by smooth_len, used to smooth plots.\n
     Parameters:\n
-    - **v** is an array
+    - **v** is an array-like object
     - **smooth_len** (int): number of elements on which the mobile mean is calculated
     """
     m = np.zeros(len(v) - smooth_len + 1)
@@ -107,7 +108,7 @@ def find_spike(v, threshold=8.5) -> []:
         Look up for 'spikes' in a given array.\n
         Calculate the mean of the max and the min of the array
         Parameters:\n
-        - **v** is an array
+        - **v** is an array-like object
         - **threshold** (int): value used to discern what a spike is
         """
     med_v = scn.median(v)  # type:float
@@ -148,7 +149,7 @@ def replace_spike(v, N=10, threshold=8.5, gauss=True):
     """
     Find the 'spikes' in a given array and replace them as follows.
     Parameters:\n
-    - **v** is an array\n
+    - **v** (``list``): is an array-like object\n
     - **N** (int): number of elements used to calculate the mean and the std_dev to substitute the spike (see below).
     - **threshold** (int): value used to discern what a spike is (see find_spike above).
     - **gauss** (bool):\n
@@ -205,12 +206,27 @@ def replace_spike(v, N=10, threshold=8.5, gauss=True):
         # s = find_spike(v=v, threshold=threshold)
 
 
-def find_jump(v) -> {}:  # v => Polarimeter.times
+def find_holes(v) -> []:
+    """
+        Find the 'holes' in a given array: the samples should be consequential with a fixed growth rate.
+        If that decrease the sample is collected and the hole is found.
+        Parameters:\n
+        - **v** is an array-like object\n
+    """
+    hole = []
+    for idx, t in enumerate(v):
+        if 0 < idx < (len(v) - 1):
+            if round(t - v[idx - 1], 4) > round(v[idx + 1] - t, 4):
+                hole.append(t)
+    return hole
+
+
+def find_jump(v, threshold=420) -> {}:  # v => Polarimeter.times.value
     """
     Find the 'jumps' in the timestamps of a given dataset.
     Returns the positions of those time-spikes and the time-delay with the previous and the following timestamp.\n
     Parameters:\n
-    - **v** is an array that contains the time data\n
+    - **v** is an array-like object that contains the time data. It should be: Polarimeter.times.value\n
     - **threshold** (``int``) is a value used to discern what is a jump and what is not\n
     """
     position = []
@@ -221,26 +237,39 @@ def find_jump(v) -> {}:  # v => Polarimeter.times
 
     logging.basicConfig(level="INFO", format='%(message)s',
                         datefmt="[%X]", handlers=[RichHandler()])  # <3
-    logging.info("Producing the ideal vector")
-    v_ideal = np.arange(0, len(v) / 100, 0.01)
-    logging.info("Done.\n Now I look for time errors.")
+    logging.info("Looking for time errors.")
 
-    for idx, item in enumerate(v_ideal):
-        if round(v_ideal[idx], 2) != v[idx]:
-            jumps["position"].append(idx)
+    l = len(v)
+    for idx, item in enumerate(v):
+        if 0 < idx < l - 1:
+            if np.abs(v[idx - 1] - item) > threshold * np.abs(item - v[idx + 1]):
+                jumps["position"].append(idx)
 
-            message = f"Time anomaly found in position: {idx}. Expected: {v_ideal[idx]}, got {v[idx]}.\n"
-            logging.warning(message)
-            jumps["msg"].append(message+"<br>")
+                message = f"Time anomaly found in position: {idx}.\n"
+                logging.warning(message)
+                jumps["msg"].append(message + "<br>")
 
-            if idx > 0:
-                before = v[idx] - v[idx-1]
+                # This commented lines are to exclude from the analysis the first and the last element of v
+                # if idx > 0:
+                before = v[idx] - v[idx - 1]
                 jumps["jump_before"].append(round(before, 12))
-            else:
-                jumps["jump_before"].append(np.nan)
-            if idx < len(v) - 1:
-                after = v[idx+1] - v[idx]
+                # else:
+                # jumps["jump_before"].append(np.nan)
+                # if idx < len(v) - 1:
+                after = v[idx + 1] - v[idx]
                 jumps["jump_after"].append(round(after, 12))
-            else:
-                jumps["jump_after"].append(np.nan)
+            # else:
+            # jumps["jump_after"].append(np.nan)
     return jumps
+
+
+def dir_format(old_string: str) -> str:
+    """
+    Take a string a return a new string changing white spaces into underscores, ":" into "-" and removing ".000"
+    Parameters:\n
+    old_string (``str``)
+    """
+    new_string = old_string.replace(" ", "_")
+    new_string = new_string.replace(".000", "")
+    new_string = new_string.replace(":", "-")
+    return new_string

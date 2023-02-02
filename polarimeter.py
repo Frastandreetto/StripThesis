@@ -10,9 +10,11 @@ import logging
 import numpy as np
 import pandas as pd
 import scipy as scipy
+import scipy.stats as scs
 import seaborn as sn  # This should be added to requirements.txt
 
 from astropy.time import Time
+import astropy.units as u
 from matplotlib import pyplot as plt
 from pathlib import Path
 from rich.logging import RichHandler
@@ -51,12 +53,45 @@ class Polarimeter:
         self.gdate = [Time(start_datetime), Time(end_datetime)]
         # Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
+        # Dictionary for scientific Analysis
         self.times = []  # type: List[float]
 
         power = {}
         dem = {}
         self.data = {"DEM": dem, "PWR": power}
 
+        # Dictionary for thermal Analysis
+        self.thermal_list = {
+            0: ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy", "TS-CX16-Filter", "TS-CX6-Module-O", "TS-SP1-SpareDT",
+                "TS-CX10-Frame-120", "TS-SP2-SpareCx", "EX-CX18-SpareCx", "TS-DT3-Shield-Base",
+                "TS-DT6-Frame-South", "TS-CX2-Module-V", "TS-CX4-Module-G"],
+            1: ["TS-CX9-Frame-60", "TS-CX11-Frame-North", "TS-CX15-IF-Frame-0", "TS-CX5-Module-Y",
+                "TS-CX7-Module-I", "TS-CX8-Frame-0", "TS-CX13-Pol-Qx", "TS-CX17-Wheel-Center",
+                "EX-DT2-SpareDT", "TS-DT5-Shield-Side", "TS-CX1-Module-R", "TS-CX3-Module-B"]}
+
+        thermal_times = {"0": [], "1": []}
+        raw = {}
+        calibrated = {}
+        thermal_data = {"raw": raw, "calibrated": calibrated}
+        self.thermal_sensors = {"thermal_times": thermal_times, "thermal_data": thermal_data}
+
+        # Dictionary for Housekeeping Analysis
+        self.hk_list = {"V": ["VG0_HK", "VG1_HK", "VG2_HK", "VG3_HK", "VG4_HK", "VG5_HK",
+                              "VD0_HK", "VD1_HK", "VD2_HK", "VD3_HK", "VD4_HK", "VD5_HK"],
+                        "I": ["IG0_HK", "IG1_HK", "IG2_HK", "IG3_HK", "IG4_HK", "IG5_HK",
+                              "ID0_HK", "ID1_HK", "ID2_HK", "ID3_HK", "ID4_HK", "ID5_HK"],
+                        "O": ["DET0_OFFS", "DET1_OFFS", "DET2_OFFS", "DET3_OFFS"]
+                        }
+        tensions = {}
+        currents = {}
+        offset = {}
+        t_tensions = {}
+        t_currents = {}
+        t_offset = {}
+        self.hk = {"V": tensions, "I": currents, "O": offset}
+        self.hk_t = {"V": t_tensions, "I": t_currents, "O": t_offset}
+
+        # Warnings
         time_warning = []
         corr_warning = []
         eo_warning = []
@@ -72,6 +107,7 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
+        self.STRIP_SAMPLING_FREQ = 0
 
     def Load_X(self, type: str):
         """
@@ -81,6 +117,16 @@ class Polarimeter:
         for exit in ["Q1", "Q2", "U1", "U2"]:
             self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                  data_type=type, detector=exit)
+        self.STRIP_SAMPLING_FREQ = 0
+
+    def Load_Times(self, range: []):
+        """
+        Load the times in the polarimeter and put to 0 the STRIP Sampling Frequency.
+        Useful to calculate quickly the STRIP Sampling Frequency in the further steps without loading the whole Pol.
+        Parameters:\n **range** (``Time``) is an array-like object containing the Time objects: start_date and end_date.
+        """
+        self.times, _ = self.ds.load_sci(mjd_range=range, polarimeter=self.name, data_type="DEM", detector="Q1")
+        self.STRIP_SAMPLING_FREQ = 0
 
     def Date_Update(self, n_samples: int, modify=True) -> Time:
         """
@@ -113,7 +159,6 @@ class Polarimeter:
 
         for type in [x for x in self.data.keys() if not self.data[x] == {}]:
             for exit in ["Q1", "Q2", "U1", "U2"]:
-
                 for count, item in reversed(list(enumerate(self.data[type][exit]))):
                     if item != 0:
                         end_zerovalues_idx = np.min([end_zerovalues_idx, count + 1])
@@ -132,18 +177,23 @@ class Polarimeter:
         # Updating the new beginning time of the dataset
         _ = self.Date_Update(n_samples=begin_zerovalues_idx, modify=True)
 
-    def STRIP_SAMPLING_FREQUENCY_HZ(self):
+    def STRIP_SAMPLING_FREQUENCY_HZ(self, warning=True):
         """
         Strip Sampling Frequency
         It depends on the electronics hence it's the same for all polarimeters
         Note: it must be defined before time normalization
         """
-        type = "DEM"
-        if self.data[type] == {}:
-            type = "PWR"
-
         self.STRIP_SAMPLING_FREQ = int(
-            len(self.data[type]["Q1"]) / (self.times[-1].datetime - self.times[0].datetime).total_seconds())
+            len(self.times) / (self.times[-1].datetime - self.times[0].datetime).total_seconds())
+
+        if warning:
+            if self.STRIP_SAMPLING_FREQ != 100:
+                msg = f"Sampling frequency is {self.STRIP_SAMPLING_FREQ} different from the std value of 100.\n " \
+                      f"This can cause inversions in even-odd sampling. \n" \
+                      f"Some changes in the offset might have occurred: Some channel turned off?\n" \
+                      f"There is at least a hole in the sampling: after the normalization, seconds are not significant."
+                logging.error(msg)
+                self.warnings["eo_warning"].append(msg)
 
     def Norm(self, norm_mode: int):
         """
@@ -151,11 +201,14 @@ class Polarimeter:
         Parameters:\n **norm_mode** (``int``) can be set in two ways:
         0) the output is expressed in function of the number of samples
         1) the output is expressed in function of the time in s from the beginning of the experience
+        2) the output is expressed in function of the number of the Julian Date JHD
         """
         if norm_mode == 0:
             self.times = np.arange(len(self.times))  # Number of samples
         if norm_mode == 1:
             self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ  # Seconds
+        if norm_mode == 2:
+            self.times = self.times.value  # JHD
 
     def Prepare(self, norm_mode: int):
         """
@@ -204,8 +257,220 @@ class Polarimeter:
         return sci_data
 
     # ------------------------------------------------------------------------------------------------------------------
+    # THERMIC ANALYSIS
+    # ------------------------------------------------------------------------------------------------------------------
+    def Load_Thermal_Sensors(self):
+        """
+        Load all Thermal Sensor's data taking the names from the list in the constructor.
+        """
+        for status in range(2):
+            for calib, bol in zip(["raw", "calibrated"], [True, False]):
+                for sensor_name in self.thermal_list[status]:
+                    self.thermal_sensors["thermal_times"][f"{status}"], \
+                        self.thermal_sensors["thermal_data"][calib][sensor_name] \
+                        = self.ds.load_cryo(self.date, sensor_name, get_raw=bol)
+
+    def Norm_Thermal(self):
+        """
+        Normalize all Thermal Sensor's timestamps putting one every 10 seconds from the beginning of the dataset.
+        """
+        for status, start in zip(["0", "1"], [0., 3.]):
+            self.thermal_sensors["thermal_times"][status] = \
+                start + np.arange(0, len(self.thermal_sensors["thermal_times"][status]) * 10, 10)
+
+    def Analyse_Thermal(self) -> {}:
+        """
+        Analise all Thermal Sensors' output: calculate the mean the std deviation for both raw and calibrated samples.
+        """
+        raw_m = {}
+        cal_m = {}
+        mean = {"raw": raw_m, "calibrated": cal_m}
+
+        raw_std = {}
+        cal_std = {}
+        dev_std = {"raw": raw_std, "calibrated": cal_std}
+
+        raw_nan = {}
+        cal_nan = {}
+        nan_percent = {"raw": raw_nan, "calibrated": cal_nan}
+
+        results = {"mean": mean, "dev_std": dev_std, "nan_percent": nan_percent}
+
+        for status in range(2):
+            for calib in ["raw", "calibrated"]:
+                for sensor_name in self.thermal_list[status]:
+                    data = self.thermal_sensors["thermal_data"][calib][sensor_name]
+                    m = np.mean(data)
+                    if np.isnan(m):
+                        n_nan = len([t for t in np.isnan(data) if t == True])
+                        results["nan_percent"][calib][sensor_name] = (n_nan / len(data))
+                        if results["nan_percent"][calib][sensor_name] < 0.05:
+                            data = np.delete(data, np.argwhere(np.isnan(data)))
+                            m = np.mean(data)
+
+                    results["mean"][calib][sensor_name] = m
+                    results["dev_std"][calib][sensor_name] = np.std(data)
+
+        return results
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # HOUSE-KEEPING ANALYSIS
+    # ------------------------------------------------------------------------------------------------------------------
+    def Load_HouseKeeping(self):
+        """
+        Load all House-Keeping parameters taking the names from the list in the constructor.
+        """
+        group = "BIAS"
+        for item in self.hk_list.keys():
+            if item == "O":
+                group = "DAQ"
+            for hk_name in self.hk_list[item]:
+                self.hk_t[item][hk_name], self.hk[item][hk_name] = self.ds.load_hk(mjd_range=self.date,
+                                                                                   group=group,
+                                                                                   subgroup=f"POL_{self.name}",
+                                                                                   par=hk_name
+                                                                                   )
+
+    def Norm_HouseKeeping(self):
+        """
+        Normalize all House-Keeping's timestamps putting one every 1.4 seconds from the beginning of the dataset.
+        """
+        for item in self.hk_list.keys():
+            for hk_name in self.hk_list[item]:
+                if item != "O":
+                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk_t[item][hk_name]) * 1.4, 1.4)
+                else:
+                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk_t[item][hk_name]) * 30, 30)
+
+    def Analyse_HouseKeeping(self) -> {}:
+        """
+        Analise the following HouseKeeping parameters: I Drain, I Gate, V Drain, V Gate, Offset.\n
+        See self.hk_list in the constructor.\n
+        Calculate the mean the std deviation.
+        """
+        I_m = {}
+        V_m = {}
+        O_m = {}
+        mean = {"I": I_m, "V": V_m, "O": O_m}
+
+        I_std = {}
+        V_std = {}
+        O_std = {}
+        dev_std = {"I": I_std, "V": V_std, "O": O_std}
+
+        I_nan = {}
+        V_nan = {}
+        O_nan = {}
+        nan_percent = {"I": I_nan, "V": V_nan, "O": O_nan}
+
+        results = {"mean": mean, "dev_std": dev_std, "nan_percent": nan_percent}
+
+        for item in self.hk_list.keys():
+            for hk_name in self.hk_list[item]:
+                data = self.hk[item][hk_name]
+                m = np.mean(data)
+                if np.isnan(m):
+                    n_nan = len([t for t in np.isnan(data) if t == True])
+                    results["nan_percent"][item][hk_name] = (n_nan / len(data))
+                    if results["nan_percent"][item][hk_name] < 0.05:
+                        data = np.delete(data, np.argwhere(np.isnan(data)))
+                        m = np.mean(data)
+
+                results["mean"][item][hk_name] = m
+                results["dev_std"][item][hk_name] = np.std(data)
+
+        return results
+
+    # ------------------------------------------------------------------------------------------------------------------
     # PLOT FUNCTIONS
     # ------------------------------------------------------------------------------------------------------------------
+
+    def Plot_Thermal(self, show=False):
+        """
+        Plot all the calibrated acquisitions of Thermal Sensors of the polarimeter\n
+        Parameters:\n
+         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+        """
+        col = ["firebrick", "indigo"]
+        for status in [0, 1]:
+            sensor_name = self.thermal_list[status]
+            fig, axs = plt.subplots(nrows=3, ncols=4, constrained_layout=True, figsize=(17, 9), sharey="row")
+            fig.suptitle(f'Plot Thermal Sensors status {status}- Date: {self.gdate[0]}', fontsize=14)
+            for i in range(3):
+                for j in range(4):
+                    axs[i, j].scatter(self.thermal_sensors["thermal_times"][f"{status}"],
+                                      self.thermal_sensors["thermal_data"]["calibrated"][sensor_name[4 * i + j]],
+                                      marker=".", color=col[status])
+                    axs[i, j].set_xlabel("Time [s]")
+                    axs[i, j].set_ylabel("Temperature [K]")
+                    axs[i, j].set_title(f"{sensor_name[4 * i + j]}")
+
+            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+            path = f"../plot/{date_dir}/Thermal_Output/"
+            Path(path).mkdir(parents=True, exist_ok=True)
+            fig.savefig(f'{path}{self.name}_thermal_status_{status}.png')
+            if show:
+                plt.show()
+            plt.close(fig)
+
+    def Plot_HouseKeeping_VI(self, show=False):
+        """
+        Plot all the acquisitions of HouseKeeping parameters of the polarimeter: Drain Voltage, Gate Voltage,
+        Drain Current and Gate Current. 1 every 1.4 seconds\n
+        Parameters:\n
+         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+        """
+        col = ["plum", "gold"]
+        label = ["Voltage [$\mu$V]", "Current [mA]"]
+        for idx, item in enumerate(["V", "I"]):
+            hk_name = self.hk_list[item]
+
+            fig, axs = plt.subplots(nrows=4, ncols=3, constrained_layout=True, figsize=(15, 12), sharey='row')
+            fig.suptitle(f'Plot Housekeeping parameters: {item} - Date: {self.gdate[0]}', fontsize=14)
+            for i in range(4):
+                for j in range(3):
+                    axs[i, j].scatter(self.hk_t[item][hk_name[3*i + j]], self.hk[item][hk_name[3*i + j]],
+                                      marker=".", color=col[idx])
+                    axs[i, j].set_xlabel("Time [s]")
+
+                    axs[i, j].set_ylabel(f"{label[idx]}")
+                    axs[i, j].set_title(f"{hk_name[3 * i + j]}")
+
+            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+            path = f"../plot/{date_dir}/HouseKeeping/{self.name}/"
+            Path(path).mkdir(parents=True, exist_ok=True)
+            fig.savefig(f'{path}{self.name}_HK_{item}.png')
+            if show:
+                plt.show()
+            plt.close(fig)
+
+    def Plot_HouseKeeping_OFF(self, show=False):
+        """
+        Plot all the acquisitions of HouseKeeping parameters of Offset: 1 every 30 sec.\n
+        Parameters:\n
+         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+        """
+        col = ["teal"]
+        label = ["Offset [ADU]"]
+        for idx, item in enumerate(["O"]):
+            hk_name = self.hk_list[item]
+
+            fig, axs = plt.subplots(nrows=1, ncols=4, constrained_layout=True, figsize=(15, 4), sharey='row')
+            fig.suptitle(f'Plot Housekeeping parameters: {item} - Date: {self.gdate[0]}', fontsize=14)
+            for j in range(4):
+                axs[j].scatter(self.hk_t[item][hk_name[j]], self.hk[item][hk_name[j]], marker=".", color=col[idx])
+                axs[j].set_xlabel("Time [s]")
+
+                axs[j].set_ylabel(f"{label[idx]}")
+                axs[j].set_title(f"{hk_name[j]}")
+
+            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+            path = f"../plot/{date_dir}/HouseKeeping/{self.name}/"
+            Path(path).mkdir(parents=True, exist_ok=True)
+            fig.savefig(f'{path}{self.name}_HK_{item}.png')
+            if show:
+                plt.show()
+            plt.close(fig)
 
     def Plot_Output(self, type: str, begin: int, end: int, show=True):
         """
@@ -215,7 +480,7 @@ class Polarimeter:
         - **begin**, **end** (``int``): interval of dataset that has to be considered\n
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         """
-        fig = plt.figure(figsize=(17, 6))
+        fig = plt.figure(figsize=(17, 5))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'{self.name} Output {type} - Date: {begin_date}', fontsize=14)
@@ -229,14 +494,15 @@ class Polarimeter:
             ax.set_ylabel(f"Output {type}")
         plt.tight_layout()
 
-        path = "/home/francesco/Scrivania/Tesi/plot/Output/"
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f"../plot/{date_dir}/Output/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}.png')
         if show:
             plt.show()
         plt.close(fig)
 
-    def Plot_EvenOddAll(self, type: str, even: int, odd: int, all: int, begin=100, end=-1, smooth_len=1, show=True):
+    def Plot_EvenOddAll(self, type: str, even: int, odd: int, all: int, begin=0, end=-1, smooth_len=1, show=True):
         """
         Plot of Raw data DEM or PWR (Even, Odd or All)\n
         Parameters:\n
@@ -247,7 +513,7 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         eoa = EOA(even=even, odd=odd, all=all)
 
@@ -257,26 +523,27 @@ class Polarimeter:
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
-
                 if i == 1:
                     axs[i, n].sharey(axs[1, 0])
 
                 if even != 0:
                     axs[i, n].plot(self.times[begin:end - 1:2][:- smooth_len],
                                    fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len)[:-1],
-                                   color="royalblue", alpha=even, label="Even Data")
+                                   color="royalblue", alpha=even, label="Even Output")
 
                 if odd != 0:
                     axs[i, n].plot(self.times[begin + 1:end:2][:- smooth_len],
                                    fz.mob_mean(self.data[type][exit][begin + 1:end:2], smooth_len=smooth_len)[:-1],
-                                   color="crimson", alpha=odd, label="Odd Data")
+                                   color="crimson", alpha=odd, label="Odd Output")
+
                 if all != 0:
                     axs[i, n].plot(self.times[begin:end][:- smooth_len],
                                    fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len)[:-1],
-                                   color="forestgreen", alpha=all, label="All data")
+                                   color="forestgreen", alpha=all, label="All Output")
                 # Title
                 axs[i, n].set_title(f'{type} {exit}')
                 # X-axis
+                # axs[i, n].set_xticklabels(rotation=45, ha="right")
                 if self.norm_mode == 0:
                     axs[i, n].set_xlabel("# Samples")
                 if self.norm_mode == 1:
@@ -288,14 +555,15 @@ class Polarimeter:
 
                 n += 1
 
-        path = f"/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/EOA_Output/{self.name}/"
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f"../plot/{date_dir}/EvenOddAll_Analysis/EOA_Output/{self.name}/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_{eoa}_smooth={smooth_len}.png')
         if show:
             plt.show()
         plt.close(fig)
 
-    def Plot_RMS_EOA(self, type: str, window: int, even: int, odd: int, all: int, begin=100, end=-1, smooth_len=1,
+    def Plot_RMS_EOA(self, type: str, window: int, even: int, odd: int, all: int, begin=0, end=-1, smooth_len=1,
                      show=True):
         """
         Plot of Raw data DEM or PWR (Even, Odd or All)\n
@@ -308,32 +576,39 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
-        y_scale_limits = [np.inf, -np.inf]
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         eoa = EOA(even=even, odd=odd, all=all)
+
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'RMS {eoa} {type} - Date: {begin_date}', fontsize=14)
+
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
-                rms_all = fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end),
-                                      smooth_len=smooth_len)
 
-                axs[i, n].plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
-                               fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
-                                           smooth_len=smooth_len),
-                               color="royalblue", alpha=even, label="Even Data")
-                axs[i, n].plot(self.times[begin + 1:end:2][:-window - smooth_len + 2],
-                               fz.mob_mean(RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
-                                           smooth_len=smooth_len),
-                               color="crimson", alpha=odd, label="Odd Data")
-                axs[i, n].plot(self.times[begin:end][:-window - smooth_len + 2],
-                               rms_all,
-                               color="forestgreen", alpha=all, label="All data")
-                if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(rms_all)])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(rms_all)])
+                if i == 1:
+                    axs[i, n].sharey(axs[1, 0])
+
+                if even != 0:
+                    axs[i, n].plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
+                                   fz.mob_mean(
+                                       RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
+                                       smooth_len=smooth_len),
+                                   color="royalblue", alpha=even, label="Even Output")
+                if odd != 0:
+                    axs[i, n].plot(self.times[begin + 1:end:2][:-window - smooth_len + 2],
+                                   fz.mob_mean(
+                                       RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
+                                       smooth_len=smooth_len),
+                                   color="crimson", alpha=odd, label="Odd Output")
+                if all != 0:
+                    axs[i, n].plot(self.times[begin:end][:-window - smooth_len + 2],
+                                   fz.mob_mean(
+                                       RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end),
+                                       smooth_len=smooth_len),
+                                   color="forestgreen", alpha=all, label="All Output")
+
                 # Title
                 axs[i, n].set_title(f'RMS {type} {exit}')
                 # X-axis
@@ -343,21 +618,20 @@ class Polarimeter:
                     axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
                 axs[i, n].set_ylabel(f"RMS [{type}]")
-                if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/EOA_RMS/{self.name}/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/EvenOddAll_Analysis/EOA_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.png')
         if show:
             plt.show()
         plt.close(fig)
 
-    def Plot_Correlation_EvenOdd(self, type: str, begin=100, end=-1, show=True):
+    def Plot_Correlation_EvenOdd(self, type: str, begin=0, end=-1, show=True):
         """
         Plot of Raw data DEM or PWR: Even vs Odd to see the correlation\n
         Parameters:\n
@@ -366,9 +640,7 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
-        y_scale_limits = [np.inf, -np.inf]
-        x_scale_limits = [np.inf, -np.inf]
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(20, 12))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'Correlation {type} - Date: {begin_date}', fontsize=14)
@@ -376,36 +648,35 @@ class Polarimeter:
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
+
+                if i == 1:
+                    axs[i, n].sharey(axs[1, 0])
+                    axs[i, n].sharex(axs[1, 0])
+
                 x = self.data[type][exit][begin:end - 1:2]
                 y = self.data[type][exit][begin + 1:end:2]
                 axs[i, n].plot(x, y, "*", color="orange", label="Corr Data")
-                if i == 0:
-                    x_scale_limits[0] = np.min([x_scale_limits[0], np.min(x) - 0.2 * np.abs(np.mean(x))])
-                    x_scale_limits[1] = np.max([x_scale_limits[1], np.max(x) + 0.2 * np.abs(np.mean(x))])
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(y) - 0.2 * np.abs(np.mean(y))])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(y) + 0.2 * np.abs(np.mean(y))])
+
                 # Title
                 axs[i, n].set_title(f'Corr {type} {exit}')
                 # XY-axis
                 axs[i, n].set_aspect('equal')
                 axs[i, n].set_xlabel("Even Samples")
                 axs[i, n].set_ylabel(f"Odd Samples")
-                if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
-                    axs[i, n].set_xlim(x_scale_limits[0], x_scale_limits[1])
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        path = f"/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/Correlation/EO_Output/{self.name}/"
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f"../plot/{date_dir}/EvenOddAll_Analysis/Correlation/EO_Output/{self.name}/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_Correlation_EO.png')
         if show:
             plt.show()
         plt.close(fig)
 
-    def Plot_Correlation_RMS_EO(self, type: str, window: int, begin=100, end=-1, show=True):
+    def Plot_Correlation_RMS_EO(self, type: str, window: int, begin=0, end=-1, show=True):
         """
         Plot of Raw data DEM or PWR: Even vs Odd to see the correlation\n
         Parameters:\n
@@ -415,9 +686,7 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
-        y_scale_limits = [np.inf, -np.inf, 0]  # type: []
-        x_scale_limits = [np.inf, -np.inf, 0]  # type: []
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'Correlation RMS {type} - Date: {begin_date}', fontsize=14)
@@ -425,39 +694,34 @@ class Polarimeter:
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
+                if i == 1:
+                    axs[i, n].sharey(axs[1, 0])
+                    axs[i, n].sharex(axs[1, 0])
+
                 x = RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
                 y = RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
                 axs[i, n].plot(x, y, "*", color="teal", label="Corr RMS")
 
-                if i == 0:
-                    x_scale_limits[0] = np.min([x_scale_limits[0], np.min(x) - 0.2 * np.abs(np.mean(x))])
-                    x_scale_limits[1] = np.max([x_scale_limits[1], np.max(x) + 0.2 * np.abs(np.mean(x))])
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(y) - 0.2 * np.abs(np.mean(y))])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(y) + 0.2 * np.abs(np.mean(y))])
                 # Title
                 axs[i, n].set_title(f'RMS Corr {type} {exit}')
                 # XY-axis
                 axs[i, n].set_aspect('equal')
                 axs[i, n].set_xlabel("RMS Even Samples")
                 axs[i, n].set_ylabel(f"RMS Odd Samples")
-                if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0],
-                                       y_scale_limits[1])
-                    axs[i, n].set_xlim(x_scale_limits[0],
-                                       x_scale_limits[1])
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/Correlation/EO_RMS/{self.name}/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/EvenOddAll_Analysis/Correlation/EO_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_Correlation_RMS_EO.png')
         if show:
             plt.show()
         plt.close(fig)
 
-    def Plot_SciData(self, type: str, begin=100, end=-1, smooth_len=1, show=True):
+    def Plot_SciData(self, type: str, begin=0, end=-1, smooth_len=1, show=True):
         """
         Plot of Scientific data DEMODULATED or TOTAL POWER\n
         Parameters:\n
@@ -468,13 +732,12 @@ class Polarimeter:
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
         assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
-        y_scale_limits = [np.inf, -np.inf]
         if type == "DEM":
             data_name = "DEMODULATED"
         if type == "PWR":
             data_name = "TOT_POWER"
 
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'Plot Scientific data {data_name} - Date: {begin_date}', fontsize=14)
@@ -482,14 +745,15 @@ class Polarimeter:
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
+                if i == 1:
+                    axs[i, n].sharey(axs[1, 0])
+
                 sci_data = self.Demodulation(type=type, exit=exit)
                 y = fz.mob_mean(sci_data["sci_data"][exit][begin:end - 2], smooth_len=smooth_len)
 
                 axs[i, n].plot(sci_data["times"][begin:len(y) + begin], y,
                                color="mediumpurple", label=f"{data_name}")
-                if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(sci_data["sci_data"][exit][begin:end - 2])])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(sci_data["sci_data"][exit][begin:end - 2])])
+
                 # Title
                 axs[i, n].set_title(f'{data_name} {exit}')
                 # X-axis
@@ -499,14 +763,13 @@ class Polarimeter:
                     axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
                 axs[i, n].set_ylabel(f"{data_name}")
-                if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/SciData_Analysis/SciData_Output/{self.name}/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/SciData_Analysis/SciData_Output/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{data_name}_smooth={smooth_len}.png')
         if show:
@@ -525,13 +788,12 @@ class Polarimeter:
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)
         """
         assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
-        y_scale_limits = [np.inf, -np.inf]
         if type == "DEM":
             data_name = "DEMODULATED"
         if type == "PWR":
             data_name = "TOT_POWER"
 
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 12))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'Plot RMS Scientific data {data_name} - Date: {begin_date}', fontsize=14)
@@ -539,6 +801,9 @@ class Polarimeter:
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
+                if i == 1:
+                    axs[i, n].sharey(axs[1, 0])
+
                 sci_data = self.Demodulation(type=type, exit=exit)
                 rms_all = fz.mob_mean(RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end),
                                       smooth_len=smooth_len)
@@ -546,9 +811,6 @@ class Polarimeter:
                 axs[i, n].plot(sci_data["times"][begin:len(rms_all) + begin], rms_all,
                                color="mediumvioletred", label=f"RMS {data_name}")
 
-                if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(rms_all)])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(rms_all)])
                 # Title
                 axs[i, n].set_title(f'RMS {data_name} {exit}')
                 # X-axis
@@ -558,14 +820,13 @@ class Polarimeter:
                     axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
                 axs[i, n].set_ylabel(f"RMS {data_name}")
-                if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/SciData_Analysis/SciData_RMS/{self.name}/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/SciData_Analysis/SciData_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{data_name}_RMS_smooth={smooth_len}.png')
         if show:
@@ -576,37 +837,33 @@ class Polarimeter:
     # TIMESTAMPS JUMP ANALYSIS
     # ------------------------------------------------------------------------------------------------------------------
 
-    def Jump_Plot(self, norm_mode: int, show=True):
+    def Jump_Plot(self, show=True):
         """
-        Load and Prepare the polarimeter.
-        Then plot the timestamps and of the Delta time between two consecutive Timestamps\n
+        Then plot the timestamps and of the Delta time between two consecutive Timestamps.\n
+        Note: the Polarimeter must be Loaded but not Prepared aka do not normalize the Timestamps.
         Parameters:\n
-        - **norm_mode** (``int``) can be set in two ways:\n
-            *0* -> the output is expressed in function of the number of samples\n
-            *1* -> the output is expressed in function of the time in s from the beginning of the experience
         - **show** (bool):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
         """
-        self.Load_Pol()
-        self.Prepare(norm_mode=norm_mode)
 
         fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(13, 3))
         # Times, we should see dot-shape jumps
-        axs[0].plot(np.arange(len(self.times)), self.times, '*')
+        axs[0].plot(np.arange(len(self.times)), self.times.value, '*')
         axs[0].set_title(f"{self.name} Timestamps")
         axs[0].set_xlabel("# Sample")
         axs[0].set_ylabel("Time [s]")
 
         # Delta t
-        deltat = fz.diff_cons(self.times)
-        axs[1].plot(deltat, "*forestgreen")
-        axs[1].set_title(f"Delta t {self.name}")
+        deltat = self.times.value[:-1] - self.times.value[1:]  # t_n - t_(n+1)
+        axs[1].plot(deltat, "*", color="forestgreen")
+        axs[1].set_title(f"$\Delta$t {self.name}")
         axs[1].set_xlabel("# Sample")
-        axs[1].set_ylabel("Delta t [s]")
+        axs[1].set_ylabel("$\Delta$ t [s]")
         axs[1].set_ylim(-1.0, 1.0)
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/Timestamps_Jump_Analysis/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/Timestamps_Jump_Analysis/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_Timestamps.png')
         if show:
@@ -632,8 +889,7 @@ class Polarimeter:
         # Note: The Sampling Frequency for the Even-Odd Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ
         scaling = "spectrum"
-        y_scale_limits = [np.inf, -np.inf]
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         eoa = EOA(even=even, odd=odd, all=all)
         begin_date = self.Date_Update(n_samples=begin, modify=False)
@@ -643,33 +899,40 @@ class Polarimeter:
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
 
-                f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs, scaling=scaling)
-                axs[i, n].plot(f[:-1], s[:-1], color="forestgreen", alpha=all, label="All samples")
-
-                if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
-
-                f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs / 2, scaling=scaling)
-                axs[i, n].plot(f, s, color="royalblue", alpha=even, label=f"Even samples")
-
-                f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs / 2, scaling=scaling)
-                axs[i, n].plot(f, s, color="crimson", alpha=odd, label=f"Odd samples")
-
-                axs[i, n].set_yscale('log')
-                axs[i, n].set_xscale('log')
-                axs[i, n].set_title(f"FFT {type} {exit}")
-                axs[i, n].set_xlabel("Frequency [Hz]")
-                axs[i, n].set_ylabel(f"FFT [{type}]")
                 if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
+                    axs[i, n].sharey(axs[1, 0])
+
+                if all != 0:
+                    f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs, scaling=scaling)
+                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
+                                   alpha=all, label="All samples")
+
+                if even != 0:
+                    f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs / 2, scaling=scaling)
+                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
+                                   alpha=even, label=f"Even samples")
+
+                if odd != 0:
+                    f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs / 2, scaling=scaling)
+                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
+                                   alpha=odd, label=f"Odd samples")
+
+                # Title
+                axs[i, n].set_title(f"FFT {type} {exit}")
+                # X-axis
+                axs[i, n].set_xlabel("Frequency [Hz]")
+                axs[i, n].set_xscale('log')
+                # Y-axis
+                axs[i, n].set_ylabel(f"FFT [{type}]")
+                axs[i, n].set_yscale('log')
                 # Legend
-                axs[i, n].legend(prop={'size': 6})
+                axs[i, n].legend(prop={'size': 6}, loc=7)
 
                 n += 1
 
         eoa = EOA(even=even, odd=odd, all=all)
-        path = f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/FFT_EOA_Output/{self.name}/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/EvenOddAll_Analysis/FFT_EOA_Output/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_FFT_{type}_{eoa}.png')
         if show:
@@ -692,47 +955,53 @@ class Polarimeter:
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ
         scaling = "spectrum"
-        y_scale_limits = [np.inf, -np.inf]
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         eoa = EOA(even=even, odd=odd, all=all)
+
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'FFT RMS {eoa} {type} - Date: {begin_date}', fontsize=14)
 
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
-
-                rms = RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
-                f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
-                axs[i, n].plot(f[:-1], s[:-1], color="forestgreen", alpha=all, label="All samples")
-
-                if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
-
-                rms = RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
-                f, s = scipy.signal.welch(rms, fs=fs / 2, scaling=scaling)
-                axs[i, n].plot(f, s, color="royalblue", alpha=even, label=f"Even samples")
-
-                rms = RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
-                f, s = scipy.signal.welch(rms, fs=fs / 2, scaling=scaling)
-                axs[i, n].plot(f, s, color="crimson", alpha=odd, label=f"Odd samples")
-
-                axs[i, n].set_yscale('log')
-                axs[i, n].set_xscale('log')
-                axs[i, n].set_title(f"FFT {type} {exit}")
-                axs[i, n].set_xlabel("Frequency [Hz]")
-                axs[i, n].set_ylabel(f"FFT [{type}]")
                 if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
+                    axs[i, n].sharey(axs[1, 0])
+
+                if all != 0:
+                    rms = RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
+                    f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
+                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
+                                   alpha=all, label="All samples")
+
+                if even != 0:
+                    rms = RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
+                    f, s = scipy.signal.welch(rms, fs=fs / 2, scaling=scaling)
+                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
+                                   alpha=even, label=f"Even samples")
+
+                if odd != 0:
+                    rms = RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
+                    f, s = scipy.signal.welch(rms, fs=fs / 2, scaling=scaling)
+                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
+                                   alpha=odd, label=f"Odd samples")
+
+                # Title
+                axs[i, n].set_title(f"FFT {type} {exit}")
+                # X-axis
+                axs[i, n].set_xlabel("Frequency [Hz]")
+                axs[i, n].set_xscale('log')
+                # Y-axis
+                axs[i, n].set_ylabel(f"FFT [{type}]")
+                axs[i, n].set_yscale('log')
                 # Legend
-                axs[i, n].legend(prop={'size': 6})
+                axs[i, n].legend(prop={'size': 6}, loc=7)
 
                 n += 1
 
         eoa = EOA(even=even, odd=odd, all=all)
-        path = f'/home/francesco/Scrivania/Tesi/plot/EvenOddAll_Analysis/FFT_EOA_RMS/{self.name}/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/EvenOddAll_Analysis/FFT_EOA_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_FFT_RMS_{type}_{eoa}.png')
         if show:
@@ -750,17 +1019,17 @@ class Polarimeter:
             *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
-        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ / 2
         scaling = "spectrum"
-        y_scale_limits = [np.inf, -np.inf]
+
+        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         if type == "DEM":
             data_name = "DEMODULATED"
         if type == "PWR":
             data_name = "TOT_POWER"
 
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'FFT Scientific data {data_name} - Date: {begin_date}', fontsize=14)
@@ -768,27 +1037,30 @@ class Polarimeter:
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
+                if i == 1:
+                    axs[i, n].sharey(axs[1, 0])
+
                 sci_data = self.Demodulation(type=type, exit=exit)
 
                 f, s = scipy.signal.welch(sci_data["sci_data"][exit][begin:end], fs=fs, scaling=scaling)
-                axs[i, n].plot(f, s, color="mediumpurple", label=f"{data_name}")
+                axs[i, n].plot(f[f < 25.], s[f < 25.], linewidth=0.2, marker=".",
+                               color="mediumpurple", label=f"{data_name}")
 
-                if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
-
-                axs[i, n].set_yscale('log')
-                axs[i, n].set_xscale('log')
+                # Title
                 axs[i, n].set_title(f"FFT {data_name} {exit}")
+                # X-axis
                 axs[i, n].set_xlabel("Frequency [Hz]")
+                axs[i, n].set_xscale('log')
+                # Y-axis
                 axs[i, n].set_ylabel(f"FFT [{data_name}]")
-                if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
+                axs[i, n].set_yscale('log')
                 # Legend
-                axs[i, n].legend(prop={'size': 6})
+                axs[i, n].legend(prop={'size': 6}, loc=7)
 
                 n += 1
-        path = f'/home/francesco/Scrivania/Tesi/plot/SciData_Analysis/FFT_Output_SciData/{self.name}/'
+
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/SciData_Analysis/FFT_Output_SciData/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_FFT_{data_name}.png')
         if show:
@@ -807,17 +1079,17 @@ class Polarimeter:
             *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
-        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ / 2
         scaling = "spectrum"
-        y_scale_limits = [np.inf, -np.inf]
+
+        assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         if type == "DEM":
             data_name = "DEMODULATED"
         if type == "PWR":
             data_name = "TOT_POWER"
 
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(15, 4))
+        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'FFT RMS Scientific Data {data_name} - Date: {begin_date}', fontsize=14)
@@ -825,31 +1097,33 @@ class Polarimeter:
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
+                if i == 1:
+                    axs[i, n].sharey(axs[1, 0])
+
                 sci_data = self.Demodulation(type=type, exit=exit)
 
                 f, s = scipy.signal.welch(
                     RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end),
                     fs=fs, scaling=scaling)
 
-                axs[i, n].plot(f, s, color="mediumvioletred", label=f"RMS {data_name}")
+                axs[i, n].plot(f[f < 25.], s[f < 25.], linewidth=0.2, marker=".",
+                               color="mediumvioletred", label=f"RMS {data_name}")
 
-                if i == 0:
-                    y_scale_limits[0] = np.min([y_scale_limits[0], np.min(s)])
-                    y_scale_limits[1] = np.max([y_scale_limits[1], np.max(s) + np.abs(np.median(s))])
-
-                axs[i, n].set_yscale('log')
-                axs[i, n].set_xscale('log')
+                # Title
                 axs[i, n].set_title(f"FFT RMS {data_name} {exit}")
+                # X-axis
                 axs[i, n].set_xlabel("Frequency [Hz]")
+                axs[i, n].set_xscale('log')
+                # Y-axis
                 axs[i, n].set_ylabel(f"FFT RMS [{data_name}]")
-                if i == 1:
-                    axs[i, n].set_ylim(y_scale_limits[0], y_scale_limits[1])
+                axs[i, n].set_yscale('log')
                 # Legend
-                axs[i, n].legend(prop={'size': 6})
+                axs[i, n].legend(prop={'size': 6}, loc=7)
 
                 n += 1
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/SciData_Analysis/FFT_RMS_SciData/{self.name}/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/SciData_Analysis/FFT_RMS_SciData/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_FFT_RMS_{data_name}.png')
         if show:
@@ -923,7 +1197,7 @@ class Polarimeter:
             keys.remove(i)
             for j in keys:
                 logging.debug(f"Correlation {i} with {j}.")
-                if corr_matrix[i][j] > warn_threshold:
+                if np.abs(corr_matrix[i][j]) > warn_threshold:
                     msg = f"High correlation ({round(corr_matrix[i][j], 6)}) " \
                           f"found in {data_name} between channel {i} and {j}."
                     logging.warning(msg)
@@ -934,7 +1208,8 @@ class Polarimeter:
         pl_m2 = sn.heatmap(corr_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
         pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=18)
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/Data/{self.name}/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/Correlation_Matrix/Data/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_CorrMat_{data_name[:-5]}.png')
         if show:
@@ -1009,7 +1284,7 @@ class Polarimeter:
             keys.remove(i)
             for j in keys:
                 logging.debug(f"Correlation {i} with {j}.")
-                if corr_matrix[i][j] > warn_threshold:
+                if np.abs(corr_matrix[i][j]) > warn_threshold:
                     msg = f"High correlation ({round(corr_matrix[i][j], 6)}) " \
                           f"found in {data_name} between channel {i} and {j}."
                     logging.warning(msg)
@@ -1020,25 +1295,27 @@ class Polarimeter:
         pl_m2 = sn.heatmap(corr_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
         pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=18)
 
-        path = f'/home/francesco/Scrivania/Tesi/plot/Correlation_Matrix/RMS/{self.name}/'
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f'../plot/{date_dir}/Correlation_Matrix/RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_CorrMat_{data_name}.png')
         if show:
             plt.show()
         plt.close(fig)
 
-    def Write_Jump(self, start_datetime: str):
+    def Write_Jump(self, start_datetime: str) -> {}:
         """
         Find the 'jumps' in the timestamps of a given dataset and produce a file .txt with a description for every jump,
         including: Name_Polarimeter - Jump_Index - Delta_t before - tDelta_t after - Gregorian Date - JHD.\n
         Parameters:\n
-        - **start_datetime** (``str``): start time, format "%Y-%m-%d %H:%M:%S"\n
+        - **start_datetime** (``str``): start time, format: "%Y-%m-%d %H:%M:%S". That must be the start_time used
+        to define the polarimeter for which the jumps dictionary has been created with the function "find_jump" above.\n
         """
-        logging.basicConfig(level="WARNING", format='%(message)s',
+        logging.basicConfig(level="INFO", format='%(message)s',
                             datefmt="[%X]", handlers=[RichHandler()])  # <3
 
-        logging.info("Looking for jumps now.")
-        jumps = fz.find_jump(self.times)
+        logging.info("Looking for jumps...\n")
+        jumps = fz.find_jump(self.times.value)
         logging.info("Done.\n")
 
         if len(jumps["position"]) == 0:
@@ -1061,19 +1338,76 @@ class Polarimeter:
 
             i = 1
             for pos, j_bef, j_aft in zip(jumps["position"], jumps["jump_before"], jumps["jump_after"]):
-                jump_instant = float(self.date[0]) + ((pos / 100.) / 86_400.)
+                jump_instant = self.times.value[pos]
                 greg_jump_instant = Time(jump_instant, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
                 tab_content = f"{self.name}\t\t\t{i}\t\t{j_bef}\t\t{j_aft}\t{greg_jump_instant}\t\t{jump_instant}\n"
                 html_tab_content = f"<span style='margin: 0 70px'>{self.name}<span style='margin: 0 150px'>" \
-                                   f"{i}<span style='margin: 0 130px'>" \
-                                   f"{j_bef}<span style='margin: 0 90px'>{j_aft}<span style='margin: 0 80px'>" \
+                                   f"{i}<span style='margin: 0 85px'>" \
+                                   f"{format(j_bef, '.4E')}<span style='margin: 0 45px'>" \
+                                   f"{j_aft}<span style='margin: 0 35px'>" \
                                    f"{greg_jump_instant}<span style='margin: 0 40px'>{jump_instant}<br>"
                 self.warnings["time_warning"].append(html_tab_content)
 
                 with open(new_file_name, "at") as new_file:
                     new_file.write(tab_content)
                 i += 1
+
+        return jumps
+
+    def Inversion_EO_Time(self, jumps_pos: list, threshold=3.):
+        """
+        Find the inversions between even and odd output during the sampling due to time jumps.\n
+        It could be also used to find even-odd inversions given a generic vector of position defining the intervals.\n
+        Parameters:\n
+        - **jump_pos** (``list``): obtained with the function find_jump: it contains the positions of the time jumps.\n
+        """
+        logging.basicConfig(level="INFO", format='%(message)s',
+                            datefmt="[%X]", handlers=[RichHandler()])  # <3
+        l = len(jumps_pos)
+        if l == 0:
+            msg = f"No jumps in the timeline: hence no inversions even-odd are due to time jumps.\n"
+            logging.warning(msg)
+            self.warnings["eo_warning"].append(msg)
+        else:
+            for type in self.data.keys():
+                for idx, item in enumerate(jumps_pos):
+                    if idx == 0:
+                        a = 0
+                    else:
+                        a = jumps_pos[idx - 1]
+
+                    b = item
+
+                    if l > idx + 1:
+                        c = jumps_pos[idx + 1]
+                    else:
+                        c = -1
+
+                    for exit in self.data[type].keys():
+                        logging.debug(f"{exit}) a: {a}, b: {b}, c: {c}")
+                        mad_even = scs.median_abs_deviation(self.data[type][exit][b:c - 1:2])
+                        mad_odd = scs.median_abs_deviation(self.data[type][exit][b + 1:c:2])
+
+                        m_even_1 = np.median(self.data[type][exit][a:b - 1:2])
+                        m_even_2 = np.median(self.data[type][exit][b:c - 1:2])
+
+                        m_odd_1 = np.median(self.data[type][exit][a + 1:b:2])
+                        m_odd_2 = np.median(self.data[type][exit][b + 1:c:2])
+
+                        if (
+                                (m_even_1 > m_even_2 + threshold * mad_even and m_odd_1 < m_odd_2 - threshold * mad_odd)
+                                or
+                                (m_even_1 < m_even_2 - threshold * mad_even and m_odd_1 > m_odd_2 + threshold * mad_odd)
+                        ):
+                            inversion_jdate = self.times[item]
+                            inversion_date = Time(inversion_jdate, format="mjd").to_datetime().strftime(
+                                "%Y-%m-%d %H:%M:%S")
+
+                            msg = f"Inversion Even-Odd at {inversion_date} in {type} Output in channel {exit}.<br />"
+
+                            self.warnings["eo_warning"].append(msg)
+                            logging.warning(msg)
 
 
 def RMS(data, window: int, exit: str, eoa: int, begin=0, end=-1):
