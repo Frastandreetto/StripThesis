@@ -14,7 +14,6 @@ import scipy.stats as scs
 import seaborn as sn  # This should be added to requirements.txt
 
 from astropy.time import Time
-import astropy.units as u
 from matplotlib import pyplot as plt
 from pathlib import Path
 from rich.logging import RichHandler
@@ -62,13 +61,14 @@ class Polarimeter:
 
         # Dictionary for thermal Analysis
         self.thermal_list = {
-            0: ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy", "TS-CX16-Filter", "TS-CX6-Module-O", "TS-SP1-SpareDT",
-                "TS-CX10-Frame-120", "TS-SP2-SpareCx", "EX-CX18-SpareCx", "TS-DT3-Shield-Base",
-                "TS-DT6-Frame-South", "TS-CX2-Module-V", "TS-CX4-Module-G"],
-            1: ["TS-CX9-Frame-60", "TS-CX11-Frame-North", "TS-CX15-IF-Frame-0", "TS-CX5-Module-Y",
-                "TS-CX7-Module-I", "TS-CX8-Frame-0", "TS-CX13-Pol-Qx", "TS-CX17-Wheel-Center",
-                "EX-DT2-SpareDT", "TS-DT5-Shield-Side", "TS-CX1-Module-R", "TS-CX3-Module-B"]}
+            "0": ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy", "TS-CX16-Filter", "TS-CX6-Module-O", "TS-SP1-SpareDT",
+                  "TS-CX10-Frame-120", "TS-SP2-L-Support", "EX-CX18-SpareCx", "TS-DT3-Shield-Base",
+                  "TS-DT6-Frame-South", "TS-CX2-Module-V", "TS-CX4-Module-G"],
+            "1": ["TS-CX9-Frame-60", "TS-CX11-Frame-North", "TS-CX15-IF-Frame-0", "TS-CX5-Module-Y",
+                  "TS-CX7-Module-I", "TS-CX8-Frame-0", "TS-CX13-Pol-Qx", "TS-CX17-Wheel-Center",
+                  "EX-DT2-SpareDT", "TS-DT5-Shield-Side", "TS-CX1-Module-R", "TS-CX3-Module-B"]}
 
+        # TS-SP2-SpareCx
         thermal_times = {"0": [], "1": []}
         raw = {}
         calibrated = {}
@@ -265,7 +265,7 @@ class Polarimeter:
         """
         for status in range(2):
             for calib, bol in zip(["raw", "calibrated"], [True, False]):
-                for sensor_name in self.thermal_list[status]:
+                for sensor_name in self.thermal_list[f"{status}"]:
                     self.thermal_sensors["thermal_times"][f"{status}"], \
                         self.thermal_sensors["thermal_data"][calib][sensor_name] \
                         = self.ds.load_cryo(self.date, sensor_name, get_raw=bol)
@@ -275,8 +275,17 @@ class Polarimeter:
         Normalize all Thermal Sensor's timestamps putting one every 10 seconds from the beginning of the dataset.
         """
         for status, start in zip(["0", "1"], [0., 3.]):
-            self.thermal_sensors["thermal_times"][status] = \
-                start + np.arange(0, len(self.thermal_sensors["thermal_times"][status]) * 10, 10)
+            sensor_name = self.thermal_list[status]
+            for i in range(12):
+                l1 = len(self.thermal_sensors["thermal_times"][status])
+                l2 = len(self.thermal_sensors["thermal_data"]["calibrated"][sensor_name[i]])
+                if l1 != l2:
+                    msg = f"The Thermal sensor: {sensor_name[i]} has a sampling problem.\n"
+                    logging.error(msg)
+                    self.warnings["time_warning"].append(msg + "<br />")
+
+                self.thermal_sensors["thermal_times"][status] = \
+                    start + np.arange(0, len(self.thermal_sensors["thermal_times"][status]) * 10, 10)
 
     def Analyse_Thermal(self) -> {}:
         """
@@ -294,24 +303,94 @@ class Polarimeter:
         cal_nan = {}
         nan_percent = {"raw": raw_nan, "calibrated": cal_nan}
 
-        results = {"mean": mean, "dev_std": dev_std, "nan_percent": nan_percent}
+        raw_max = {}
+        cal_max = {}
+        max_value = {"raw": raw_max, "calibrated": cal_max}
+
+        raw_min = {}
+        cal_min = {}
+        min_value = {"raw": raw_min, "calibrated": cal_min}
+
+        results = {"max": max_value, "min": min_value, "mean": mean, "dev_std": dev_std, "nan_percent": nan_percent}
 
         for status in range(2):
             for calib in ["raw", "calibrated"]:
-                for sensor_name in self.thermal_list[status]:
+                for sensor_name in self.thermal_list[f"{status}"]:
+                    results["nan_percent"][calib][sensor_name] = 0.
+
                     data = self.thermal_sensors["thermal_data"][calib][sensor_name]
                     m = np.mean(data)
                     if np.isnan(m):
                         n_nan = len([t for t in np.isnan(data) if t == True])
-                        results["nan_percent"][calib][sensor_name] = (n_nan / len(data))
-                        if results["nan_percent"][calib][sensor_name] < 0.05:
+
+                        if len(data) == 0:
+                            results["nan_percent"][calib][sensor_name] = 100.
+                        else:
+                            results["nan_percent"][calib][sensor_name] = round((n_nan / len(data)), 4)*100.
+
+                        if results["nan_percent"][calib][sensor_name] < 5:
                             data = np.delete(data, np.argwhere(np.isnan(data)))
                             m = np.mean(data)
 
+                    results["max"][calib][sensor_name] = max(data)
+                    results["min"][calib][sensor_name] = min(data)
                     results["mean"][calib][sensor_name] = m
                     results["dev_std"][calib][sensor_name] = np.std(data)
 
         return results
+
+    def Thermal_table(self, results) -> str:
+        """
+        Create a string with the html code for a table of thermal results.
+        Now are listed in the table: the status of acquisition (0 or 1), the sensor name, the max value, the min value,
+        the mean, the standard deviation and the NaN percentage found for both RAW and calibrated (CAL) Temperatures.
+        """
+        html_table = ""
+        for status in range(2):
+            for sensor_name in self.thermal_list[f"{status}"]:
+                html_table += f"<tr><td align=center>{status}</td><td align=center>{sensor_name}</td>"
+                for calib in ['raw', 'calibrated']:
+                    html_table += f"<td align=center>{round(results['max'][calib][sensor_name], 4)}</td>" \
+                                  f"<td align=center>{round(results['min'][calib][sensor_name], 4)}</td>" \
+                                  f"<td align=center>{round(results['mean'][calib][sensor_name], 4)}</td>" \
+                                  f"<td align=center>{round(results['dev_std'][calib][sensor_name], 4)}</td>" \
+                                  f"<td align=center>{round(results['nan_percent'][calib][sensor_name], 4)}</td>"
+
+                html_table += f"</tr>"
+
+        return html_table
+
+    def Plot_Thermal(self, show=False):
+        """
+        Plot all the calibrated acquisitions of Thermal Sensors of the polarimeter\n
+        Parameters:\n
+         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+        """
+        col = ["firebrick", "indigo"]
+        for status in [0, 1]:
+            sensor_name = self.thermal_list[f"{status}"]
+            fig, axs = plt.subplots(nrows=3, ncols=4, constrained_layout=True, figsize=(17, 9), sharey="row")
+            fig.suptitle(f'Plot Thermal Sensors status {status}- Date: {self.gdate[0]}', fontsize=14)
+            for i in range(3):
+                for j in range(4):
+                    l1 = len(self.thermal_sensors["thermal_times"][f"{status}"])
+                    l2 = len(self.thermal_sensors["thermal_data"]["calibrated"][sensor_name[4 * i + j]])
+                    axs[i, j].scatter(
+                        self.thermal_sensors["thermal_times"][f"{status}"][:min(l1, l2)],
+                        self.thermal_sensors["thermal_data"]["calibrated"][sensor_name[4 * i + j]][:min(l1, l2)],
+                        marker=".", color=col[status])
+
+                    axs[i, j].set_xlabel("Time [s]")
+                    axs[i, j].set_ylabel("Temperature [K]")
+                    axs[i, j].set_title(f"{sensor_name[4 * i + j]}")
+
+            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+            path = f"../plot/{date_dir}/Thermal_Output/"
+            Path(path).mkdir(parents=True, exist_ok=True)
+            fig.savefig(f'{path}{self.name}_thermal_status_{status}.png')
+            if show:
+                plt.show()
+            plt.close(fig)
 
     # ------------------------------------------------------------------------------------------------------------------
     # HOUSE-KEEPING ANALYSIS
@@ -337,10 +416,21 @@ class Polarimeter:
         """
         for item in self.hk_list.keys():
             for hk_name in self.hk_list[item]:
-                if item != "O":
-                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk_t[item][hk_name]) * 1.4, 1.4)
+                l1 = len(self.hk_t[item][hk_name])
+                l2 = len(self.hk[item][hk_name])
+                if l1 != l2:
+                    msg = f"The House-Keeping: {hk_name} has a sampling problem.\n"
+                    logging.error(msg)
+                    self.warnings["time_warning"].append(msg + "<br />")
+
+                if item == "O":
+                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk[item][hk_name]) * 30, 30)
+                    l1 = len(self.hk_t[item][hk_name])
+                    self.hk_t[item][hk_name] = self.hk_t[item][hk_name][:min(l1, l2)]
                 else:
-                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk_t[item][hk_name]) * 30, 30)
+                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk[item][hk_name]) * 1.4, 1.4)
+                    l1 = len(self.hk_t[item][hk_name])
+                    self.hk_t[item][hk_name] = self.hk_t[item][hk_name][:min(l1, l2)]
 
     def Analyse_HouseKeeping(self) -> {}:
         """
@@ -363,55 +453,76 @@ class Polarimeter:
         O_nan = {}
         nan_percent = {"I": I_nan, "V": V_nan, "O": O_nan}
 
-        results = {"mean": mean, "dev_std": dev_std, "nan_percent": nan_percent}
+        I_max = {}
+        V_max = {}
+        O_max = {}
+        hk_max = {"I": I_max, "V": V_max, "O": O_max}
+
+        I_min = {}
+        V_min = {}
+        O_min = {}
+        hk_min = {"I": I_min, "V": V_min, "O": O_min}
+
+        results = {"max": hk_max, "min": hk_min, "mean": mean, "dev_std": dev_std, "nan_percent": nan_percent}
 
         for item in self.hk_list.keys():
             for hk_name in self.hk_list[item]:
+                results["nan_percent"][item][hk_name] = 0.
+
                 data = self.hk[item][hk_name]
                 m = np.mean(data)
                 if np.isnan(m):
                     n_nan = len([t for t in np.isnan(data) if t == True])
-                    results["nan_percent"][item][hk_name] = (n_nan / len(data))
-                    if results["nan_percent"][item][hk_name] < 0.05:
+
+                    if len(data) == 0:
+                        results["nan_percent"][item][hk_name] = 100.
+                    else:
+                        results["nan_percent"][item][hk_name] = round((n_nan / len(data)), 4)*100.
+
+                    if results["nan_percent"][item][hk_name] < 5:
                         data = np.delete(data, np.argwhere(np.isnan(data)))
                         m = np.mean(data)
 
+                results["max"][item][hk_name] = max(data)
+                results["min"][item][hk_name] = min(data)
                 results["mean"][item][hk_name] = m
                 results["dev_std"][item][hk_name] = np.std(data)
 
         return results
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # PLOT FUNCTIONS
-    # ------------------------------------------------------------------------------------------------------------------
-
-    def Plot_Thermal(self, show=False):
+    def HK_table(self, results) -> str:
         """
-        Plot all the calibrated acquisitions of Thermal Sensors of the polarimeter\n
-        Parameters:\n
-         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+        Create a string with the html code for a table of thermal results.
+        Now are listed in the table: the HK-Parameter name, the max value, the min value, the mean,
+        the standard deviation and the NaN percentage.
+        The HouseKeeping parameters included are: I Drain, I Gate, V Drain, V Gate, Offset.
         """
-        col = ["firebrick", "indigo"]
-        for status in [0, 1]:
-            sensor_name = self.thermal_list[status]
-            fig, axs = plt.subplots(nrows=3, ncols=4, constrained_layout=True, figsize=(17, 9), sharey="row")
-            fig.suptitle(f'Plot Thermal Sensors status {status}- Date: {self.gdate[0]}', fontsize=14)
-            for i in range(3):
-                for j in range(4):
-                    axs[i, j].scatter(self.thermal_sensors["thermal_times"][f"{status}"],
-                                      self.thermal_sensors["thermal_data"]["calibrated"][sensor_name[4 * i + j]],
-                                      marker=".", color=col[status])
-                    axs[i, j].set_xlabel("Time [s]")
-                    axs[i, j].set_ylabel("Temperature [K]")
-                    axs[i, j].set_title(f"{sensor_name[4 * i + j]}")
+        html_table = ""
+        for item in self.hk_list.keys():
+            if item == "V":
+                unit = "[&mu;V]"
+            elif item == "I":
+                unit = "[mA]"
+            else:
+                unit = "[ADU]"
 
-            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-            path = f"../plot/{date_dir}/Thermal_Output/"
-            Path(path).mkdir(parents=True, exist_ok=True)
-            fig.savefig(f'{path}{self.name}_thermal_status_{status}.png')
-            if show:
-                plt.show()
-            plt.close(fig)
+            html_table += "<tr>" \
+                          "<th>Parameter</th>" \
+                          f"<th>Max Value {unit}</th>" \
+                          f"<th>Min Value {unit}</th>" \
+                          f"<th>Mean {unit}</th>" \
+                          f"<th>Std_Dev {unit}</th>" \
+                          "<th>NaN %</th></tr> "
+            for hk_name in self.hk_list[item]:
+                html_table += f"<tr>" \
+                              f"<td align=center>{hk_name}</td>" \
+                              f"<td align=center>{round(results['max'][item][hk_name], 4)}</td>" \
+                              f"<td align=center>{round(results['min'][item][hk_name], 4)}</td>" \
+                              f"<td align=center>{round(results['mean'][item][hk_name], 4)}</td>" \
+                              f"<td align=center>{round(results['dev_std'][item][hk_name], 4)}</td>" \
+                              f"<td align=center>{round(results['nan_percent'][item][hk_name], 4)}</td>" \
+                              f"</tr>"
+        return html_table
 
     def Plot_HouseKeeping_VI(self, show=False):
         """
@@ -429,10 +540,19 @@ class Polarimeter:
             fig.suptitle(f'Plot Housekeeping parameters: {item} - Date: {self.gdate[0]}', fontsize=14)
             for i in range(4):
                 for j in range(3):
-                    axs[i, j].scatter(self.hk_t[item][hk_name[3*i + j]], self.hk[item][hk_name[3*i + j]],
-                                      marker=".", color=col[idx])
-                    axs[i, j].set_xlabel("Time [s]")
 
+                    l1 = len(self.hk_t[item][hk_name[3 * i + j]])
+                    l2 = len(self.hk[item][hk_name[3 * i + j]])
+
+                    if l1 != l2:
+                        msg = f"The House-Keeping: {hk_name[3 * i + j]} has a sampling problem.\n"
+                        logging.error(msg)
+                        self.warnings["time_warning"].append(msg + "<br />")
+
+                    axs[i, j].scatter(self.hk_t[item][hk_name[3 * i + j]][:min(l1, l2)],
+                                      self.hk[item][hk_name[3 * i + j]][:min(l1, l2)], marker=".", color=col[idx])
+
+                    axs[i, j].set_xlabel("Time [s]")
                     axs[i, j].set_ylabel(f"{label[idx]}")
                     axs[i, j].set_title(f"{hk_name[3 * i + j]}")
 
@@ -458,7 +578,9 @@ class Polarimeter:
             fig, axs = plt.subplots(nrows=1, ncols=4, constrained_layout=True, figsize=(15, 4), sharey='row')
             fig.suptitle(f'Plot Housekeeping parameters: {item} - Date: {self.gdate[0]}', fontsize=14)
             for j in range(4):
-                axs[j].scatter(self.hk_t[item][hk_name[j]], self.hk[item][hk_name[j]], marker=".", color=col[idx])
+                axs[j].scatter(self.hk_t[item][hk_name[j]],
+                               self.hk[item][hk_name[j]],
+                               marker=".", color=col[idx])
                 axs[j].set_xlabel("Time [s]")
 
                 axs[j].set_ylabel(f"{label[idx]}")
@@ -471,6 +593,10 @@ class Polarimeter:
             if show:
                 plt.show()
             plt.close(fig)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # PLOT FUNCTIONS
+    # ------------------------------------------------------------------------------------------------------------------
 
     def Plot_Output(self, type: str, begin: int, end: int, show=True):
         """
@@ -734,8 +860,10 @@ class Polarimeter:
         assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         if type == "DEM":
             data_name = "DEMODULATED"
-        if type == "PWR":
+        elif type == "PWR":
             data_name = "TOT_POWER"
+        else:
+            data_name = "WRONG NAME"
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
@@ -790,8 +918,10 @@ class Polarimeter:
         assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         if type == "DEM":
             data_name = "DEMODULATED"
-        if type == "PWR":
+        elif type == "PWR":
             data_name = "TOT_POWER"
+        else:
+            data_name = "WRONG NAME"
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
@@ -1026,8 +1156,10 @@ class Polarimeter:
         assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         if type == "DEM":
             data_name = "DEMODULATED"
-        if type == "PWR":
+        elif type == "PWR":
             data_name = "TOT_POWER"
+        else:
+            data_name = "WRONG NAME"
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
@@ -1086,8 +1218,10 @@ class Polarimeter:
         assert (type == "DEM" or type == "PWR"), "Typo: type must be the string 'DEM' or 'PWR'"
         if type == "DEM":
             data_name = "DEMODULATED"
-        if type == "PWR":
+        elif type == "PWR":
             data_name = "TOT_POWER"
+        else:
+            data_name = "WRONG NAME"
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
@@ -1425,10 +1559,12 @@ def RMS(data, window: int, exit: str, eoa: int, begin=0, end=-1):
     """
     if eoa == 0:
         rms = np.std(fz.rolling_window(data[exit][begin:end], window), axis=1)
-    if eoa == 1:
+    elif eoa == 1:
         rms = np.std(fz.rolling_window(data[exit][begin + 1:end:2], window), axis=1)
-    if eoa == 2:
+    elif eoa == 2:
         rms = np.std(fz.rolling_window(data[exit][begin:end - 1:2], window), axis=1)
+    else:
+        rms = np.nan
     return rms
 
 
