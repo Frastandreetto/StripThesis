@@ -1,0 +1,359 @@
+<font size="10"><b>Test report of polarimeter {{name_polarimeter}}<b/></font><br />
+<p></p>
+<p></p>
+<p></p>
+
+<A NAME = "TOF"></A>
+<font size="6"><b>Table of Contents<b/></font><br/>
+<p></p>
+0. <A HREF="#Info">[General Info]</A><br/>
+<p></p>
+
+1. <A HREF="#HK">[House-Keeping Parameters]</A><br/>
+<p></p>
+
+2. <A HREF="#Thermal">[Thermal Sensor]</A><br/>
+<p></p>
+
+3. <A HREF="#Polarimeter Scan">[Polarimeter]</A><br/>
+<p></p>
+
+3.a <A HREF="#EOA">[Even-Odd Analysis]</A><br/>
+<p></p>
+3.b <A HREF="#Scientific">[Scientific Data Analysis]</A><br/>
+<p></p>
+3.c <A HREF="#CorrMatr">[Correlation Analysis]</A>
+<p></p>
+<p></p>
+<p></p>
+
+<A NAME="Info"></A>
+<font size="6"><b>General Info<b/></font><br/>
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
+<p></p>
+
+- The analysis was run with the following command line:
+<p></p>
+```
+{{command_line}}
+```
+<p></p>
+- Time period: {{analysis_date}}
+<p></p>
+Note: all plots can be found from the current directory by entering the dir {{plot_dir}}
+<p></p>
+<font size="5"> <font color="firebrick"> <b>Warning list<b/></font> </font><br />
+<p></p>
+- <b>Timestamp analysis<b/>:
+<p></p>
+{{t_warnings}}
+<p></p>
+- <b>Correlation Analysis<b/>:
+<p></p>
+{{corr_warnings}}
+<p></p>
+- <b>Even-Odd Analysis<b/>:
+<p></p>
+{{eo_warnings}}
+<p></p>
+
+<A NAME="HK"></A>
+<font size="6"><b>House-Keeping Parameters<b/></font><br/>
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
+<p></p>
+
+{% for item in ["I", "V", "O"] %}
+<font size="5"><br /><b>Plot of HouseKeeping {{item}}:<b/></font><br />
+<p></p>
+<img src= "{{plot_dir}}/HouseKeeping/{{name_polarimeter}}/{{name_polarimeter}}_HK_{{item}}.png"/>
+{% endfor %}
+
+<p></p>
+The main results for each parameter are here scheduled.
+<p></p>
+<style>
+table, th, td {
+  border:1px solid black;
+}
+</style>
+<body>
+
+<h2>House Keeping Parameters</h2>
+<p></p>
+<table style="width:100%" align=center>
+  {{hk_html_tab}}
+</table>
+
+</body>
+
+<A NAME="Thermal"></A>
+<font size="6"><b>Thermal Sensor<b/></font><br/>
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
+<p></p>
+
+{% for status in ["0", "1"] %}
+<font size="5"><br /><b>Plot of Thermal Sensor in status {{status}}:<b/></font><br />
+<p></p>
+<img src= "{{plot_dir}}/Thermal_Output/{{name_polarimeter}}_thermal_status_{{status}}.png"/>
+{% endfor %}
+
+The main results for each sensor are here scheduled.
+<p></p>
+<style>
+table, th, td {
+  border:1px solid black;
+}
+</style>
+<body>
+
+<p></p>
+<p></p>
+<p></p>
+
+<table style="width:100%" align=center>
+  <tr>
+  <th>Status</th><th>Sensor Name</th>
+  <th>Max value [RAW]</th><th>Min value [RAW]</th><th>Mean [RAW]</th><th>Std_Dev[RAW]</th><th>NaN %[RAW]</th>
+  <th>Max value [CAL]</th><th>Min value [CAL]</th><th>Mean [CAL]</th><th>Std_Dev[CAL]</th><th>NaN %[CAL]</th>
+  </tr>
+  {{th_html_tab}}
+</table>
+
+</body>
+
+<p></p>
+<p></p>
+<p></p>
+
+
+
+<A NAME="Polarimeter"></A>
+<font size="6"><b>Polarimeter<b/></font><br/>
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
+<p></p>
+
+{% for type in ["DEM","PWR"] %}
+<font size="5"><br /><b>Plot of Output {{type}}:<b/></font><br />
+<p></p>
+
+<img src= "{{plot_dir}}/Output/{{name_polarimeter}}_{{type}}.png"/>
+{% endfor %}
+<p></p>
+
+
+<A NAME="EOA"></A>
+<font size="6"><b>Even-Odd Analysis<b/></font><br/>
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
+<p></p>
+
+{% for type in ["DEM","PWR"] %}
+<p></p>
+<font size="5"><br /><b>Output {{type}} All<b/></font><br />
+<p></p>
+
+Plot of Output of all data {{type}} with different smoothing lengths.
+<p></p>
+{% for smooth in ["1", "100", "1000"] %}
+<center><br /><br /> <font size="4"><b>Smooth = {{smooth}}<b/></font><br /> </center> <br />
+
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/EOA_Output/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_A_smooth={{smooth}}.png"/>
+{% endfor %}
+
+<p></p>
+<font size="5"><br /><b>Output {{type}} Even-Odd<b/></font><br />
+<p></p>
+
+Plot of Output of even-odd data {{type}} with different smoothing lengths.
+<p></p>
+
+{% for smooth in ["1", "100", "1000"] %}
+<center><br /><br /><font size="4"><b>Smooth = {{smooth}}<b/></font><br /> </center> <br />
+
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/EOA_Output/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_EO_smooth={{smooth}}.png"/>
+{% endfor %}
+
+<p></p>
+<font size="5"><br /><b>Output {{type}} Even-Odd-All<b/></font><br />
+<p></p>
+
+Plot of Output of even-odd and all data {{type}}  with different smoothing lengths.
+<p></p>
+
+{% for smooth in ["1", "100", "1000"] %}
+<center><br /><br /><font size="4"><b>Smooth = {{smooth}}<b/></font><br /> </center> <br />
+<p></p>
+
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/EOA_Output/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_EOA_smooth={{smooth}}.png"/>
+{% endfor %}
+
+{% endfor %}
+
+{% for type in ["DEM","PWR"] %}
+<p></p>
+<font size="5"><br /><b>RMS {{type}} All<b/></font><br />
+<p></p>
+
+Plot of RMS of all data {{type}} with different smoothing lengths.
+<p></p>
+
+{% for smooth in ["1", "100", "1000"] %}
+<center><br /><br /><font size="4"><b>Smooth = {{smooth}}<b/></font><br /> </center> <br />
+<p></p>
+
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/EOA_RMS/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_RMS_A_smooth={{smooth}}.png"/>
+{% endfor %}
+
+<p></p>
+<font size="5"><br /><b>RMS {{type}} Even-Odd<b/></font><br />
+<p></p>
+
+Plot of RMS of even-odd data {{type}} with different smoothing lengths:
+<p></p>
+{% for smooth in ["1", "100", "1000"] %}
+<center><br /><br /><font size="4"><b>Smooth = {{smooth}}<b/></font><br /> </center> <br />
+
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/EOA_RMS/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_RMS_EO_smooth={{smooth}}.png"/>
+{% endfor %}
+
+<p></p>
+<font size="5"><br /><b>RMS {{type}} Even-Odd-All<b/></font><br />
+<p></p>
+
+Plot of RMS of even-odd and all data {{type}}  with different smoothing lengths:
+<p></p>
+
+{% for smooth in ["1", "100", "1000"] %}
+<center><br /><br /><font size="4"><b>Smooth = {{smooth}}<b/></font><br /> </center> <br />
+<p></p>
+
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/EOA_RMS/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_RMS_EOA_smooth={{smooth}}.png"/>
+{% endfor %}
+
+{% endfor %}
+
+{% for type in ["DEM","PWR"] %}
+<p></p>
+<font size="5"><br /><b>FFT {{type}} of Output<b/></font><br />
+<p></p>
+
+Plot of FFT {{type}} of all data, eve-odd data and even-odd-all data:
+<p></p>
+
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/FFT_EOA_Output/{{name_polarimeter}}/{{name_polarimeter}}_FFT_{{type}}_A.png"/>
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/FFT_EOA_Output/{{name_polarimeter}}/{{name_polarimeter}}_FFT_{{type}}_EO.png"/>
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/FFT_EOA_Output/{{name_polarimeter}}/{{name_polarimeter}}_FFT_{{type}}_EOA.png"/>
+
+<p></p>
+<font size="5"><br /><b>FFT {{type}} of RMS<b/></font><br />
+<p></p>
+
+Plot of FFT of the RMS {{type}} of all data, eve-odd data and even-odd-all data:
+<p></p>
+
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/FFT_EOA_RMS/{{name_polarimeter}}/{{name_polarimeter}}_FFT_RMS_{{type}}_A.png"/>
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/FFT_EOA_RMS/{{name_polarimeter}}/{{name_polarimeter}}_FFT_RMS_{{type}}_EO.png"/>
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/FFT_EOA_RMS/{{name_polarimeter}}/{{name_polarimeter}}_FFT_RMS_{{type}}_EOA.png"/>
+
+{% endfor %}
+
+<p></p>
+<A NAME="Scientific"></A>
+<font size="6"><b>Scientific Data Analysis<b/></font><br/>
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
+<p></p>
+
+{% for type in ["DEMODULATED", "TOT_POWER"] %}
+<p></p>
+<font size="5"><br /><b>Data {{type}}<b/></font><br />
+<p></p>
+
+Plot of {{type}} Data with different smoothing lengths.
+<p></p>
+
+{% for smooth in ["1", "100", "1000"] %}
+<center><br /><br /><font size="4"><b>Smooth = {{smooth}}<b/></font><br /> </center> <br />
+<p></p>
+
+<img src= "{{plot_dir}}/SciData_Analysis/SciData_Output/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_smooth={{smooth}}.png"/>
+{% endfor %}
+
+{% endfor %}
+
+{% for type in ["DEMODULATED", "TOT_POWER"] %}
+<p></p>
+<font size="5"><br /><b>RMS {{type}}<b/></font><br />
+<p></p>
+
+Plot of RMS of all data {{type}} with different smoothing lengths.
+<p></p>
+
+{% for smooth in ["1", "100", "1000"] %}
+<center><br /><br /><font size="4"><b>Smooth = {{smooth}}<b/></font><br /> </center> <br />
+<p></p>
+
+<img src= "{{plot_dir}}/SciData_Analysis/SciData_RMS/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_RMS_smooth={{smooth}}.png"/>
+{% endfor %}
+
+{% endfor %}
+
+{% for type in ["DEMODULATED", "TOT_POWER"] %}
+<p></p>
+<font size="5"><br /><b>FFT {{type}} data<b/></font><br />
+<p></p>
+
+Plot of FFT {{type}} data:
+<p></p>
+
+<img src= "{{plot_dir}}/SciData_Analysis/FFT_Output_SciData/{{name_polarimeter}}/{{name_polarimeter}}_FFT_{{type}}.png"/>
+
+<p></p>
+<font size="5"><br /><b>FFT of RMS {{type}}<b/></font><br />
+<p></p>
+
+Plot of FFT of the RMS of {{type}} data:
+<p></p>
+<img src= "{{plot_dir}}/SciData_Analysis/FFT_RMS_SciData/{{name_polarimeter}}/{{name_polarimeter}}_FFT_RMS_{{type}}.png"/>
+
+{% endfor %}
+
+<p></p>
+<A NAME="CorrMatr"></A>
+<font size="6"><b> Correlation Analysis<b/></font><br/>
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
+<p></p>
+
+{% for type in ["PWR_OUTPUT", "PWR_OUTPUT_EVEN", "PWR_OUTPUT_ODD", "DEMODULATED", "TOT_POWER"] %}
+<p></p>
+<font size="5"><br /><b>{{type}}<b/></font><br />
+<p></p>
+
+Plot of {{type}} Data correlation Matrices:
+<p></p>
+
+<img src= "{{plot_dir}}/Correlation_Matrix/Data/{{name_polarimeter}}/{{name_polarimeter}}_CorrMat_{{type}}.png"/>
+
+{% endfor %}
+
+{% for type in ["PWR", "PWR_EVEN", "PWR_ODD", "DEMODULATED", "TOT_POWER"] %}
+<p></p>
+<font size="5"><br /><b>RMS {{type}}<b/></font><br />
+<p></p>
+
+Plot of {{type}} RMS correlation Matrices:
+<p></p>
+
+<img src= "{{plot_dir}}/Correlation_Matrix/RMS/{{name_polarimeter}}/{{name_polarimeter}}_CorrMat_RMS_{{type}}.png"/>
+
+{% endfor %}
+
+{% for type in ["DEM", "PWR"] %}
+<p></p>
+<font size="5"><br /><b>Even Odd Correlations {{type}}<b/></font><br />
+<p></p>
+
+Plot of {{type}} Output Even-Odd correlation:
+<p></p>
+
+<img src= "{{plot_dir}}/EvenOddAll_Analysis/Correlation/EO_Output/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_Correlation_EO.png"/>
+
+{% endfor %}
