@@ -124,8 +124,11 @@ table, th, td {
 <p></p>
 <p></p>
 <p></p>
-
-
+{% for type in ["DEM", "PWR"] %}
+<font size="5"><br /><b>Thermal Sensor Correlations with {{type}} Output <b/></font><br />
+<p></p>
+<img src= "{{plot_dir}}/Thermal_Correlation/{{name_polarimeter}}/{{name_polarimeter}}_{{type}}_Correlation_TS.png"/>
+{% endfor %}
 
 <A NAME="Polarimeter"></A>
 <font size="6"><b>Polarimeter<b/></font><br/>

@@ -326,7 +326,7 @@ class Polarimeter:
                         if len(data) == 0:
                             results["nan_percent"][calib][sensor_name] = 100.
                         else:
-                            results["nan_percent"][calib][sensor_name] = round((n_nan / len(data)), 4)*100.
+                            results["nan_percent"][calib][sensor_name] = round((n_nan / len(data)), 4) * 100.
 
                         if results["nan_percent"][calib][sensor_name] < 5:
                             data = np.delete(data, np.argwhere(np.isnan(data)))
@@ -391,6 +391,52 @@ class Polarimeter:
             if show:
                 plt.show()
             plt.close(fig)
+
+    def Plot_Correlation_TS(self, type: str, begin=0, end=-1, show=False):
+        """
+        Plot of Correlation between Raw data DEM or PWR & Thermal Sensor Outputs.\n
+        Parameters:\n
+        - **type** (``str``) of data "DEM" or "PWR"\n
+        - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+        """
+        fig, axs = plt.subplots(nrows=4, ncols=4, constrained_layout=True, figsize=(17, 15))
+
+        begin_date = self.Date_Update(n_samples=begin, modify=False)
+        fig.suptitle(f'Correlation Thermal Sensors vs {type} Output - Date: {begin_date}', fontsize=14)
+
+        # Note: all Thermal Sensors chosen are in configuration "0"
+        ts_list = ["TS-CX6-Module-O", "TS-CX2-Module-V", "TS-SP1-SpareDT", "TS-CX16-Filter"]
+
+        for idx, ts in enumerate(ts_list):
+            n = 0  # type: int
+            for exit in self.data[f"{type}"].keys():
+                if idx == 0:
+                    axs[idx, n].sharey(axs[1, 0])
+                    axs[idx, n].sharex(axs[1, 0])
+
+                x = self.data[type][exit][begin:end]
+                y = np.interp(self.times[begin:end], self.thermal_sensors["thermal_times"]["0"],
+                              self.thermal_sensors["thermal_data"]["calibrated"][f"{ts}"])
+                axs[idx, n].plot(x, y, "*", color="steelblue", label="Corr Data")
+
+                # Title
+                axs[idx, n].set_title(f'Corr {ts} vs {type} {exit}')
+                # XY-axis
+                # axs[idx, n].set_aspect('equal')
+                axs[idx, n].set_xlabel(f"{type} Output")
+                axs[idx, n].set_ylabel(f"Temperature [K]")
+                # Legend
+                axs[idx, n].legend(prop={'size': 9}, loc=7)
+
+                n += 1
+
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f"../plot/{date_dir}/Thermal_Correlation/{self.name}/"
+        Path(path).mkdir(parents=True, exist_ok=True)
+        fig.savefig(f'{path}{self.name}_{type}_Correlation_TS.png')
+        if show:
+            plt.show()
+        plt.close(fig)
 
     # ------------------------------------------------------------------------------------------------------------------
     # HOUSE-KEEPING ANALYSIS
@@ -477,7 +523,7 @@ class Polarimeter:
                     if len(data) == 0:
                         results["nan_percent"][item][hk_name] = 100.
                     else:
-                        results["nan_percent"][item][hk_name] = round((n_nan / len(data)), 4)*100.
+                        results["nan_percent"][item][hk_name] = round((n_nan / len(data)), 4) * 100.
 
                     if results["nan_percent"][item][hk_name] < 5:
                         data = np.delete(data, np.argwhere(np.isnan(data)))

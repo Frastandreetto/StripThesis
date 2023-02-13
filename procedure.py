@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-# This file contains a 7th version (0.0.7) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
+# This file contains a 8th version (0.0.8) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
 # December 7th 2022, Brescia (Italy)
 
 # Libraries & Modules
@@ -138,7 +138,7 @@ def main():
 
         # SCIENTIFIC ANALYSIS
 
-        logging.info(f"Done.\nPreparing the polarimeter {name_pol} for the analysis.\n")
+        logging.info(f"Done.\nPreparing the polarimeter {name_pol} for the scientific analysis.\n")
 
         p.STRIP_SAMPLING_FREQ = 0
         p.Prepare(1)
@@ -147,9 +147,9 @@ def main():
         for type in p.data.keys():
             logging.info(f"Going to Plot {type} Output.")
             p.Plot_Output(type=f"{type}", begin=0, end=-1, show=False)
-            logging.info(f"Done.\n")
+            logging.info(f"Done.\nStudying Correlations between Thermal Sensors and {type} Output.")
 
-        logging.info("\nEven-Odd Analysis started.\n")
+        logging.info("\nDone.\nEven-Odd Analysis started.\n")
         i = 1
         for type in p.data.keys():
             logging.info(f"Going to Plot Even Odd {type} Output and RMS.")
