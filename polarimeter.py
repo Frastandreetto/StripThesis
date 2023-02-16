@@ -1665,7 +1665,7 @@ class Polarimeter:
                                      "<th>Data Type</th>" \
                                      "<th>Exit</th>" \
                                      "<th>Spike Time [JHD]</th>" \
-                                     "<th>Spike Value - Median</th></tr>"
+                                     "<th>Spike Value - Median [ADU]</th></tr>"
                         cap = True
 
                     for idx, item in enumerate(spike_idxs):

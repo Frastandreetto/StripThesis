@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-# This file contains the 9th version (0.0.9) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
+# This file contains the 10th version (0.0.10) of the new LSPE-Strip pipeline.
+# It produces a complete scan of a polarimeter.
 # December 7th 2022, Brescia (Italy)
 
 # Libraries & Modules
 import logging
 import sys
 
+import numpy as np
 from astropy.time import Time
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
@@ -109,18 +111,45 @@ def main():
             logging.info("\n Done. Loading HouseKeeping Parameters now.")
             p.Load_HouseKeeping()
             good = True
+            hk_par = []
+            hk = ""
             for item in p.hk_list.keys():
                 for hk_name in p.hk_list[item]:
                     hk_holes = fz.find_holes(p.hk_t[item][hk_name].value)
                     if len(hk_holes) != 0:
+                        hk_par.append(f"{hk_name}")
                         msg = f"House-Keeping sampling's reduction found for parameter: {hk_name}.\n"
                         logging.warning(msg)
-                        p.warnings["time_warning"].append("<br />" + msg + "<br />")
                         good = False
                 if good:
                     msg = f"House-Keeping parameter's {item} sampling is good.\n"
                     logging.warning(msg)
                     p.warnings["time_warning"].append(msg + "<br /><p></p>")
+
+            if not good:
+                for item in hk_par:
+                    hk += item + ", "
+                delta_t = (p.hk_t['V'][hk_par[0]][:-1] - p.hk_t['V'][hk_par[0]][1:]).sec
+                hk_msg = "House-Keeping Sampling is not good.<br />" \
+                         "<p></p>" \
+                         "<style>" \
+                         "table, th, td {border:1px solid black;}" \
+                         "</style>" \
+                         "<body>" \
+                         "<p></p>" \
+                         "<table style='width:100%' align=center>" \
+                         "<tr>" \
+                         "<th>HK Parameters Affected</th>" \
+                         "<th>Median &Delta;t</th>" \
+                         "<th>5th Percentile</th>" \
+                         "<th>95th Percentile</th>" \
+                         "</tr>" \
+                         f"<td align=center>{hk}</td>" \
+                         f"<td align=center>{np.median(delta_t)}</td>" \
+                         f"<td align=center>{np.percentile(delta_t, 5)}</td>" \
+                         f"<td align=center>{np.percentile(delta_t, 95)}</td>" \
+                         f"</table></body><p></p><p></p><p></p>"
+                p.warnings["time_warning"].append(hk_msg)
 
             logging.info("Done.\nPlotting House-Keeping parameters.\n")
             p.Norm_HouseKeeping()

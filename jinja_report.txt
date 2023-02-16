@@ -3,6 +3,7 @@
 <p></p>
 <p></p>
 
+<hr style="width:100%;text-align:left;margin-left:0">
 <A NAME = "TOF"></A>
 <font size="6"><b>Table of Contents<b/></font><br/>
 <p></p>
@@ -36,7 +37,10 @@
 <p></p>
 <p></p>
 <p></p>
-
+<hr style="width:100%;text-align:left;margin-left:0">
+<p></p>
+<p></p>
+<p></p>
 <A NAME="Info"></A>
 <font size="6"><b>0. General Info<b/></font><br/>
 <A HREF="#TOF">[Back to Table of Contents]</A><br/>
