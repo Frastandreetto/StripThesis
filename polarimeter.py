@@ -17,6 +17,8 @@ from astropy.time import Time
 from matplotlib import pyplot as plt
 from pathlib import Path
 from rich.logging import RichHandler
+
+import f_strip
 from striptease import DataStorage
 from typing import List, Dict, Any
 
@@ -95,7 +97,11 @@ class Polarimeter:
         time_warning = []
         corr_warning = []
         eo_warning = []
-        self.warnings = {"time_warning": time_warning, "corr_warning": corr_warning, "eo_warning": eo_warning}
+        spike_warning = []
+        self.warnings = {"time_warning": time_warning,
+                         "corr_warning": corr_warning,
+                         "eo_warning": eo_warning,
+                         "spike_warning": spike_warning}
 
     def Load_Pol(self):
         """
@@ -548,7 +554,7 @@ class Polarimeter:
             if item == "V":
                 unit = "[&mu;V]"
             elif item == "I":
-                unit = "[mA]"
+                unit = "[&mu;A]"
             else:
                 unit = "[ADU]"
 
@@ -1346,11 +1352,11 @@ class Polarimeter:
         else:
             if even:
                 for exit in self.data[type].keys():
-                    sci[exit] = self.data[type][exit][begin:end - 1]
+                    sci[exit] = self.data[type][exit][begin:end - 1:2]
                     data_name = f"{type}_OUTPUT_EVEN Data"
             elif odd:
                 for exit in self.data[type].keys():
-                    sci[exit] = self.data[type][exit][begin + 1:end]
+                    sci[exit] = self.data[type][exit][begin + 1:end:2]
                     data_name = f"{type}_OUTPUT_ODD Data"
             else:
                 for exit in self.data[type].keys():
@@ -1366,6 +1372,8 @@ class Polarimeter:
         corr_matrix = sci_data.corr()
 
         keys = list(corr_matrix.keys())
+        rows = ""
+        need_cap = False
         for i in corr_matrix.keys():
             """
             Put at nan the values on the diagonal of the matrix (self correlations)
@@ -1381,7 +1389,27 @@ class Polarimeter:
                     msg = f"High correlation ({round(corr_matrix[i][j], 6)}) " \
                           f"found in {data_name} between channel {i} and {j}."
                     logging.warning(msg)
-                    self.warnings["corr_warning"].append(msg + "<br />")
+
+                    need_cap = True
+                    rows += f"<td align=center>{data_name}</td>" \
+                            f"<td align=center>{i}</td>" \
+                            f"<td align=center>{j}</td>" \
+                            f"<td align=center>{round(corr_matrix[i][j], 6)}</td></tr>"
+        if need_cap:
+            corr_table = "<p></p>" \
+                         "<style>" \
+                         "table, th, td {border:1px solid black;}" \
+                         "</style>" \
+                         "<body>" \
+                         "<p></p>" \
+                         "<p></p>" \
+                         "<p></p>" \
+                         "<table style='width:100%' align=center>" \
+                         "<tr>" \
+                         "<th>Data type</th><th>Channel 1</th><th>Channel 2</th><th>Correlation Value</th>" \
+                         "</tr>"
+            self.warnings["corr_warning"].append(corr_table)
+        self.warnings["corr_warning"].append(rows + "</table></body><p></p><p></p><p></p>")
 
         pl_m1 = sn.heatmap(corr_matrix, annot=True, ax=axs[0], cmap='coolwarm')
         pl_m1.set_title(f"Correlation {data_name}", fontsize=18)
@@ -1453,6 +1481,8 @@ class Polarimeter:
         corr_matrix = sci_data.corr()
 
         keys = list(corr_matrix.keys())
+        rows = ""
+        need_cap = False
         for i in corr_matrix.keys():
             """
             Put at nan the values on the diagonal of the matrix (self correlations)
@@ -1468,7 +1498,27 @@ class Polarimeter:
                     msg = f"High correlation ({round(corr_matrix[i][j], 6)}) " \
                           f"found in {data_name} between channel {i} and {j}."
                     logging.warning(msg)
-                    self.warnings["corr_warning"].append(msg + "<br />")
+
+                    need_cap = True
+                    rows += f"<td align=center>{data_name}</td>" \
+                            f"<td align=center>{i}</td>" \
+                            f"<td align=center>{j}</td>" \
+                            f"<td align=center>{round(corr_matrix[i][j], 6)}</td></tr>"
+        if need_cap:
+            corr_table = "<p></p>" \
+                         "<style>" \
+                         "table, th, td {border:1px solid black;}" \
+                         "</style>" \
+                         "<body>" \
+                         "<p></p>" \
+                         "<p></p>" \
+                         "<p></p>" \
+                         "<table style='width:100%' align=center>" \
+                         "<tr>" \
+                         "<th>Data type</th><th>Channel 1</th><th>Channel 2</th><th>Correlation Value</th>" \
+                         "</tr>"
+            self.warnings["corr_warning"].append(corr_table)
+        self.warnings["corr_warning"].append(rows + "</table></body><p></p><p></p><p></p>")
 
         pl_m1 = sn.heatmap(corr_matrix, annot=True, ax=axs[0], cmap='coolwarm')
         pl_m1.set_title(f"Correlation {data_name}", fontsize=18)
@@ -1501,7 +1551,7 @@ class Polarimeter:
         if len(jumps["position"]) == 0:
             t_warn = "No Time Jumps found in the dataset."
             logging.info(t_warn)
-            self.warnings["time_warning"].append(t_warn)
+            self.warnings["time_warning"].append(t_warn + "<p></p>")
         else:
             t_warn = f"In the dataset there are {len(jumps['position'])} Time Jumps.\n\n"
             logging.info(t_warn)
@@ -1588,6 +1638,50 @@ class Polarimeter:
 
                             self.warnings["eo_warning"].append(msg)
                             logging.warning(msg)
+
+    def spike_report(self) -> str:
+        """
+            Look up for 'spikes' in the DEM and PWR output of the Polarimeter.\n
+            Create a table in html language (basically a str) in which the spikes found are listed.
+        """
+        cap = False
+        spike_tab = ""
+        rows = ""
+        for type in self.data.keys():
+            for exit in self.data[type].keys():
+
+                spike_idxs = f_strip.find_spike(self.data[type][exit])
+                if len(spike_idxs) != 0:
+                    if not cap:
+                        spike_tab += "<p></p>" \
+                                     "<style>" \
+                                     "table, th, td {border:1px solid black;}" \
+                                     "</style>" \
+                                     "<body>" \
+                                     "<p></p>" \
+                                     "<table style='width:100%' align=center>" \
+                                     "<tr>" \
+                                     "<th>Spike Number</th>" \
+                                     "<th>Data Type</th>" \
+                                     "<th>Exit</th>" \
+                                     "<th>Spike Time [JHD]</th>" \
+                                     "<th>Spike Value - Median</th></tr>"
+                        cap = True
+
+                    for idx, item in enumerate(spike_idxs):
+                        rows += f"<td align=center>{idx+1}</td>" \
+                                f"<td align=center>{type}</td>" \
+                                f"<td align=center>{exit}</td>" \
+                                f"<td align=center>{self.times[item]}</td>" \
+                                f"<td align=center>{self.data[type][exit][item]-np.median(self.data[type][exit])}</td>"\
+                                f"</tr>"
+                        logging.info(f"Spike n.{idx} in {exit} - {type}.\n")
+        if cap:
+            spike_tab += rows + "</table></body><p></p><p></p><p></p>"
+        else:
+            spike_tab = "No spikes detected in DEM and PWR Output."
+
+        return spike_tab
 
 
 def RMS(data, window: int, exit: str, eoa: int, begin=0, end=-1):

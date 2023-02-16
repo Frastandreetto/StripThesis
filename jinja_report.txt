@@ -8,6 +8,8 @@
 <p></p>
 0. <A HREF="#Info">[General Info]</A><br/>
 <p></p>
+0.1 <A HREF="#Warnings">[Warnings]</A><br/>
+<p></p>
 
 1. <A HREF="#HK">[House-Keeping Parameters]</A><br/>
 <p></p>
@@ -15,50 +17,72 @@
 2. <A HREF="#Thermal">[Thermal Sensor]</A><br/>
 <p></p>
 
-3. <A HREF="#Polarimeter Scan">[Polarimeter]</A><br/>
+3. <A HREF="#Polarimeter">[Polarimeter Scan]</A><br/>
 <p></p>
 
-3.a <A HREF="#EOA">[Even-Odd Analysis]</A><br/>
+3.1 <A HREF="#EOA">[Even-Odd Analysis]</A><br/>
 <p></p>
-3.b <A HREF="#Scientific">[Scientific Data Analysis]</A><br/>
+3.1.1 <A HREF="#FFT_EOA_DEM">[FFT Even-Odd DEM]</A><br/>
 <p></p>
-3.c <A HREF="#CorrMatr">[Correlation Analysis]</A>
+3.1.2 <A HREF="#FFT_EOA_PWR">[FFT Even-Odd PWR]</A><br/>
+<p></p>
+3.2 <A HREF="#Scientific">[Scientific Data Analysis]</A><br/>
+<p></p>
+3.2.1 <A HREF="#FFT_DEMODULATED">[FFT Scientific Data]</A><br/>
+<p></p>
+3.2.1 <A HREF="#FFT_TOT_POWER">[FFT Scientific Data]</A><br/>
+<p></p>
+3.3 <A HREF="#CorrMatr">[Correlation Analysis]</A>
 <p></p>
 <p></p>
 <p></p>
 
 <A NAME="Info"></A>
-<font size="6"><b>General Info<b/></font><br/>
+<font size="6"><b>0. General Info<b/></font><br/>
 <A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 
 - The analysis was run with the following command line:
 <p></p>
-```
-{{command_line}}
-```
+<p style="font-family:'Courier New'">{{command_line}}</p>
 <p></p>
 - Time period: {{analysis_date}}
 <p></p>
 Note: all plots can be found from the current directory by entering the dir {{plot_dir}}
 <p></p>
+
+<A NAME="Warnings"></A>
 <font size="5"> <font color="firebrick"> <b>Warning list<b/></font> </font><br />
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
-- <b>Timestamp analysis<b/>:
+
+<p></p>
+<font size="4"><font color="firebrick"><b>- Sampling & Time analysis<b/></font></font>:<br />
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 {{t_warnings}}
+
 <p></p>
-- <b>Correlation Analysis<b/>:
+<font size="4"><font color="firebrick"><b>- Spikes analysis<b/></font></font>:<br />
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
+<p></p>
+{{spike_warnings}}
+
+<p></p>
+<font size="4"><font color="firebrick"><b>- Correlation Analysis<b/></font></font>:<br />
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 {{corr_warnings}}
+
 <p></p>
-- <b>Even-Odd Analysis<b/>:
+<font size="4"><font color="firebrick"><b>- Even-Odd Analysis<b/></font></font>:<br />
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 {{eo_warnings}}
 <p></p>
 
 <A NAME="HK"></A>
-<font size="6"><b>House-Keeping Parameters<b/></font><br/>
+<font size="6"><b>1. House-Keeping Parameters<b/></font><br/>
 <A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 
@@ -87,7 +111,7 @@ table, th, td {
 </body>
 
 <A NAME="Thermal"></A>
-<font size="6"><b>Thermal Sensor<b/></font><br/>
+<font size="6"><b>2. Thermal Sensor<b/></font><br/>
 <A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 
@@ -131,7 +155,7 @@ table, th, td {
 {% endfor %}
 
 <A NAME="Polarimeter"></A>
-<font size="6"><b>Polarimeter<b/></font><br/>
+<font size="6"><b>3. Polarimeter<b/></font><br/>
 <A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 
@@ -145,7 +169,7 @@ table, th, td {
 
 
 <A NAME="EOA"></A>
-<font size="6"><b>Even-Odd Analysis<b/></font><br/>
+<font size="6"><b>3.1 Even-Odd Analysis<b/></font><br/>
 <A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 
@@ -235,8 +259,10 @@ Plot of RMS of even-odd and all data {{type}}  with different smoothing lengths:
 {% endfor %}
 
 {% for type in ["DEM","PWR"] %}
+<A NAME="FFT_EOA_{{type}}"></A>
 <p></p>
-<font size="5"><br /><b>FFT {{type}} of Output<b/></font><br />
+<font size="5"><br /><b>FFT Even-Odd {{type}} of Output<b/></font><br />
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 
 Plot of FFT {{type}} of all data, eve-odd data and even-odd-all data:
@@ -261,7 +287,7 @@ Plot of FFT of the RMS {{type}} of all data, eve-odd data and even-odd-all data:
 
 <p></p>
 <A NAME="Scientific"></A>
-<font size="6"><b>Scientific Data Analysis<b/></font><br/>
+<font size="6"><b>3.2 Scientific Data Analysis<b/></font><br/>
 <A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 
@@ -300,8 +326,10 @@ Plot of RMS of all data {{type}} with different smoothing lengths.
 {% endfor %}
 
 {% for type in ["DEMODULATED", "TOT_POWER"] %}
+<A NAME="FFT_{{type}}"></A>
 <p></p>
-<font size="5"><br /><b>FFT {{type}} data<b/></font><br />
+<font size="5"><br /><b>FFT of {{type}} Scientific Data<b/></font><br />
+<A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 
 Plot of FFT {{type}} data:
@@ -321,7 +349,7 @@ Plot of FFT of the RMS of {{type}} data:
 
 <p></p>
 <A NAME="CorrMatr"></A>
-<font size="6"><b> Correlation Analysis<b/></font><br/>
+<font size="6"><b>3.3 Correlation Analysis<b/></font><br/>
 <A HREF="#TOF">[Back to Table of Contents]</A><br/>
 <p></p>
 

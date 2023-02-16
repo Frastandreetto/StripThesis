@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-# This file contains a 8th version (0.0.8) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
+# This file contains the 9th version (0.0.9) of the new LSPE-STRIP pipeline to produce a complete scan of a polarimeter.
 # December 7th 2022, Brescia (Italy)
 
 # Libraries & Modules
@@ -58,183 +58,216 @@ def main():
         logging.info("Loading the dataset.\n")
         p.Load_Pol()
 
-        logging.info("Looking for holes in the dataset.\n")
-        p.STRIP_SAMPLING_FREQUENCY_HZ(warning=False)
-        if p.STRIP_SAMPLING_FREQ != 100:
-            holes = fz.find_holes(p.times.value)
-            if len(holes) != 0:
-                msg = "Data-sampling's reduction found.\n"
-                logging.warning(msg)
-                p.warnings["time_warning"].append(msg)
-                p.warnings["eo_warning"].append(msg +
-                                                "Possible Even-Odd inversions at the following date times:<br />"
-                                                "Attention: the time after the hole in the x-axes of the plots "
-                                                "doesn't have sense because of the timestamps normalization. <br />"
-                                                "Fix it putting some zero-value fake-outputs in the hole. <br />")
-                for h in holes:
-                    msg = f"{Time(h, format='mjd').to_datetime().strftime('%Y-%m-%d %H:%M:%S')}."
-                    p.warnings["eo_warning"].append(msg)
-        else:
-            msg = "Data-sampling is good. No holes in scientific output found.\n"
-            logging.warning(msg)
-            p.warnings["time_warning"].append(msg + "<br /><p></p>")
+        # End the procedure if there are no data.
+        stop_procedure = False
+        type: str
+        for type in p.data.keys():
+            for exit in p.data[type].keys():
+                if len(p.data[type][exit]) == 0:
+                    stop_procedure = True
 
-        # Add here the holes re-run procedure... 2023/02/07
-
-        logging.info("\nDone.\nLooking for jumps in the Timestamps.\n")
-        jumps = p.Write_Jump(start_datetime=start_datetime)
-
-        logging.info("\nDone.\nLooking for Even-Odd inversion due to jumps in the Timestamps.\n")
-        p.Inversion_EO_Time(jumps_pos=jumps["position"])
-
-        # HOUSE-KEEPING PARAMETERS
-        logging.info("\n Done. Loading HouseKeeping Parameters now.")
-        p.Load_HouseKeeping()
-        good = True
-        for item in p.hk_list.keys():
-            for hk_name in p.hk_list[item]:
-                hk_holes = fz.find_holes(p.hk_t[item][hk_name].value)
-                if len(hk_holes) != 0:
-                    msg = f"<br />House-Keeping sampling's reduction found for parameter: {hk_name}.\n"
-                    logging.warning(msg)
-                    p.warnings["time_warning"].append(msg + "<br />")
-                    good = False
-            if good:
-                msg = f"<br />House-Keeping parameter's {item} sampling is good.\n"
-                logging.warning(msg)
-                p.warnings["time_warning"].append(msg + "<br />")
-
-        logging.info("Done.\nPlotting House-Keeping parameters.\n")
-        p.Norm_HouseKeeping()
-        p.Plot_HouseKeeping_VI()
-        p.Plot_HouseKeeping_OFF()
-        logging.info("\n Done. Now I analyze them.")
-        hk_results = p.Analyse_HouseKeeping()
-        hk_table = p.HK_table(hk_results)
-
-        # THERMAL SENSORS
-        logging.info("\n Done. Loading Thermal sensors now.")
-        p.Load_Thermal_Sensors()
-        good = True
-        for status in range(2):
-            for sensor_name in p.thermal_list[f"{status}"]:
-                th_holes = fz.find_holes(p.thermal_sensors["thermal_times"][f"{status}"].value)
-                if len(th_holes) != 0:
-                    msg = f"Thermal sensors sampling's reduction found for sensor: {sensor_name}.\n"
-                    logging.warning(msg)
-                    p.warnings["time_warning"].append(msg + "<br />")
-                    good = False
-        if good:
-            msg = f"Thermal sensors sampling is good.\n"
+        if stop_procedure:
+            msg = "No data in the time range wanted. End of the analysis."
             logging.warning(msg)
             p.warnings["time_warning"].append(msg + "<br />")
 
-        logging.info("Done.\nPlotting thermal sensors dataset.\n")
-        p.Norm_Thermal()
-        p.Plot_Thermal()
-        th_results = p.Analyse_Thermal()
-        logging.info("\n Done. Producing Thermal Table now.")
-        th_table = p.Thermal_table(th_results)
+        else:
+            logging.info("Looking for holes in the dataset.\n")
+            p.STRIP_SAMPLING_FREQUENCY_HZ(warning=False)
+            if p.STRIP_SAMPLING_FREQ != 100:
+                holes = fz.find_holes(p.times.value)
+                if len(holes) != 0:
+                    msg = "Data-sampling's reduction found.\n"
+                    logging.warning(msg)
+                    p.warnings["time_warning"].append(msg)
+                    p.warnings["eo_warning"].append(msg +
+                                                    "Possible Even-Odd inversions at the following date "
+                                                    "times:<br />"
+                                                    "Attention: the time after the hole in the x-axes of the "
+                                                    "plots"
+                                                    "doesn't have sense because of the timestamps "
+                                                    "normalization. <br />"
+                                                    "Fix it putting some zero-value fake-outputs in the hole. "
+                                                    "<br />")
+                    for h in holes:
+                        msg = f"{Time(h, format='mjd').to_datetime().strftime('%Y-%m-%d %H:%M:%S')}."
+                        p.warnings["eo_warning"].append(msg)
+            else:
+                msg = "Data-sampling is good. No holes in scientific output found.\n"
+                logging.warning(msg)
+                p.warnings["time_warning"].append(msg + "<br /><p></p>")
 
-        # SCIENTIFIC ANALYSIS
+            # Add here the holes re-run procedure... 2023/02/07
 
-        logging.info(f"Done.\nPreparing the polarimeter {name_pol} for the scientific analysis.\n")
+            logging.info("\nDone.\nLooking for jumps in the Timestamps.\n")
+            jumps = p.Write_Jump(start_datetime=start_datetime)
 
-        p.STRIP_SAMPLING_FREQ = 0
-        p.Prepare(1)
-        logging.info(f"Done.\n")
+            logging.info("\nDone.\nLooking for Even-Odd inversion due to jumps in the Timestamps.\n")
+            p.Inversion_EO_Time(jumps_pos=jumps["position"])
 
-        for type in p.data.keys():
-            logging.info(f"Going to Plot {type} Output.")
-            p.Plot_Output(type=f"{type}", begin=0, end=-1, show=False)
-            logging.info(f"Done.\nStudying Correlations between Thermal Sensors and {type} Output.")
+            # HOUSE-KEEPING PARAMETERS
+            logging.info("\n Done. Loading HouseKeeping Parameters now.")
+            p.Load_HouseKeeping()
+            good = True
+            for item in p.hk_list.keys():
+                for hk_name in p.hk_list[item]:
+                    hk_holes = fz.find_holes(p.hk_t[item][hk_name].value)
+                    if len(hk_holes) != 0:
+                        msg = f"House-Keeping sampling's reduction found for parameter: {hk_name}.\n"
+                        logging.warning(msg)
+                        p.warnings["time_warning"].append("<br />" + msg + "<br />")
+                        good = False
+                if good:
+                    msg = f"House-Keeping parameter's {item} sampling is good.\n"
+                    logging.warning(msg)
+                    p.warnings["time_warning"].append(msg + "<br /><p></p>")
 
-        logging.info("\nDone.\nEven-Odd Analysis started.\n")
-        i = 1
-        for type in p.data.keys():
-            logging.info(f"Going to Plot Even Odd {type} Output and RMS.")
-            for smooth in [1, 100, 1000]:
-                p.Plot_EvenOddAll(type=type, even=1, odd=1, all=0, begin=0, end=-1, smooth_len=smooth, show=False)
-                p.Plot_EvenOddAll(type=type, even=1, odd=1, all=1, begin=0, end=-1, smooth_len=smooth, show=False)
-                p.Plot_EvenOddAll(type=type, even=0, odd=0, all=1, begin=0, end=-1, smooth_len=smooth, show=False)
-                logging.info(f"{type}: {3 * i}/18) Output plot done.")
+            logging.info("Done.\nPlotting House-Keeping parameters.\n")
+            p.Norm_HouseKeeping()
+            p.Plot_HouseKeeping_VI()
+            p.Plot_HouseKeeping_OFF()
+            logging.info("\n Done. Now I analyze them.")
+            hk_results = p.Analyse_HouseKeeping()
+            hk_table = p.HK_table(hk_results)
 
-                p.Plot_RMS_EOA(type=type, window=100, even=1, odd=1, all=0, begin=0, end=-1, smooth_len=smooth,
-                               show=False)
-                p.Plot_RMS_EOA(type=type, window=100, even=1, odd=1, all=1, begin=0, end=-1, smooth_len=smooth,
-                               show=False)
-                p.Plot_RMS_EOA(type=type, window=100, even=0, odd=0, all=1, begin=0, end=-1, smooth_len=smooth,
-                               show=False)
-                logging.info(f"{type}: {3 * i}/18) RMS plot done.")
-                i += 1
-            logging.info(f"{type}: Done.\n")
+            # THERMAL SENSORS
+            logging.info("\n Done. Loading Thermal sensors now.")
+            p.Load_Thermal_Sensors()
+            good = True
+            for status in range(2):
+                for sensor_name in p.thermal_list[f"{status}"]:
+                    th_holes = fz.find_holes(p.thermal_sensors["thermal_times"][f"{status}"].value)
+                    if len(th_holes) != 0:
+                        msg = f"Thermal sensors sampling's reduction found for sensor: {sensor_name}.\n"
+                        logging.warning(msg)
+                        p.warnings["time_warning"].append(msg + "<br />")
+                        good = False
+            if good:
+                msg = f"Thermal sensors sampling is good.\n"
+                logging.warning(msg)
+                p.warnings["time_warning"].append(msg + "<br />")
 
-        for type in p.data.keys():
-            logging.info(f"Going to Plot {type} Even-Odd Correlation.")
-            p.Plot_Correlation_EvenOdd(type, begin=0, end=-1, show=False)
+            logging.info("Done.\nPlotting thermal sensors dataset.\n")
+            p.Norm_Thermal()
+            p.Plot_Thermal()
+            th_results = p.Analyse_Thermal()
+            logging.info("\n Done. Producing Thermal Table now.")
+            th_table = p.Thermal_table(th_results)
+
+            # SPIKE ANALYSIS
+            logging.info(f"Done.\nSpike analysis started.\n")
+            s_tab = p.spike_report()
+            p.warnings["spike_warning"].append(s_tab)
+
+            # SCIENTIFIC ANALYSIS
+
+            logging.info(f"Done.\nPreparing the polarimeter {name_pol} for the scientific analysis.\n")
+
+            p.STRIP_SAMPLING_FREQ = 0
+            p.Prepare(1)
             logging.info(f"Done.\n")
 
-        i = 1
-        for type in p.data.keys():
-            logging.info(f"Going to Plot {type} Even-Odd FFT.")
-            p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=0, begin=0, end=-1, show=False)
-            p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=1, begin=0, end=-1, show=False)
-            p.Plot_FFT_EvenOdd(type=type, even=0, odd=0, all=1, begin=0, end=-1, show=False)
-            logging.info(f"FFT {type}: Done.")
-
-            logging.info(f"Going to Plot {type} Even-Odd FFT of the RMS.")
-            p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=0, begin=0, end=-1, show=False)
-            p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=1, begin=0, end=-1, show=False)
-            p.Plot_FFT_RMS_EO(type=type, window=100, even=0, odd=0, all=1, begin=0, end=-1, show=False)
-            logging.info(f"FFT RMS {type}: Done.")
-        i += 1
-
-        logging.info("\nEven Odd Analysis is now completed.\nScientific Data Analysis started.")
-
-        i = 1
-        for type in p.data.keys():
-            logging.info(f"Going to Plot Scientific Data {type} and RMS.")
-            for smooth in [1, 100, 1000]:
-                p.Plot_SciData(type=type, smooth_len=smooth, show=False)
-                logging.info(f"{type}: {i}/6) Data plot done.")
-
-                p.Plot_RMS_SciData(type=type, window=100, begin=0, end=-1, smooth_len=smooth, show=False)
-                logging.info(f"{type}: {i}/6) RMS plot done.")
-
-                i += 1
-        i = 1
-        for type in p.data.keys():
-            logging.info(f"Going to Plot Scientific Data {type} FFT and FFT of  RMS.")
-            p.Plot_FFT_SciData(type=type, begin=0, end=-1, show=False)
-            logging.info(f"{type}: {i}/2) Data FFT plot done.")
-
-            p.Plot_FFT_RMS_SciData(type=type, window=100, begin=0, end=-1, show=False)
-            logging.info(f"{type}: {i}/2) RMS FFT plot done.")
-
-        logging.info("Scientific Data Analysis is now completed. Correlation Matrices will be now produced.\n")
-
-        # CORRELATION MATRICES
-        t = 0.4
-        for s in [True, False]:
             for type in p.data.keys():
+                logging.info(f"Going to Plot {type} Output.")
+                p.Plot_Output(type=f"{type}", begin=0, end=-1, show=False)
+                logging.info(f"Done.\nStudying Correlations between Thermal Sensors and {type} Output.")
+                p.Plot_Correlation_TS(type=type, begin=0, end=-1, show=False)
 
-                if s:
-                    logging.debug(f"\nGoing to plot {type} Correlation Matrix with scientific parameter = {s}\n")
-                    p.Plot_Correlation_Mat(type=type, scientific=s, show=False, warn_threshold=t)
-                    p.Plot_Correlation_Mat_RMS(type=type, scientific=s, show=False, warn_threshold=t)
+            logging.info("\nDone.\nEven-Odd Analysis started.\n")
+            i = 1
+            for type in p.data.keys():
+                logging.info(f"Going to Plot Even Odd {type} Output and RMS.")
+                for smooth in [1, 100, 1000]:
+                    p.Plot_EvenOddAll(type=type, even=1, odd=1, all=0, begin=0, end=-1, smooth_len=smooth,
+                                      show=False)
+                    p.Plot_EvenOddAll(type=type, even=1, odd=1, all=1, begin=0, end=-1, smooth_len=smooth,
+                                      show=False)
+                    p.Plot_EvenOddAll(type=type, even=0, odd=0, all=1, begin=0, end=-1, smooth_len=smooth,
+                                      show=False)
+                    logging.info(f"{type}: {3 * i}/18) Output plot done.")
 
-                if not s:
-                    if type == "PWR":
+                    p.Plot_RMS_EOA(type=type, window=100, even=1, odd=1, all=0, begin=0, end=-1,
+                                   smooth_len=smooth,
+                                   show=False)
+                    p.Plot_RMS_EOA(type=type, window=100, even=1, odd=1, all=1, begin=0, end=-1,
+                                   smooth_len=smooth,
+                                   show=False)
+                    p.Plot_RMS_EOA(type=type, window=100, even=0, odd=0, all=1, begin=0, end=-1,
+                                   smooth_len=smooth,
+                                   show=False)
+                    logging.info(f"{type}: {3 * i}/18) RMS plot done.")
+                    i += 1
+                logging.info(f"{type}: Done.\n")
+
+            for type in p.data.keys():
+                logging.info(f"Going to Plot {type} Even-Odd Correlation.")
+                p.Plot_Correlation_EvenOdd(type, begin=0, end=-1, show=False)
+                logging.info(f"Done.\n")
+
+            i = 1
+            for type in p.data.keys():
+                logging.info(f"Going to Plot {type} Even-Odd FFT.")
+                p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=0, begin=0, end=-1, show=False)
+                p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=1, begin=0, end=-1, show=False)
+                p.Plot_FFT_EvenOdd(type=type, even=0, odd=0, all=1, begin=0, end=-1, show=False)
+                logging.info(f"FFT {type}: Done.")
+
+                logging.info(f"Going to Plot {type} Even-Odd FFT of the RMS.")
+                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=0, begin=0, end=-1, show=False)
+                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=1, begin=0, end=-1, show=False)
+                p.Plot_FFT_RMS_EO(type=type, window=100, even=0, odd=0, all=1, begin=0, end=-1, show=False)
+                logging.info(f"FFT RMS {type}: Done.")
+            i += 1
+
+            logging.info("\nEven Odd Analysis is now completed.\nScientific Data Analysis started.")
+
+            i = 1
+            for type in p.data.keys():
+                logging.info(f"Going to Plot Scientific Data {type} and RMS.")
+                for smooth in [1, 100, 1000]:
+                    p.Plot_SciData(type=type, smooth_len=smooth, show=False)
+                    logging.info(f"{type}: {i}/6) Data plot done.")
+
+                    p.Plot_RMS_SciData(type=type, window=100, begin=0, end=-1, smooth_len=smooth, show=False)
+                    logging.info(f"{type}: {i}/6) RMS plot done.")
+
+                    i += 1
+            i = 1
+            for type in p.data.keys():
+                logging.info(f"Going to Plot Scientific Data {type} FFT and FFT of  RMS.")
+                p.Plot_FFT_SciData(type=type, begin=0, end=-1, show=False)
+                logging.info(f"{type}: {i}/2) Data FFT plot done.")
+
+                p.Plot_FFT_RMS_SciData(type=type, window=100, begin=0, end=-1, show=False)
+                logging.info(f"{type}: {i}/2) RMS FFT plot done.")
+
+            logging.info(
+                "Scientific Data Analysis is now completed. Correlation Matrices will be now produced.\n")
+
+            # CORRELATION MATRICES
+            t = 0.4
+            for s in [True, False]:
+                for type in p.data.keys():
+
+                    if s:
+                        logging.debug(
+                            f"\nGoing to plot {type} Correlation Matrix with scientific parameter = {s}\n")
                         p.Plot_Correlation_Mat(type=type, scientific=s, show=False, warn_threshold=t)
                         p.Plot_Correlation_Mat_RMS(type=type, scientific=s, show=False, warn_threshold=t)
 
-                        for e, o in zip([True, False], [False, True]):
-                            logging.debug(f"even={e}, odd = {o}")
-                            p.Plot_Correlation_Mat(type=type, scientific=s, even=e, odd=o, show=False, warn_threshold=t)
-                            p.Plot_Correlation_Mat_RMS(type=type, scientific=s, even=e, odd=o, show=False,
-                                                       warn_threshold=t)
+                    if not s:
+                        if type == "PWR":
+                            p.Plot_Correlation_Mat(type=type, scientific=s, show=False, warn_threshold=t)
+                            p.Plot_Correlation_Mat_RMS(type=type, scientific=s, show=False, warn_threshold=t)
 
-        logging.warning("\nAnalysis completed.\nPreparing warnings for the report now.")
+                            for e, o in zip([True, False], [False, True]):
+                                logging.debug(f"even={e}, odd = {o}")
+                                p.Plot_Correlation_Mat(type=type, scientific=s, even=e, odd=o, show=False,
+                                                       warn_threshold=t)
+                                p.Plot_Correlation_Mat_RMS(type=type, scientific=s, even=e, odd=o, show=False,
+                                                           warn_threshold=t)
+
+            logging.warning("\nAnalysis completed.\nPreparing warnings for the report now.")
 
         # WARNINGS
         t_warner = ""
@@ -257,9 +290,14 @@ def main():
             for bros in p.warnings["eo_warning"]:
                 eo_warner += bros + "<br />"
 
+        spike_warner = ""
+        for bros in p.warnings["spike_warning"]:
+            spike_warner += bros
+
         # t_warner = ""
         # corr_warner = ""
         # eo_warner = ""
+        # spike_warner = ""
 
         # REPORT
 
@@ -284,6 +322,7 @@ def main():
             "t_warnings": t_warner,
             "corr_warnings": corr_warner,
             "eo_warnings": eo_warner,
+            "spike_warnings": spike_warner,
 
         }
 
