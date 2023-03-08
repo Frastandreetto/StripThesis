@@ -7,6 +7,8 @@
 
 # Libraries & Modules
 import logging
+import sys
+
 import numpy as np
 import pandas as pd
 import scipy as scipy
@@ -366,37 +368,60 @@ class Polarimeter:
 
         return html_table
 
-    def Plot_Thermal(self, show=False):
+    def Plot_Thermal(self, status: int, show=False):
         """
-        Plot all the calibrated acquisitions of Thermal Sensors of the polarimeter\n
-        Parameters:\n
+        Plot all the calibrated acquisitions of Thermal Sensors of the polarimeter.\n
+            Parameters:\n
          - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+         - **status** (``int``): *0* or *1* -> It refers to the status of the multiplexer that acquire the TS
         """
-        col = ["firebrick", "indigo"]
-        for status in [0, 1]:
-            sensor_name = self.thermal_list[f"{status}"]
-            fig, axs = plt.subplots(nrows=3, ncols=4, constrained_layout=True, figsize=(17, 9), sharey="row")
-            fig.suptitle(f'Plot Thermal Sensors status {status}- Date: {self.gdate[0]}', fontsize=14)
-            for i in range(3):
-                for j in range(4):
-                    l1 = len(self.thermal_sensors["thermal_times"][f"{status}"])
-                    l2 = len(self.thermal_sensors["thermal_data"]["calibrated"][sensor_name[4 * i + j]])
-                    axs[i, j].scatter(
-                        self.thermal_sensors["thermal_times"][f"{status}"][:min(l1, l2)],
-                        self.thermal_sensors["thermal_data"]["calibrated"][sensor_name[4 * i + j]][:min(l1, l2)],
-                        marker=".", color=col[status])
+        thermals = {
+            "0": {
+                "TILES": ["TS-CX4-Module-G", "TS-CX6-Module-O", "TS-CX2-Module-V"],
+                "FRAME": ["TS-CX10-Frame-120", "TS-DT6-Frame-South"],
+                "POLAR": ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy"],
+                "100-200": ["TS-CX16-Filter", "TS-DT3-Shield-Base"],  # , "TS-SP2-L-Support" # Excluded for the moment
+                # "VERIFY": ["EX-CX18-SpareCx"],  # Excluded for the moment
+                "COL_HEAD": ["TS-SP1-SpareDT"]
+            },
+            "1": {
+                "TILES": ["TS-CX3-Module-B", "TS-CX7-Module-I", "TS-CX1-Module-R", "TS-CX5-Module-Y"],
+                "FRAME": ["TS-CX8-Frame-0", "TS-CX9-Frame-60", "TS-CX11-Frame-North", "TS-CX15-IF-Frame-0"],
+                "POLAR": ["TS-CX13-Pol-Qx"],
+                "100-200K": ["TS-DT5-Shield-Side"],  # , "TS-CX17-Wheel-Center" # Excluded for the moment
+                "VERIFY": ["EX-DT2-SpareDT"],
+            }}
+        col = ["cornflowerblue", "indianred", "limegreen", "gold"]
 
-                    axs[i, j].set_xlabel("Time [s]")
-                    axs[i, j].set_ylabel("Temperature [K]")
-                    axs[i, j].set_title(f"{sensor_name[4 * i + j]}")
+        if status == 0 or status == 1:
+            n_rows = len(thermals[f"{status}"].keys())
+            fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(13, 15))
+        else:
+            sys.exit("Invalid Status. It must be 0 or 1.")
 
-            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-            path = f"../plot/{date_dir}/Thermal_Output/"
-            Path(path).mkdir(parents=True, exist_ok=True)
-            fig.savefig(f'{path}{self.name}_thermal_status_{status}.png')
-            if show:
-                plt.show()
-            plt.close(fig)
+        fig.suptitle(f'Plot Thermal Sensors status {status}- Date: {self.gdate[0]}', fontsize=14)
+
+        for i, group in enumerate(thermals[f"{status}"].keys()):
+            for j, sensor_name in enumerate(thermals[f"{status}"][group]):
+                l1 = len(self.thermal_sensors["thermal_times"][f"{status}"])
+                l2 = len(self.thermal_sensors["thermal_data"]["calibrated"][sensor_name])
+                axs[i].scatter(
+                    self.thermal_sensors["thermal_times"][f"{status}"][:min(l1, l2)],
+                    self.thermal_sensors["thermal_data"]["calibrated"][sensor_name][:min(l1, l2)],
+                    marker=".", color=col[j], label=sensor_name)
+
+                axs[i].set_xlabel("Time [s]")
+                axs[i].set_ylabel("Temperature [K]")
+                axs[i].set_title(f"TS GROUP {group} - Status {status}")
+                axs[i].legend(prop={'size': 9}, loc=7)
+
+        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        path = f"../plot/{date_dir}/Thermal_Output/"
+        Path(path).mkdir(parents=True, exist_ok=True)
+        fig.savefig(f'{path}{self.name}_thermal_status_{status}.png')
+        if show:
+            plt.show()
+        plt.close(fig)
 
     def Plot_Correlation_TS(self, type: str, begin=0, end=-1, show=False):
         """
@@ -1056,17 +1081,24 @@ class Polarimeter:
     # FOURIER SPECTRA ANALYSIS
     # ------------------------------------------------------------------------------------------------------------------
 
-    def Plot_FFT_EvenOdd(self, type: str, even: int, odd: int, all: int, begin=0, end=-1, show=True):
+    def Plot_FFT_EvenOdd(self, type: str, even: int, odd: int, all: int, begin=0, end=-1, nseg=np.inf, show=True,
+                         spike_check=False):
         """
         Plot of Fourier Spectra of Even Odd data\n
         Parameters:\n
         - **type** (``str``) of data *"DEM"* or *"PWR"*
         - **even**, **odd**, **all** (``int``): used for the transparency of the datas (*0*=transparent, *1*=visible)
         - **begin**, **end** (``int``): interval of dataset that has to be considered
+        - **nseg**: number of elements on which the periodogram is calculated. Then the average of all periodograms is
+         computed to produce the spectrogram. Changing this parameter allow to reach lower frequencies in the FFT plot:
+         in particular, the limInf of the x-axis is fs/nseg.
         - **show** (bool):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
+        - **spike_check** (bool):\n
+            *True* -> look for spikes in the fft\n
+            *False* -> do nothing
         """
         # Note: The Sampling Frequency for the Even-Odd Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ
@@ -1081,23 +1113,62 @@ class Polarimeter:
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
 
+                # Spike check
+                msg = ""
+                first_msg = True
+                threshold = 2
+
                 if i == 1:
                     axs[i, n].sharey(axs[1, 0])
 
                 if all != 0:
-                    f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs, scaling=scaling)
+                    f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs,
+                                              nperseg=min(len(self.data[type][exit][begin:end]), nseg),
+                                              scaling=scaling)
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
                                    alpha=all, label="All samples")
 
+                    # Spike check
+                    if spike_check and i == 0:
+                        if len(f_strip.find_spike(f, threshold=threshold)) != 0:
+                            msg += f"Spikes in FFT type: {type}, exit: {exit} - all"
+                            first_msg = False
+
                 if even != 0:
-                    f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs / 2, scaling=scaling)
+                    f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs / 2,
+                                              nperseg=min(len(self.data[type][exit][begin:end - 1:2]), nseg),
+                                              scaling=scaling)
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
                                    alpha=even, label=f"Even samples")
 
+                    # Spike check
+                    if spike_check and i == 0:
+                        if len(f_strip.find_spike(f, threshold=threshold)) != 0:
+                            if first_msg:
+                                msg += f"Spikes in FFT type:{type}, exit:{exit} - "
+                                first_msg = False
+                            else:
+                                msg += ", "
+                            msg += f"even"
+
                 if odd != 0:
-                    f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs / 2, scaling=scaling)
+                    f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs / 2,
+                                              nperseg=min(len(self.data[type][exit][begin + 1:end:2]), nseg),
+                                              scaling=scaling)
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
                                    alpha=odd, label=f"Odd samples")
+
+                    # Spike check
+                    if spike_check and i == 0:
+                        if len(f_strip.find_spike(f, threshold=threshold)) != 0:
+                            if first_msg:
+                                msg += f"Spikes in FFT type: {type}, exit: {exit} - "
+                                first_msg = False
+                            else:
+                                msg += ", "
+                            msg += f"odd"
+                if not first_msg:
+                    self.warnings["spike_warning"].append(msg + ".<br /><p></p>")
 
                 # Title
                 axs[i, n].set_title(f"FFT {type} {exit}")
@@ -1121,7 +1192,8 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_FFT_RMS_EO(self, type: str, window: int, even: int, odd: int, all: int, begin=0, end=-1, show=True):
+    def Plot_FFT_RMS_EO(self, type: str, window: int, even: int, odd: int, all: int, begin=0, end=-1, nseg=np.inf,
+                        show=True):
         """
         Plot of Fourier Spectra of the RMS of Even Odd data\n
         Parameters:\n
@@ -1129,6 +1201,9 @@ class Polarimeter:
         - **window** (``int``): number of elements on which the RMS is calculated
         - **even**, **odd**, **all** (``int``): used for the transparency of the datas (0=transparent, 1=visible)
         - **begin**, **end** (``int``): interval of dataset that has to be considered
+        - **nseg**: number of elements on which the periodogram is calculated. Then the average of all periodograms is
+         computed to produce the spectrogram. Changing this parameter allow to reach lower frequencies in the FFT plot:
+         in particular, the limInf of the x-axis is fs/nseg.
         - **show** (bool):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
@@ -1152,19 +1227,19 @@ class Polarimeter:
 
                 if all != 0:
                     rms = RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
-                    f, s = scipy.signal.welch(rms, fs=fs, scaling=scaling)
+                    f, s = scipy.signal.welch(rms, fs=fs, nperseg=min(len(rms), nseg), scaling=scaling)
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
                                    alpha=all, label="All samples")
 
                 if even != 0:
                     rms = RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
-                    f, s = scipy.signal.welch(rms, fs=fs / 2, scaling=scaling)
+                    f, s = scipy.signal.welch(rms, fs=fs / 2, nperseg=min(len(rms), nseg), scaling=scaling)
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
                                    alpha=even, label=f"Even samples")
 
                 if odd != 0:
                     rms = RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
-                    f, s = scipy.signal.welch(rms, fs=fs / 2, scaling=scaling)
+                    f, s = scipy.signal.welch(rms, fs=fs / 2, nperseg=min(len(rms), nseg), scaling=scaling)
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
                                    alpha=odd, label=f"Odd samples")
 
@@ -1190,16 +1265,22 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_FFT_SciData(self, type: str, begin=0, end=-1, show=True):
+    def Plot_FFT_SciData(self, type: str, begin=0, end=-1, nseg=np.inf, show=True, spike_check=False):
         """
         Plot of Fourier Spectra of Scientific data\n
         Parameters:\n
         - **type** (``str``) of data *"DEM"* or *"PWR"*
         - **begin**, **end** (``int``): interval of dataset that has to be considered
+        - **nseg**: number of elements on which the periodogram is calculated. Then the average of all periodograms is
+         computed to produce the spectrogram. Changing this parameter allow to reach lower frequencies in the FFT plot:
+         in particular, the limInf of the x-axis is fs/nseg.
         - **show** (bool):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
+        - **spike_check** (bool):\n
+            *True* -> look for spikes in the fft\n
+            *False* -> do nothing
         """
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ / 2
@@ -1218,7 +1299,16 @@ class Polarimeter:
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'FFT Scientific data {data_name} - Date: {begin_date}', fontsize=14)
 
+        # Spike check
+        msg = ""
+        threshold = 2
+        first_msg = True
+
         for i in range(2):
+
+            if first_msg == False and i == 1:
+                self.warnings["spike_warning"].append(msg + ".<br /><p></p>")
+
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 if i == 1:
@@ -1226,9 +1316,21 @@ class Polarimeter:
 
                 sci_data = self.Demodulation(type=type, exit=exit)
 
-                f, s = scipy.signal.welch(sci_data["sci_data"][exit][begin:end], fs=fs, scaling=scaling)
+                f, s = scipy.signal.welch(sci_data["sci_data"][exit][begin:end], fs=fs,
+                                          nperseg=min(len(sci_data["sci_data"][exit][begin:end]), nseg),
+                                          scaling=scaling)
                 axs[i, n].plot(f[f < 25.], s[f < 25.], linewidth=0.2, marker=".",
                                color="mediumpurple", label=f"{data_name}")
+
+                # Spike check
+                if spike_check and i == 0:
+                    if len(f_strip.find_spike(f, threshold=threshold)) != 0:
+                        if first_msg:
+                            msg += f"Spikes in FFT {data_name} exit: "
+                            first_msg = False
+                        else:
+                            msg += ","
+                        msg += f" {exit}"
 
                 # Title
                 axs[i, n].set_title(f"FFT {data_name} {exit}")
@@ -1251,13 +1353,16 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Plot_FFT_RMS_SciData(self, type: str, window: int, begin=0, end=-1, show=True):
+    def Plot_FFT_RMS_SciData(self, type: str, window: int, begin=0, end=-1, nseg=np.inf, show=True):
         """
         Plot of Fourier Spectra of the RMS of Scientific data\n
         Parameters:\n
         - **type** (``str``) of data *"DEM"* or *"PWR"*
         - **window** (``int``): number of elements on which the RMS is calculated
         - **begin**, **end** (``int``): interval of dataset that has to be considered
+        - **nseg**: number of elements on which the periodogram is calculated. Then the average of all periodograms is
+         computed to produce the spectrogram. Changing this parameter allow to reach lower frequencies in the FFT plot:
+         in particular, the limInf of the x-axis is fs/nseg.
         - **show** (bool):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
@@ -1288,9 +1393,8 @@ class Polarimeter:
 
                 sci_data = self.Demodulation(type=type, exit=exit)
 
-                f, s = scipy.signal.welch(
-                    RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end),
-                    fs=fs, scaling=scaling)
+                rms = RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end)
+                f, s = scipy.signal.welch(rms, fs=fs, nperseg=min(len(rms), nseg), scaling=scaling)
 
                 axs[i, n].plot(f[f < 25.], s[f < 25.], linewidth=0.2, marker=".",
                                color="mediumvioletred", label=f"RMS {data_name}")
@@ -1545,44 +1649,47 @@ class Polarimeter:
                             datefmt="[%X]", handlers=[RichHandler()])  # <3
 
         logging.info("Looking for jumps...\n")
-        jumps = fz.find_jump(self.times.value)
+        jumps = fz.find_jump(v=self.times, exp_med=0.01, tolerance=0.1)
         logging.info("Done.\n")
 
-        if len(jumps["position"]) == 0:
+        if jumps["n"] == 0:
             t_warn = "No Time Jumps found in the dataset."
             logging.info(t_warn)
             self.warnings["time_warning"].append(t_warn + "<p></p>")
         else:
-            t_warn = f"In the dataset there are {len(jumps['position'])} Time Jumps.\n\n"
-            logging.info(t_warn)
-            self.warnings["time_warning"].append(t_warn)
+            t_warn = f"In the dataset there are {jumps['n']} Time Jumps."
+            logging.info(t_warn + "\n\n")
 
-            for anomalies in jumps["msg"]:
-                self.warnings["time_warning"].append(anomalies)
-
+            # .txt file with all time jumps.
             logging.info("I'm going to produce the caption for the file.")
-            cap = fz.tab_cap_time(file_name=start_datetime)
-            self.warnings["time_warning"].append("<br>**" + cap + "**<br>")
-            logging.info("Done. I also wrote it in the report.\n")
-            new_file_name = f"JT_{start_datetime}.txt"
+            _ = fz.tab_cap_time(pol_name=self.name, file_name=start_datetime)
+            new_file_name = f"JT_{self.name}_{start_datetime}.txt"
 
+            html_tab_content = "<p></p><style>table, th, td {border:1px solid black;}</style><body>" \
+                               f"<h2>Time Jumps Pol {self.name}</h2>" \
+                               "<p></p><table style='width:100%' align=center>" \
+                               "<tr><th># Jump</th><th>Jump value [JHD]</th><th>Jump value [s]</th>" \
+                               "<th>Gregorian Date</th><th>Julian Date [JHD]</th>" \
+                               "</tr>"
             i = 1
-            for pos, j_bef, j_aft in zip(jumps["position"], jumps["jump_before"], jumps["jump_after"]):
-                jump_instant = self.times.value[pos]
+            for idx, j_value, j_val_s in zip(jumps["idx"], jumps["value"], jumps["s_value"]):
+                jump_instant = self.times.value[idx]
                 greg_jump_instant = Time(jump_instant, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
-                tab_content = f"{self.name}\t\t\t{i}\t\t{j_bef}\t\t{j_aft}\t{greg_jump_instant}\t\t{jump_instant}\n"
-                html_tab_content = f"<span style='margin: 0 70px'>{self.name}<span style='margin: 0 150px'>" \
-                                   f"{i}<span style='margin: 0 85px'>" \
-                                   f"{format(j_bef, '.4E')}<span style='margin: 0 45px'>" \
-                                   f"{j_aft}<span style='margin: 0 35px'>" \
-                                   f"{greg_jump_instant}<span style='margin: 0 40px'>{jump_instant}<br>"
-                self.warnings["time_warning"].append(html_tab_content)
+                html_tab_content += f"<td align=center>{i}</td>" \
+                                    f"<td align=center>{j_value}</td>" \
+                                    f"<td align=center>{j_val_s}</td>" \
+                                    f"<td align=center>{greg_jump_instant}</td>" \
+                                    f"<td align=center>{jump_instant}</td>" \
+                                    f"</tr>"
 
+                tab_content = f"{i}\t\t{j_value}\t\t{j_val_s}\t{greg_jump_instant}\t\t{jump_instant}\n"
                 with open(new_file_name, "at") as new_file:
                     new_file.write(tab_content)
                 i += 1
 
+            html_tab_content += "</table></body><p></p><p>"
+            self.warnings["time_warning"].append(html_tab_content)
         return jumps
 
     def Inversion_EO_Time(self, jumps_pos: list, threshold=3.):
@@ -1669,17 +1776,17 @@ class Polarimeter:
                         cap = True
 
                     for idx, item in enumerate(spike_idxs):
-                        rows += f"<td align=center>{idx+1}</td>" \
+                        rows += f"<td align=center>{idx + 1}</td>" \
                                 f"<td align=center>{type}</td>" \
                                 f"<td align=center>{exit}</td>" \
                                 f"<td align=center>{self.times[item]}</td>" \
-                                f"<td align=center>{self.data[type][exit][item]-np.median(self.data[type][exit])}</td>"\
+                                f"<td align=center>{self.data[type][exit][item] - np.median(self.data[type][exit])}</td>" \
                                 f"</tr>"
                         logging.info(f"Spike n.{idx} in {exit} - {type}.\n")
         if cap:
             spike_tab += rows + "</table></body><p></p><p></p><p></p>"
         else:
-            spike_tab = "No spikes detected in DEM and PWR Output."
+            spike_tab = "No spikes detected in DEM and PWR Output.<br /><p></p>"
 
         return spike_tab
 

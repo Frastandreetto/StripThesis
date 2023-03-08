@@ -29,9 +29,9 @@
 <p></p>
 3.2 <A HREF="#Scientific">[Scientific Data Analysis]</A><br/>
 <p></p>
-3.2.1 <A HREF="#FFT_DEMODULATED">[FFT Scientific Data]</A><br/>
+3.2.1 <A HREF="#FFT_DEMODULATED">[FFT Scientific Data - DEMODULATED]</A><br/>
 <p></p>
-3.2.1 <A HREF="#FFT_TOT_POWER">[FFT Scientific Data]</A><br/>
+3.2.1 <A HREF="#FFT_TOT_POWER">[FFT Scientific Data - TOTAL POWER]</A><br/>
 <p></p>
 3.3 <A HREF="#CorrMatr">[Correlation Analysis]</A>
 <p></p>

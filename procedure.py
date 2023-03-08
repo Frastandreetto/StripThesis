@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-# This file contains the 10th version (0.0.10) of the new LSPE-Strip pipeline.
+# This file contains the 11th version (0.0.11) of the new LSPE-Strip pipeline.
 # It produces a complete scan of a polarimeter.
 # December 7th 2022, Brescia (Italy)
 
@@ -33,7 +33,7 @@ def main():
                         datefmt="[%X]", handlers=[RichHandler()])  # <3
 
     if len(sys.argv) < 5:
-        # Note: When I run the code with "python procedure.py" I already give an argument:
+        # Note: When you run the code with "python procedure.py" you already give an argument:
         # procedure.py is sys.argv[0]
         logging.error("Wrong number of parameters.\n"
                       "Usage: python procedure.py path_datafile start_datetime end_datetime name_pol.\n"
@@ -74,63 +74,76 @@ def main():
             p.warnings["time_warning"].append(msg + "<br />")
 
         else:
+
             logging.info("Looking for holes in the dataset.\n")
             p.STRIP_SAMPLING_FREQUENCY_HZ(warning=False)
             if p.STRIP_SAMPLING_FREQ != 100:
-                holes = fz.find_holes(p.times.value)
-                if len(holes) != 0:
-                    msg = "Data-sampling's reduction found.\n"
-                    logging.warning(msg)
-                    p.warnings["time_warning"].append(msg)
-                    p.warnings["eo_warning"].append(msg +
-                                                    "Possible Even-Odd inversions at the following date "
-                                                    "times:<br />"
-                                                    "Attention: the time after the hole in the x-axes of the "
-                                                    "plots"
-                                                    "doesn't have sense because of the timestamps "
-                                                    "normalization. <br />"
-                                                    "Fix it putting some zero-value fake-outputs in the hole. "
-                                                    "<br />")
-                    for h in holes:
-                        msg = f"{Time(h, format='mjd').to_datetime().strftime('%Y-%m-%d %H:%M:%S')}."
-                        p.warnings["eo_warning"].append(msg)
+                msg = f"Data-sampling's reduction found. Sampling Frequency: {p.STRIP_SAMPLING_FREQ}."
+                logging.warning(msg + "\n")
+                p.warnings["time_warning"].append(msg + "<br />")
+                p.warnings["eo_warning"].append(msg +
+                                                "Possible Even-Odd inversions.<br />"
+                                                "Attention: the time on the x-axes of the plots"
+                                                "doesn't have sense because of the timestamps normalization. <br />"
+                                                )
             else:
-                msg = "Data-sampling is good. No holes in scientific output found.\n"
-                logging.warning(msg)
+                msg = "Data-sampling is good: the sampling frequency is 100Hz, " \
+                      "hence no holes in scientific output expected."
+                logging.warning(msg + "\n")
                 p.warnings["time_warning"].append(msg + "<br /><p></p>")
 
-            # Add here the holes re-run procedure... 2023/02/07
-
-            logging.info("\nDone.\nLooking for jumps in the Timestamps.\n")
+            logging.info("\nLooking for jumps in the Timestamps.\n")
             jumps = p.Write_Jump(start_datetime=start_datetime)
 
-            logging.info("\nDone.\nLooking for Even-Odd inversion due to jumps in the Timestamps.\n")
-            p.Inversion_EO_Time(jumps_pos=jumps["position"])
+            if p.STRIP_SAMPLING_FREQ != 100:
+                logging.info("\nDone.\nLooking for Even-Odd inversion due to jumps in the Timestamps.\n")
+                p.Inversion_EO_Time(jumps_pos=jumps["idx"])
 
             # HOUSE-KEEPING PARAMETERS
             logging.info("\n Done. Loading HouseKeeping Parameters now.")
             p.Load_HouseKeeping()
+
             good = True
             hk_par = []
             hk = ""
+            first_wrong_med = True
             for item in p.hk_list.keys():
                 for hk_name in p.hk_list[item]:
-                    hk_holes = fz.find_holes(p.hk_t[item][hk_name].value)
-                    if len(hk_holes) != 0:
+                    # Setting the expected median of dt between two consecutive timestamps
+                    exp_med = -1.4
+                    if item == "O":
+                        exp_med = -60
+
+                    hk_holes = fz.find_jump(v=p.hk_t[item][hk_name], exp_med=exp_med, tolerance=0.1)
+
+                    # Check on the median
+                    if not hk_holes["median_ok"]:
+                        if first_wrong_med:
+                            msg = f"The Expected mean for Thermal sensors sampling is wrong for the sensors:"
+                            p.warnings["time_warning"].append(msg + "<br />")
+                            first_wrong_med = False
+
+                        p.warnings["time_warning"].append(f"{hk_name}, ")
+
+                    # Check on sampling holes
+                    if hk_holes["n"] != 0:
                         hk_par.append(f"{hk_name}")
                         msg = f"House-Keeping sampling's reduction found for parameter: {hk_name}.\n"
                         logging.warning(msg)
                         good = False
+
                 if good:
                     msg = f"House-Keeping parameter's {item} sampling is good.\n"
                     logging.warning(msg)
                     p.warnings["time_warning"].append(msg + "<br /><p></p>")
 
             if not good:
+                n_hk = 0
                 for item in hk_par:
                     hk += item + ", "
+                    n_hk += 1
                 delta_t = (p.hk_t['V'][hk_par[0]][:-1] - p.hk_t['V'][hk_par[0]][1:]).sec
-                hk_msg = "House-Keeping Sampling is not good.<br />" \
+                hk_msg = f"House-Keeping Sampling is not good. House-keeping parameter affected: {n_hk}/28.<br />" \
                          "<p></p>" \
                          "<style>" \
                          "table, th, td {border:1px solid black;}" \
@@ -163,22 +176,43 @@ def main():
             logging.info("\n Done. Loading Thermal sensors now.")
             p.Load_Thermal_Sensors()
             good = True
+            first_hole = True
+            first_wrong_med = True
             for status in range(2):
                 for sensor_name in p.thermal_list[f"{status}"]:
-                    th_holes = fz.find_holes(p.thermal_sensors["thermal_times"][f"{status}"].value)
-                    if len(th_holes) != 0:
-                        msg = f"Thermal sensors sampling's reduction found for sensor: {sensor_name}.\n"
-                        logging.warning(msg)
-                        p.warnings["time_warning"].append(msg + "<br />")
+                    th_holes = fz.find_jump(v=p.thermal_sensors["thermal_times"][f"{status}"],
+                                            exp_med=10.,
+                                            tolerance=0.1)
+                    # Check on the median
+                    if not th_holes["median_ok"]:
+                        if first_wrong_med:
+                            msg = f"The Expected mean for Thermal sensors sampling is wrong for the sensors:"
+                            p.warnings["time_warning"].append(msg + "<br />")
+                            first_wrong_med = False
+
+                        p.warnings["time_warning"].append(f"{sensor_name}, ")
+
+                    # Check on sampling holes
+                    if th_holes["n"] != 0:
+                        if first_hole:
+                            msg = f"Thermal sensors sampling's reduction found for sensors:"
+                            logging.warning(msg)
+                            p.warnings["time_warning"].append(msg + "<br />")
+                            first_hole = False
+
+                        logging.warning(f"\n{sensor_name}.\n")
+                        p.warnings["time_warning"].append(f"{sensor_name}, ")
                         good = False
+
             if good:
                 msg = f"Thermal sensors sampling is good.\n"
                 logging.warning(msg)
-                p.warnings["time_warning"].append(msg + "<br />")
+                p.warnings["time_warning"].append("<br />" + msg + "<br />")
 
             logging.info("Done.\nPlotting thermal sensors dataset.\n")
             p.Norm_Thermal()
-            p.Plot_Thermal()
+            p.Plot_Thermal(status=0)
+            p.Plot_Thermal(status=1)
             th_results = p.Analyse_Thermal()
             logging.info("\n Done. Producing Thermal Table now.")
             th_table = p.Thermal_table(th_results)
@@ -236,15 +270,19 @@ def main():
             i = 1
             for type in p.data.keys():
                 logging.info(f"Going to Plot {type} Even-Odd FFT.")
-                p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=0, begin=0, end=-1, show=False)
-                p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=1, begin=0, end=-1, show=False)
-                p.Plot_FFT_EvenOdd(type=type, even=0, odd=0, all=1, begin=0, end=-1, show=False)
+                p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=0, begin=0, end=-1, nseg=10 ** 4, show=False)
+                p.Plot_FFT_EvenOdd(type=type, even=0, odd=0, all=1, begin=0, end=-1, nseg=10 ** 4, show=False)
+                p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=1, begin=0, end=-1, nseg=10 ** 4, show=False,
+                                   spike_check=True)
                 logging.info(f"FFT {type}: Done.")
 
                 logging.info(f"Going to Plot {type} Even-Odd FFT of the RMS.")
-                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=0, begin=0, end=-1, show=False)
-                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=1, begin=0, end=-1, show=False)
-                p.Plot_FFT_RMS_EO(type=type, window=100, even=0, odd=0, all=1, begin=0, end=-1, show=False)
+                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=0, begin=0, end=-1, nseg=10 ** 4,
+                                  show=False)
+                p.Plot_FFT_RMS_EO(type=type, window=100, even=0, odd=0, all=1, begin=0, end=-1, nseg=10 ** 4,
+                                  show=False)
+                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=1, begin=0, end=-1, nseg=10 ** 4,
+                                  show=False)
                 logging.info(f"FFT RMS {type}: Done.")
             i += 1
 
@@ -261,18 +299,19 @@ def main():
                     logging.info(f"{type}: {i}/6) RMS plot done.")
 
                     i += 1
+
             i = 1
             for type in p.data.keys():
                 logging.info(f"Going to Plot Scientific Data {type} FFT and FFT of  RMS.")
-                p.Plot_FFT_SciData(type=type, begin=0, end=-1, show=False)
+                p.Plot_FFT_SciData(type=type, begin=0, end=-1, nseg=10 ** 4, show=False, spike_check=True)
                 logging.info(f"{type}: {i}/2) Data FFT plot done.")
 
-                p.Plot_FFT_RMS_SciData(type=type, window=100, begin=0, end=-1, show=False)
+                p.Plot_FFT_RMS_SciData(type=type, window=100, begin=0, end=-1, nseg=10 ** 4, show=False)
                 logging.info(f"{type}: {i}/2) RMS FFT plot done.")
 
             logging.info(
                 "Scientific Data Analysis is now completed. Correlation Matrices will be now produced.\n")
-
+            
             # CORRELATION MATRICES
             t = 0.4
             for s in [True, False]:
@@ -298,72 +337,72 @@ def main():
 
             logging.warning("\nAnalysis completed.\nPreparing warnings for the report now.")
 
-        # WARNINGS
-        t_warner = ""
-        for bros in p.warnings["time_warning"]:
-            t_warner += bros
+            # WARNINGS
+            t_warner = ""
+            for bros in p.warnings["time_warning"]:
+                t_warner += bros
 
-        t = 0.4
-        if len(p.warnings["corr_warning"]) == 0:
-            corr_warner = "Nothing to notify. All correlations seem ok."
-        else:
-            corr_warner = ""
-            for bros in p.warnings["corr_warning"]:
-                corr_warner += bros + "<br />"
-        corr_warner = f"Correlation Warning Threshold set at {t}.<br />" + corr_warner
+            t = 0.4
+            if len(p.warnings["corr_warning"]) == 0:
+                corr_warner = "Nothing to notify. All correlations seem ok."
+            else:
+                corr_warner = ""
+                for bros in p.warnings["corr_warning"]:
+                    corr_warner += bros + "<br />"
+            corr_warner = f"Correlation Warning Threshold set at {t}.<br />" + corr_warner
 
-        eo_warner = ""
-        if len(p.warnings["eo_warning"]) == 0:
-            eo_warner = "Nothing to point out.\n"
-        else:
-            for bros in p.warnings["eo_warning"]:
-                eo_warner += bros + "<br />"
+            eo_warner = ""
+            if len(p.warnings["eo_warning"]) == 0:
+                eo_warner = "Nothing to point out.\n"
+            else:
+                for bros in p.warnings["eo_warning"]:
+                    eo_warner += bros + "<br />"
 
-        spike_warner = ""
-        for bros in p.warnings["spike_warning"]:
-            spike_warner += bros
+            spike_warner = ""
+            for bros in p.warnings["spike_warning"]:
+                spike_warner += bros
 
-        # t_warner = ""
-        # corr_warner = ""
-        # eo_warner = ""
-        # spike_warner = ""
+            # t_warner = ""
+            # corr_warner = ""
+            # eo_warner = ""
+            # spike_warner = ""
 
-        # REPORT
+            # REPORT
 
-        # output_dir: Where I put the reports
-        date_dir = fz.dir_format(f"{p.gdate[0]}__{p.gdate[1]}")
-        output_dir = f"../plot/{date_dir}/reports"
-        Path(output_dir).mkdir(parents=True, exist_ok=True)
+            # output_dir: Where I put the reports
+            date_dir = fz.dir_format(f"{p.gdate[0]}__{p.gdate[1]}")
+            output_dir = f"../plot/{date_dir}/reports"
+            Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-        # plot_dir: Where I find the plots to put in the reports
-        plot_dir = f"../"
+            # plot_dir: Where I find the plots to put in the reports
+            plot_dir = f"../"
 
-        # Reports data
-        logging.info("\nDone. Producing report!")
-        data = {
-            "name_polarimeter": name_pol,
-            "analysis_date": str(f"{start_datetime} - {end_datetime}"),
-            "output_dir": output_dir,
-            "plot_dir": plot_dir,
-            "command_line": " ".join(sys.argv),
-            "th_html_tab": th_table,
-            "hk_html_tab": hk_table,
-            "t_warnings": t_warner,
-            "corr_warnings": corr_warner,
-            "eo_warnings": eo_warner,
-            "spike_warnings": spike_warner,
+            # Reports data
+            logging.info("\nDone. Producing report!")
+            data = {
+                "name_polarimeter": name_pol,
+                "analysis_date": str(f"{start_datetime} - {end_datetime}"),
+                "output_dir": output_dir,
+                "plot_dir": plot_dir,
+                "command_line": " ".join(sys.argv),
+                "th_html_tab": th_table,
+                "hk_html_tab": hk_table,
+                "t_warnings": t_warner,
+                "corr_warnings": corr_warner,
+                "eo_warnings": eo_warner,
+                "spike_warnings": spike_warner,
 
-        }
+            }
 
-        # root: Where I find the file.txt with the information to build the report
-        root = "../striptease/"
-        templates_dir = Path(root)
-        env = Environment(loader=FileSystemLoader(templates_dir))
-        template = env.get_template('jinja_report.txt')
+            # root: Where I find the file.txt with the information to build the report
+            root = "../striptease/"
+            templates_dir = Path(root)
+            env = Environment(loader=FileSystemLoader(templates_dir))
+            template = env.get_template('jinja_report.txt')
 
-        filename = Path(f"{output_dir}/report_{name_pol}.html")
-        with open(filename, 'w') as outf:
-            outf.write(template.render(data))
+            filename = Path(f"{output_dir}/report_{name_pol}.html")
+            with open(filename, 'w') as outf:
+                outf.write(template.render(data))
 
 
 if __name__ == "__main__":

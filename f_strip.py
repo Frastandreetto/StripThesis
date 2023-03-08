@@ -15,16 +15,15 @@ from numba import njit
 from rich.logging import RichHandler
 
 
-def tab_cap_time(file_name: str) -> str:
+def tab_cap_time(pol_name: str, file_name: str) -> str:
     """
     Create a new file .txt and write the caption of a tabular\n
     Parameters:\n
     - **file_name** (``str``): Name of the file to create and in which insert the caption\n
     This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
-    new_file_name = f"JT_{file_name}.txt"
-    cap = "Name_Polarimeter |Jump_Index |\tDelta_t before |Delta_t after |\tGregorian Date" \
-          "<span style='margin: 0 40px'>|\tJHD\t\t\n"
+    new_file_name = f"JT_{pol_name}_{file_name}.txt"
+    cap = "# Jump\t|\tDelta_t [JHD]\t |\tDelta_t [s]\t\t|\tGregorian Date|\t\tJHD Date\t\t\n"
 
     file = open(new_file_name, "w")
     file.write(cap)
@@ -206,60 +205,43 @@ def replace_spike(v, N=10, threshold=8.5, gauss=True):
         # s = find_spike(v=v, threshold=threshold)
 
 
-def find_holes(v) -> []:
+def find_jump(v, exp_med: float, tolerance: float) -> []:
     """
-        Find the 'holes' in a given array: the samples should be consequential with a fixed growth rate.
-        If that decrease the sample is collected and the hole is found.
+        Find the 'jumps' in a given Time astropy object: the samples should be consequential with a fixed growth rate.
+        Hence, their consecutive differences should have an expected median within a certain tolerance.
         Parameters:\n
-        - **v** is an array-like object\n
+        - **v** is a Time object from astropy => i.e. Polarimeter.times\n
+        - **exp_med** (``float``) is the expected median (in seconds) of the TimeDelta
+        between two consecutive values of v
+        - **tolerance** (``float``) is the threshold # of seconds over which a TimeDelta is considered as an error\n
+        Return:\n
+        - **points** a dictionary containing three keys:
+            - **n** (``int``) is the number of jumps found
+            - **idx** (``int``) index of the jump in the array
+            - **value** (``float``) is the value of the jump in JHD
     """
-    hole = []
-    for idx, t in enumerate(v):
-        if 0 < idx < (len(v) - 1):
-            if round(t - v[idx - 1], 4) > round(v[idx + 1] - t, 4):
-                hole.append(t)
-    return hole
+    dt = v[1:] - v[:-1]  # type: TimeDelta
+    exp_med = exp_med / 86400  # Conversion in days
+    med_dt = np.median(dt.value)  # If ".value" is not used the time needed is 1.40min vs 340ms... Same results.
+    median_ok = True
+    if np.abs(np.abs(med_dt) - np.abs(exp_med)) > tolerance / 86400:  # Over the tolerance
+        msg = f"Median is out of range: {med_dt}, expected {exp_med}."
+        logging.warning(msg)
+        median_ok = False
 
+    err_t = dt.value - med_dt
 
-def find_jump(v, threshold=420) -> {}:  # v => Polarimeter.times.value
-    """
-    Find the 'jumps' in the timestamps of a given dataset.
-    Returns the positions of those time-spikes and the time-delay with the previous and the following timestamp.\n
-    Parameters:\n
-    - **v** is an array-like object that contains the time data. It should be: Polarimeter.times.value\n
-    - **threshold** (``int``) is a value used to discern what is a jump and what is not\n
-    """
-    position = []
-    jump_before = []
-    jump_after = []
-    msg = []
-    jumps = {"position": position, "jump_before": jump_before, "jump_after": jump_after, "msg": msg}
-
-    logging.basicConfig(level="INFO", format='%(message)s',
-                        datefmt="[%X]", handlers=[RichHandler()])  # <3
-    logging.info("Looking for time errors.")
-
-    l = len(v)
-    for idx, item in enumerate(v):
-        if 0 < idx < l - 1:
-            if np.abs(v[idx - 1] - item) > threshold * np.abs(item - v[idx + 1]):
-                jumps["position"].append(idx)
-
-                message = f"Time anomaly found in position: {idx}.\n"
-                logging.warning(message)
-                jumps["msg"].append(message + "<br>")
-
-                # This commented lines are to exclude from the analysis the first and the last element of v
-                # if idx > 0:
-                before = v[idx] - v[idx - 1]
-                jumps["jump_before"].append(round(before, 12))
-                # else:
-                # jumps["jump_before"].append(np.nan)
-                # if idx < len(v) - 1:
-                after = v[idx + 1] - v[idx]
-                jumps["jump_after"].append(round(after, 12))
-            # else:
-            # jumps["jump_after"].append(np.nan)
+    idx = []
+    value = []
+    s_value = []
+    n = 0
+    jumps = {"n": n, "idx": idx, "value": value, "s_value": s_value, "median_ok": median_ok}
+    for i, item in enumerate(err_t):
+        if np.abs(item) > tolerance / 86400:
+            jumps["n"] += 1
+            jumps["idx"].append(i)
+            jumps["value"].append(dt.value[i])
+            jumps["s_value"].append(dt.value[i]*86400)
     return jumps
 
 
