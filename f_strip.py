@@ -9,10 +9,12 @@ import logging
 import numpy as np
 import scipy.stats as scs
 import scipy.ndimage as scn
-from striptease import DataFile
-from pathlib import Path
+
+from astropy.time import TimeDelta
 from numba import njit
+from pathlib import Path
 from rich.logging import RichHandler
+from striptease import DataFile
 
 
 def tab_cap_time(pol_name: str, file_name: str) -> str:
@@ -102,44 +104,54 @@ def mob_mean(v, smooth_len: int):
     return m
 
 
-def find_spike(v, threshold=8.5) -> []:
+def find_spike(v, threshold=8.5, n_chunk=5) -> []:
     """
         Look up for 'spikes' in a given array.\n
-        Calculate the mean of the max and the min of the array
+        Calculate the median and the mad and uses those to discern spikes.
         Parameters:\n
         - **v** is an array-like object
         - **threshold** (int): value used to discern what a spike is
+        - **n_chunk** (int): n of blocks in which v is divided. On every block the median is computed to find spikes.
         """
-    med_v = scn.median(v)  # type:float
-    mad_v = scs.median_abs_deviation(v)
-
-    dif = diff_cons(v)
-    med_dif = scn.median(dif)
-    mad_dif = scs.median_abs_deviation(dif)
-
+    l = len(v)
+    n_chunk = n_chunk
+    len_chunk = l//n_chunk
     spike_idx = []
-    v_threshold = (threshold / 2.7) * mad_v
 
-    logging.basicConfig(level="INFO", format='%(message)s',
-                        datefmt="[%X]", handlers=[RichHandler()])  # <3
+    for n_rip in range(5):
+        _v_ = v[n_rip * len_chunk:(n_rip+1) * len_chunk - 1]
+        med_v = scn.median(_v_)  # type:float
+        mad_v = scs.median_abs_deviation(_v_)
 
-    for idx, item in enumerate(dif):
-        # spike up in differences
-        if item > med_dif + threshold * mad_dif:
-            if v[idx * 2] > med_v + v_threshold:
-                logging.info(f"found spike up: {idx}")
-                spike_idx.append(idx * 2)
-            if v[idx * 2 + 1] < med_v - v_threshold:
-                logging.info(f"found spike down: {idx}")
-                spike_idx.append(idx * 2 + 1)
-        # spike down in differences
-        if item < med_dif - threshold * mad_dif:
-            if v[idx * 2] < med_v - v_threshold:
-                logging.info(f"found spike down: {idx}")
-                spike_idx.append(idx * 2)
-            if v[idx * 2 + 1] > med_v + v_threshold:
-                logging.info(f"found spike up: {idx}")
-                spike_idx.append(idx * 2 + 1)
+        dif = diff_cons(_v_)
+        med_dif = scn.median(dif)
+        mad_dif = scs.median_abs_deviation(dif)
+
+        v_threshold = (threshold / 2.7) * mad_v
+
+        logging.basicConfig(level="WARNING", format='%(message)s',
+                            datefmt="[%X]", handlers=[RichHandler()])  # <3
+
+        for idx, item in enumerate(dif):
+            # spike up in differences
+            if item > med_dif + threshold * mad_dif:
+                if _v_[idx * 2] > med_v + v_threshold:
+                    # logging.info(f"found spike up: {idx}")
+                    spike_idx.append(n_rip * len_chunk + idx * 2)
+                if _v_[idx * 2 + 1] < med_v - v_threshold:
+                    # logging.info(f"found spike down: {idx}")
+                    spike_idx.append(n_rip * len_chunk + idx * 2 + 1)
+            # spike down in differences
+            if item < med_dif - threshold * mad_dif:
+                if _v_[idx * 2] < med_v - v_threshold:
+                    # logging.info(f"found spike down: {idx}")
+                    spike_idx.append(n_rip * len_chunk + idx * 2)
+                if _v_[idx * 2 + 1] > med_v + v_threshold:
+                    # logging.info(f"found spike up: {idx}")
+                    spike_idx.append(n_rip * len_chunk + idx * 2 + 1)
+
+    if len(spike_idx) > 0:
+        logging.warning("Found Spike!\n")
 
     return spike_idx
 
@@ -205,7 +217,7 @@ def replace_spike(v, N=10, threshold=8.5, gauss=True):
         # s = find_spike(v=v, threshold=threshold)
 
 
-def find_jump(v, exp_med: float, tolerance: float) -> []:
+def find_jump(v, exp_med: float, tolerance: float) -> {}:
     """
         Find the 'jumps' in a given Time astropy object: the samples should be consequential with a fixed growth rate.
         Hence, their consecutive differences should have an expected median within a certain tolerance.
@@ -215,16 +227,18 @@ def find_jump(v, exp_med: float, tolerance: float) -> []:
         between two consecutive values of v
         - **tolerance** (``float``) is the threshold # of seconds over which a TimeDelta is considered as an error\n
         Return:\n
-        - **points** a dictionary containing three keys:
+        - **jumps** a dictionary containing three keys:
             - **n** (``int``) is the number of jumps found
             - **idx** (``int``) index of the jump in the array
             - **value** (``float``) is the value of the jump in JHD
+            - **s_value** (``float``) is the value of the jump in seconds
+            - **median_ok** (``bool``) True if there is no jump in the vector, False otherwise
     """
     dt = v[1:] - v[:-1]  # type: TimeDelta
     exp_med = exp_med / 86400  # Conversion in days
     med_dt = np.median(dt.value)  # If ".value" is not used the time needed is 1.40min vs 340ms... Same results.
     median_ok = True
-    if np.abs(np.abs(med_dt) - np.abs(exp_med)) > tolerance / 86400:  # Over the tolerance
+    if np.abs(np.abs(med_dt/100) - np.abs(exp_med)) > tolerance / 86400:  # Over the tolerance
         msg = f"Median is out of range: {med_dt}, expected {exp_med}."
         logging.warning(msg)
         median_ok = False
