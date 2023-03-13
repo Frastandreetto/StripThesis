@@ -1082,7 +1082,7 @@ class Polarimeter:
     # ------------------------------------------------------------------------------------------------------------------
 
     def Plot_FFT_EvenOdd(self, type: str, even: int, odd: int, all: int, begin=0, end=-1, nseg=np.inf, show=True,
-                         spike_check=False):
+                         spike_check=False) -> []:
         """
         Plot of Fourier Spectra of Even Odd data\n
         Parameters:\n
@@ -1099,6 +1099,7 @@ class Polarimeter:
         - **spike_check** (bool):\n
             *True* -> look for spikes in the fft\n
             *False* -> do nothing
+        Return a list containing the spike info for the CSV file
         """
         # Note: The Sampling Frequency for the Even-Odd Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ
@@ -1109,6 +1110,8 @@ class Polarimeter:
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'FFT Output {eoa} {type} - Date: {begin_date}', fontsize=14)
 
+        csv_spike = [[""]]
+
         for i in range(2):
             n = 0  # type: int
             for exit in ["Q1", "Q2", "U1", "U2"]:
@@ -1116,7 +1119,7 @@ class Polarimeter:
                 # Spike check
                 msg = ""
                 first_msg = True
-                threshold = 2
+                threshold = 4.5
 
                 if i == 1:
                     axs[i, n].sharey(axs[1, 0])
@@ -1128,11 +1131,22 @@ class Polarimeter:
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
                                    alpha=all, label="All samples")
 
-                    # Spike check
+                    # ALL - Spike check
                     if spike_check and i == 0:
-                        if len(f_strip.find_spike(f, threshold=threshold)) != 0:
+                        spike_idx = f_strip.find_spike(f[f<25.], threshold=threshold)
+                        if len(spike_idx) != 0:
+
+                            # CSV file: write warning for spike
+                            csv_spike.append([f"FFT {type} {exit} SPIKES (ALL)"])
+                            csv_spike.append(["n Spike", "idx Spike", "Frequency value [Hz]"])
+
+                            # Report: write warning for spike
                             msg += f"Spikes in FFT type: {type}, exit: {exit} - all"
                             first_msg = False
+
+                            # CSV file: listing spikes in FFT ALL
+                            for index, item in enumerate(spike_idx):
+                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}"])
 
                 if even != 0:
                     f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs / 2,
@@ -1141,15 +1155,27 @@ class Polarimeter:
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
                                    alpha=even, label=f"Even samples")
 
-                    # Spike check
+                    # EVEN - Spike check
                     if spike_check and i == 0:
-                        if len(f_strip.find_spike(f, threshold=threshold)) != 0:
+                        spike_idx = f_strip.find_spike(f[f < 25.], threshold=threshold)
+
+                        if len(spike_idx) != 0:
+                            # CSV file: write warning for spike
+                            csv_spike.append([""])
+                            csv_spike.append([f"FFT {type} {exit} SPIKES (EVEN)"])
+                            csv_spike.append(["n Spike", "idx Spike", "Frequency value [Hz]"])
+
+                            # Report: write warning for spike
                             if first_msg:
                                 msg += f"Spikes in FFT type:{type}, exit:{exit} - "
                                 first_msg = False
                             else:
                                 msg += ", "
                             msg += f"even"
+
+                            # CSV file: listing spikes in FFT EVEN
+                            for index, item in enumerate(spike_idx):
+                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}"])
 
                 if odd != 0:
                     f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs / 2,
@@ -1158,15 +1184,28 @@ class Polarimeter:
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
                                    alpha=odd, label=f"Odd samples")
 
-                    # Spike check
+                    # ODD - Spike check
                     if spike_check and i == 0:
-                        if len(f_strip.find_spike(f, threshold=threshold)) != 0:
+                        spike_idx = f_strip.find_spike(f[f < 25.], threshold=threshold)
+
+                        if len(spike_idx) != 0:
+                            # CSV file: write warning for spike
+                            csv_spike.append([""])
+                            csv_spike.append([f"FFT {type} {exit} SPIKES (EVEN)"])
+                            csv_spike.append(["n Spike", "idx Spike", "Frequency value [Hz]"])
+
+                            # Report: write warning for spike
                             if first_msg:
                                 msg += f"Spikes in FFT type: {type}, exit: {exit} - "
                                 first_msg = False
                             else:
                                 msg += ", "
                             msg += f"odd"
+
+                            # CSV file: listing spikes in FFT ODD
+                            for index, item in enumerate(spike_idx):
+                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}"])
+
                 if not first_msg:
                     self.warnings["spike_warning"].append(msg + ".<br /><p></p>")
 
@@ -1176,7 +1215,7 @@ class Polarimeter:
                 axs[i, n].set_xlabel("Frequency [Hz]")
                 axs[i, n].set_xscale('log')
                 # Y-axis
-                axs[i, n].set_ylabel(f"FFT [{type}]")
+                axs[i, n].set_ylabel(f"PSD {type} [ADU**2/Hz]")
                 axs[i, n].set_yscale('log')
                 # Legend
                 axs[i, n].legend(prop={'size': 6}, loc=7)
@@ -1191,6 +1230,8 @@ class Polarimeter:
         if show:
             plt.show()
         plt.close(fig)
+
+        return csv_spike
 
     def Plot_FFT_RMS_EO(self, type: str, window: int, even: int, odd: int, all: int, begin=0, end=-1, nseg=np.inf,
                         show=True):
@@ -1249,7 +1290,7 @@ class Polarimeter:
                 axs[i, n].set_xlabel("Frequency [Hz]")
                 axs[i, n].set_xscale('log')
                 # Y-axis
-                axs[i, n].set_ylabel(f"FFT [{type}]")
+                axs[i, n].set_ylabel(f"PSD RMS {type} [ADU**2/Hz]")
                 axs[i, n].set_yscale('log')
                 # Legend
                 axs[i, n].legend(prop={'size': 6}, loc=7)
@@ -1281,6 +1322,7 @@ class Polarimeter:
         - **spike_check** (bool):\n
             *True* -> look for spikes in the fft\n
             *False* -> do nothing
+        Return a list containing the spike info for the CSV file
         """
         # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
         fs = self.STRIP_SAMPLING_FREQ / 2
@@ -1301,8 +1343,9 @@ class Polarimeter:
 
         # Spike check
         msg = ""
-        threshold = 2
+        threshold = 4.5
         first_msg = True
+        csv_spike = [[""]]
 
         for i in range(2):
 
@@ -1324,7 +1367,15 @@ class Polarimeter:
 
                 # Spike check
                 if spike_check and i == 0:
-                    if len(f_strip.find_spike(f, threshold=threshold)) != 0:
+                    spike_idx = f_strip.find_spike(f[f < 25.], threshold=threshold)
+
+                    if len(spike_idx) != 0:
+                        # CSV file: write warning for spike
+                        csv_spike.append([""])
+                        csv_spike.append([f"FFT {data_name} {exit} SPIKES"])
+                        csv_spike.append(["n Spike", "idx Spike", "Frequency value [Hz]"])
+
+                        # Report: write warning for spike
                         if first_msg:
                             msg += f"Spikes in FFT {data_name} exit: "
                             first_msg = False
@@ -1332,13 +1383,17 @@ class Polarimeter:
                             msg += ","
                         msg += f" {exit}"
 
+                        # CSV file: listing spikes in FFT
+                        for index, item in enumerate(spike_idx):
+                            csv_spike.append([f"{index}", f"{item}", f"{f[item]}"])
+
                 # Title
                 axs[i, n].set_title(f"FFT {data_name} {exit}")
                 # X-axis
                 axs[i, n].set_xlabel("Frequency [Hz]")
                 axs[i, n].set_xscale('log')
                 # Y-axis
-                axs[i, n].set_ylabel(f"FFT [{data_name}]")
+                axs[i, n].set_ylabel(f"PSD {data_name} [ADU**2/Hz]")
                 axs[i, n].set_yscale('log')
                 # Legend
                 axs[i, n].legend(prop={'size': 6}, loc=7)
@@ -1352,6 +1407,8 @@ class Polarimeter:
         if show:
             plt.show()
         plt.close(fig)
+
+        return csv_spike
 
     def Plot_FFT_RMS_SciData(self, type: str, window: int, begin=0, end=-1, nseg=np.inf, show=True):
         """
@@ -1405,7 +1462,7 @@ class Polarimeter:
                 axs[i, n].set_xlabel("Frequency [Hz]")
                 axs[i, n].set_xscale('log')
                 # Y-axis
-                axs[i, n].set_ylabel(f"FFT RMS [{data_name}]")
+                axs[i, n].set_ylabel(f"PSD RMS {data_name} [ADU**2/Hz]")
                 axs[i, n].set_yscale('log')
                 # Legend
                 axs[i, n].legend(prop={'size': 6}, loc=7)
@@ -1421,7 +1478,7 @@ class Polarimeter:
         plt.close(fig)
 
     def Plot_Correlation_Mat(self, type: str, begin=0, end=-1, scientific=True,
-                             even=False, odd=False, show=False, warn_threshold=0.4):
+                             even=False, odd=False, show=False, warn_threshold=0.4) -> []:
         """
        Plot the 4x4 Correlation Matrix of the outputs of the four channel Q1, Q2, U1 and U2.\n
        Choose between of the Output or the Scientific Data.\n
@@ -1476,8 +1533,14 @@ class Polarimeter:
         corr_matrix = sci_data.corr()
 
         keys = list(corr_matrix.keys())
+
+        # Report
         rows = ""
         need_cap = False
+
+        # CSV file
+        csv_matrix = [""]
+
         for i in corr_matrix.keys():
             """
             Put at nan the values on the diagonal of the matrix (self correlations)
@@ -1490,6 +1553,11 @@ class Polarimeter:
             for j in keys:
                 logging.debug(f"Correlation {i} with {j}.")
                 if np.abs(corr_matrix[i][j]) > warn_threshold:
+
+                    # CSV file: adding high correlation value
+                    csv_matrix.append([f"{data_name}", f"{i}-{j}", f"{corr_matrix[i][j]}"])
+
+                    # Report: adding high correlation value
                     msg = f"High correlation ({round(corr_matrix[i][j], 6)}) " \
                           f"found in {data_name} between channel {i} and {j}."
                     logging.warning(msg)
@@ -1528,8 +1596,10 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
+        return csv_matrix
+
     def Plot_Correlation_Mat_RMS(self, type: str, begin=0, end=-1, scientific=True,
-                                 even=False, odd=False, show=False, warn_threshold=0.4):
+                                 even=False, odd=False, show=False, warn_threshold=0.4) -> []:
         """
        Plot the 4x4 Correlation Matrix of the RMS of the outputs of the four channel Q1, Q2, U1 and U2.\n
        Choose between of the Output or the Scientific Data.\n
@@ -1585,8 +1655,14 @@ class Polarimeter:
         corr_matrix = sci_data.corr()
 
         keys = list(corr_matrix.keys())
+
+        # Report
         rows = ""
         need_cap = False
+
+        # CSV file
+        csv_matrix = [""]
+
         for i in corr_matrix.keys():
             """
             Put at nan the values on the diagonal of the matrix (self correlations)
@@ -1599,6 +1675,11 @@ class Polarimeter:
             for j in keys:
                 logging.debug(f"Correlation {i} with {j}.")
                 if np.abs(corr_matrix[i][j]) > warn_threshold:
+
+                    # CSV file: adding high correlation value
+                    csv_matrix.append([f"{data_name}", f"{i}-{j}", f"{corr_matrix[i][j]}"])
+
+                    # Report: adding high correlation value
                     msg = f"High correlation ({round(corr_matrix[i][j], 6)}) " \
                           f"found in {data_name} between channel {i} and {j}."
                     logging.warning(msg)
@@ -1636,6 +1717,8 @@ class Polarimeter:
         if show:
             plt.show()
         plt.close(fig)
+
+        return csv_matrix
 
     def Write_Jump(self, start_datetime: str) -> {}:
         """
@@ -1790,6 +1873,39 @@ class Polarimeter:
             spike_tab = "No spikes detected in DEM and PWR Output.<br /><p></p>"
 
         return spike_tab
+
+    def spike_CSV(self) -> []:
+        """
+            Look up for 'spikes' in the DEM and PWR output of the Polarimeter.\n
+            Create list of str to be written in a CSV file in which the spikes found are listed.
+        """
+        cap = False
+        spike_list = []
+        rows = [[""]]
+        for type in self.data.keys():
+            for exit in self.data[type].keys():
+
+                spike_idxs = f_strip.find_spike(self.data[type][exit])
+                if len(spike_idxs) != 0:
+                    if not cap:
+                        spike_list = [
+                            [""],
+                            ["Spike in dataset"],
+                            [""],
+                            ["Spike Number", "Data Type", "Exit", "Spike Time [JHD]", "Spike Value - Median [ADU]"]
+                        ]
+                        cap = True
+
+                    for idx, item in enumerate(spike_idxs):
+                        rows.append([f"{idx + 1}", f"{type}", f"{exit}", f"{self.times[item]}",
+                                     f"{self.data[type][exit][item] - np.median(self.data[type][exit])}",
+                                     f""])
+        if cap:
+            spike_list = spike_list + rows
+        else:
+            spike_list = ["No spikes detected in DEM and PWR Output.<br /><p></p>"]
+
+        return spike_list
 
 
 def RMS(data, window: int, exit: str, eoa: int, begin=0, end=-1):
