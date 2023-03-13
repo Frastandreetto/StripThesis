@@ -1780,7 +1780,8 @@ class Polarimeter:
                                 f"<td align=center>{type}</td>" \
                                 f"<td align=center>{exit}</td>" \
                                 f"<td align=center>{self.times[item]}</td>" \
-                                f"<td align=center>{self.data[type][exit][item] - np.median(self.data[type][exit])}</td>" \
+                                f"<td align=center>{self.data[type][exit][item] - np.median(self.data[type][exit])}" \
+                                f"</td>" \
                                 f"</tr>"
                         logging.info(f"Spike n.{idx} in {exit} - {type}.\n")
         if cap:
