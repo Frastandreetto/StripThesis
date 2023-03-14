@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-# This file contains the 12th version (0.0.12) of the new LSPE-Strip pipeline.
+# This file contains the 13th version (0.0.13) of the new LSPE-Strip pipeline.
 # It produces a complete scan of a polarimeter.
 # December 7th 2022, Brescia (Italy)
 
@@ -50,6 +50,12 @@ def main():
     end_datetime = sys.argv[3]  # type: str
     pol_list = list(sys.argv[4:])
 
+    # Flag For Future
+    # Set nperseg = np.inf to reach the lowest frequency in FFT
+    # Set nperseg = 6* 10**5 to reach 10^-4Hz in FFT
+    # Set nperseg = 10**4 to reach 10^-3Hz in FFT
+    nperseg = np.inf
+
     # Common Info for all the polarimeters
     gdate = [Time(start_datetime), Time(end_datetime)]
     date_dir = fz.dir_format(f"{gdate[0]}__{gdate[1]}")
@@ -81,15 +87,17 @@ def main():
         ["House Keeping and Thermal Sensors Warning List"],
         [""],
         [""],
-
     ]
 
     with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(csv_general)
+
+    ####################################################################################################################
     ####################################################################################################################
     # START PROCEDURE
     # HouseKeeping & Thermal Sensors
+    ####################################################################################################################
     logging.warning(f"The procedure started.\n Going to analyze Strip: House-Keeping parameters and Thermal Sensors")
     strip_name = pol_list[0]
     p = pol.Polarimeter(name_pol=strip_name, path_file=path_file,
@@ -101,7 +109,9 @@ def main():
     csv_parameter = []
 
     ####################################################################################################################
+    ####################################################################################################################
     # HOUSE-KEEPING PARAMETERS
+    ####################################################################################################################
     logging.info("\n Done. Loading HouseKeeping Parameters now.")
     p.Load_HouseKeeping()
 
@@ -156,7 +166,6 @@ def main():
                 if hk_first_wrong_sampling:
                     hk_first_wrong_sampling = False
 
-                    logging.warning(f"{item_IVO}, {hk_name}")
                     # Report: calculating delta_t (used below to write the table in report)
                     delta_t = (p.hk_t[item_IVO][hk_name][:-1] - p.hk_t[item_IVO][hk_name][1:]).sec
 
@@ -178,7 +187,9 @@ def main():
 
     if not good_gen_sampling:
         # Report: writing a tabular with median, 5th percentile and 95th percentile
-        hk_msg = f"House-Keeping Sampling is not good. " \
+        hk_msg = f"<p></p>" \
+                 f"House-Keeping Sampling is not good." \
+                 f"<p></p> " \
                  f"House-keeping parameter affected: {n_hk_wrong}/28.<br />" \
                  "<p></p>" \
                  "<style>" \
@@ -246,7 +257,9 @@ def main():
     csv_parameter = []
 
     ####################################################################################################################
+    ####################################################################################################################
     # THERMAL SENSORS
+    ####################################################################################################################
     logging.info("\n Done. Loading Thermal sensors now.")
     p.Load_Thermal_Sensors()
 
@@ -272,15 +285,15 @@ def main():
                                   f"for Thermal sensors sampling is wrong for the sensors:<br />")
 
                     # CSV file: TS wrong mean caption
-                    csv_mean.append([["Wrong Sampling Mean time"],
-                                     ["TS Name"]])
+                    csv_mean = [["Wrong Sampling Mean time"],
+                                ["TS Name"]]
                     ts_first_wrong_mean = False
 
                 # Report: adding TS names
                 t_warn.append(f"{sensor_name}, ")
 
                 # CSV file: adding TS names
-                csv_mean.append([f"{sensor_name}"])
+                csv_mean.append([f"{sensor_name}"])  # column of names of TS with wrong mean
 
             ############################################################################################################
             # Check on sampling holes
@@ -292,18 +305,18 @@ def main():
                     # Report: TS caption
                     msg = f"Thermal sensors sampling's reduction found for sensors:"
                     logging.warning(msg)
-                    t_warn.append(msg + "<br />")
+                    t_warn.append("<p></p>" + msg + "<br />")
 
                     # CSV: TS caption
-                    csv_parameter.append([["TS Sampling Reduction"],
-                                          ["Thermal Sensor Name"]])
-
+                    csv_parameter = [["TS Sampling Reduction"],
+                                     ["Thermal Sensor Name"]]
                     ts_first_wrong_sampling = False
 
                 logging.warning(f"\n{sensor_name}.\n")
                 # Report: adding names
                 t_warn.append(f"{sensor_name}, ")
-                csv_parameter.append(f"{sensor_name}")
+                # CSV file: adding names
+                csv_parameter.append([f"{sensor_name}"])
 
     if good_gen_sampling:
         # Report
@@ -322,6 +335,7 @@ def main():
     th_table = p.Thermal_table(th_results)
 
     # CSV file: adding all TS results
+    csv_parameter.append([""])
     csv_parameter.append(["Status", "Sensor Name",
                           "Max value [RAW]", "Min value [RAW]", "Mean [RAW]", "Std_Dev[RAW]", "NaN %[RAW]",
                           "Max value [CAL]", "Min value [CAL]", "Mean [CAL]", "Std_Dev[CAL]", "NaN %[CAL]"])
@@ -349,8 +363,10 @@ def main():
         writer.writerows(csv_parameter)
 
     ####################################################################################################################
+    ####################################################################################################################
     # START PROCEDURE
     # FOR N POLARIMETERS
+    ####################################################################################################################
     logging.warning(f"\nGoing to analyze {len(pol_list)} polarimeter.")
     for name_pol in pol_list:
         logging.warning(f"Loading {name_pol}...")
@@ -373,12 +389,19 @@ def main():
                         [""],
                         ["Warning list"],
                         [""]]
-        csv_general = []
+
+        with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(csv_pol_info)
+            writer.writerow([""])
+
+        # csv_pol_info = []
 
         ################################################################################################################
         # END THE PROCEDURE FOR THE POLARIMETER IF
         # 1) NO DATA
         # 2) STRIP OFF -> Data == 0
+        ################################################################################################################
         stop_NoData = False
         stop_StripOff = False
         type: str
@@ -392,30 +415,36 @@ def main():
 
         # No data: Dataset empty
         if stop_NoData:
+            # Report: writing the ERROR
             msg = f"No data in the time range wanted. End of the analysis for {name_pol}."
             logging.error(msg)
             p.warnings["time_warning"].append(msg + "<br />")
 
+            # CSV file: writing the ERROR
             with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow(["ERROR: No data."])
 
         # Strip Off
         elif stop_StripOff:
+            # Report: writing the ERROR
             msg = f"Strip is off in the time range wanted. End of the analysis for {name_pol}"
             logging.error(msg)
             p.warnings["time_warning"].append(msg + "<br />")
 
+            # CSV file: writing the ERROR
             with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerow(["WARNING: No data."])
 
         ################################################################################################################
-        # START ANALYSIS
+        # START SAMPLING ANALYSIS
+        ################################################################################################################
         else:
             logging.info("Looking for holes in the dataset.\n")
             p.STRIP_SAMPLING_FREQUENCY_HZ(warning=False)
             if p.STRIP_SAMPLING_FREQ != 100:
+                # Report: writing sampling frequency
                 msg = f"Data-sampling's reduction found. Sampling Frequency: {p.STRIP_SAMPLING_FREQ}."
                 logging.warning(msg + "\n")
                 p.warnings["time_warning"].append(msg + "<br />")
@@ -424,14 +453,17 @@ def main():
                                                 "Attention: the time on the x-axes of the plots"
                                                 "doesn't have sense because of the timestamps normalization. <br />"
                                                 )
-                csv_general.append([["Sampling Frequency"],
-                                    [f"{p.STRIP_SAMPLING_FREQ}", "Possible inversions Even-Odd"]])
+
+                # CSV file: writing sampling frequency
+                csv_pol_info = [["Sampling Frequency"],
+                                [f"{p.STRIP_SAMPLING_FREQ}", "Possible inversions Even-Odd"]]
 
             else:
+                # Report: writing sampling frequency
                 msg = "Data-sampling is good: the sampling frequency is 100Hz, " \
                       "hence no holes in scientific output expected."
                 logging.warning(msg + "\n")
-                p.warnings["time_warning"].append(msg + "<br /><p></p>")
+                p.warnings["time_warning"].append("<p></p>" + msg + "<br /><p></p>")
 
             logging.info("\nLooking for jumps in the Timestamps.\n")
             jumps = p.Write_Jump(start_datetime=start_datetime)
@@ -442,19 +474,21 @@ def main():
 
                 with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a', newline='') as file:
                     writer = csv.writer(file)
-                    writer.writerows(csv_general)
-
-            ############################################################################################################
-            with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerows(csv_pol_info)
+                    writer.writerows(csv_pol_info)
 
             ############################################################################################################
             # SPIKE ANALYSIS
             logging.info(f"Done.\nSpike analysis started.\n")
             s_tab = p.spike_report()
+
+            # Report: writing spikes
             p.warnings["spike_warning"].append(s_tab)
 
+            # CSV file: writing spikes
+            csv_pol_info = p.spike_CSV()
+            with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_pol_info)
             ############################################################################################################
             # SCIENTIFIC ANALYSIS
 
@@ -474,6 +508,7 @@ def main():
                 p.Plot_Correlation_TS(type=type, begin=0, end=-1, show=False)
 
             logging.info("\nDone.\nEven-Odd Analysis started.\n")
+            
             i = 1
             for type in p.data.keys():
                 logging.info(f"Going to Plot Even Odd {type} Output and RMS.")
@@ -503,22 +538,27 @@ def main():
                 logging.info(f"Going to Plot {type} Even-Odd Correlation.")
                 p.Plot_Correlation_EvenOdd(type, begin=0, end=-1, show=False)
                 logging.info(f"Done.\n")
-
+            
             i = 1
             for type in p.data.keys():
                 logging.info(f"Going to Plot {type} Even-Odd FFT.")
-                p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=0, begin=0, end=-1, nseg=10 ** 4, show=False)
-                p.Plot_FFT_EvenOdd(type=type, even=0, odd=0, all=1, begin=0, end=-1, nseg=10 ** 4, show=False)
-                p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=1, begin=0, end=-1, nseg=10 ** 4, show=False,
-                                   spike_check=True)
+                _ = p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=0, begin=0, end=-1, nseg=nperseg, show=False)
+                _ = p.Plot_FFT_EvenOdd(type=type, even=0, odd=0, all=1, begin=0, end=-1, nseg=nperseg, show=False)
+                csv_pol_info = p.Plot_FFT_EvenOdd(type=type, even=1, odd=1, all=1, begin=0, end=-1, nseg=nperseg,
+                                                  show=False, spike_check=True)
+                # CSV file: writing FFT Output spikes
+                with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerows(csv_pol_info)
+
                 logging.info(f"FFT {type}: Done.")
 
                 logging.info(f"Going to Plot {type} Even-Odd FFT of the RMS.")
-                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=0, begin=0, end=-1, nseg=10 ** 4,
+                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=0, begin=0, end=-1, nseg=nperseg,
                                   show=False)
-                p.Plot_FFT_RMS_EO(type=type, window=100, even=0, odd=0, all=1, begin=0, end=-1, nseg=10 ** 4,
+                p.Plot_FFT_RMS_EO(type=type, window=100, even=0, odd=0, all=1, begin=0, end=-1, nseg=nperseg,
                                   show=False)
-                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=1, begin=0, end=-1, nseg=10 ** 4,
+                p.Plot_FFT_RMS_EO(type=type, window=100, even=1, odd=1, all=1, begin=0, end=-1, nseg=nperseg,
                                   show=False)
                 logging.info(f"FFT RMS {type}: Done.")
             i += 1
@@ -540,37 +580,62 @@ def main():
             i = 1
             for type in p.data.keys():
                 logging.info(f"Going to Plot Scientific Data {type} FFT and FFT of  RMS.")
-                p.Plot_FFT_SciData(type=type, begin=0, end=-1, nseg=10 ** 4, show=False, spike_check=True)
+                csv_pol_info = p.Plot_FFT_SciData(type=type, begin=0, end=-1, nseg=nperseg,
+                                                  show=False, spike_check=True)
                 logging.info(f"{type}: {i}/2) Data FFT plot done.")
 
-                p.Plot_FFT_RMS_SciData(type=type, window=100, begin=0, end=-1, nseg=10 ** 4, show=False)
+                # CSV file: writing FFT Scientific Data spikes
+                with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerows(csv_pol_info)
+
+                p.Plot_FFT_RMS_SciData(type=type, window=100, begin=0, end=-1, nseg=nperseg, show=False)
                 logging.info(f"{type}: {i}/2) RMS FFT plot done.")
 
             logging.info(
                 "Scientific Data Analysis is now completed. Correlation Matrices will be now produced.\n")
 
+            ############################################################################################################
             # CORRELATION MATRICES
+            ############################################################################################################
             t = 0.4
+
+            csv_pol_info = [
+                [""],
+                [f"High Correlations (threshold t = {t})"],
+                [""],
+                ["Data type", "exit i-j", "Corr. Value"]
+            ]
+
             for s in [True, False]:
                 for type in p.data.keys():
 
                     if s:
                         logging.debug(
                             f"\nGoing to plot {type} Correlation Matrix with scientific parameter = {s}\n")
-                        p.Plot_Correlation_Mat(type=type, scientific=s, show=False, warn_threshold=t)
-                        p.Plot_Correlation_Mat_RMS(type=type, scientific=s, show=False, warn_threshold=t)
+                        csv_pol_info += p.Plot_Correlation_Mat(type=type, scientific=s, show=False, warn_threshold=t)
+                        csv_pol_info += p.Plot_Correlation_Mat_RMS(type=type, scientific=s, show=False,
+                                                                   warn_threshold=t)
 
                     if not s:
                         if type == "PWR":
-                            p.Plot_Correlation_Mat(type=type, scientific=s, show=False, warn_threshold=t)
-                            p.Plot_Correlation_Mat_RMS(type=type, scientific=s, show=False, warn_threshold=t)
+                            csv_pol_info += p.Plot_Correlation_Mat(type=type, scientific=s,
+                                                                   show=False, warn_threshold=t)
+                            csv_pol_info += p.Plot_Correlation_Mat_RMS(type=type, scientific=s,
+                                                                       show=False, warn_threshold=t)
 
                             for e, o in zip([True, False], [False, True]):
                                 logging.debug(f"even={e}, odd = {o}")
-                                p.Plot_Correlation_Mat(type=type, scientific=s, even=e, odd=o, show=False,
-                                                       warn_threshold=t)
-                                p.Plot_Correlation_Mat_RMS(type=type, scientific=s, even=e, odd=o, show=False,
-                                                           warn_threshold=t)
+                                csv_pol_info += p.Plot_Correlation_Mat(type=type, scientific=s, even=e, odd=o,
+                                                                       show=False, warn_threshold=t)
+                                csv_pol_info += p.Plot_Correlation_Mat_RMS(type=type, scientific=s, even=e, odd=o,
+                                                                           show=False, warn_threshold=t)
+
+            # CSV file: writing FFT Scientific Data spikes
+            with open(f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv', 'a',
+                      newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_pol_info)
 
             logging.warning("\nAnalysis completed.\nPreparing warnings for the report now.")
 
