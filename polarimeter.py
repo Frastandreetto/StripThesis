@@ -6,6 +6,7 @@
 # November 1st 2022, Brescia (Italy)
 
 # Libraries & Modules
+import csv
 import logging
 import sys
 
@@ -20,7 +21,6 @@ from matplotlib import pyplot as plt
 from pathlib import Path
 from rich.logging import RichHandler
 
-import f_strip
 from striptease import DataStorage
 from typing import List, Dict, Any
 
@@ -1133,7 +1133,7 @@ class Polarimeter:
 
                     # ALL - Spike check
                     if spike_check and i == 0:
-                        spike_idx = f_strip.find_spike(f[f<25.], threshold=threshold)
+                        spike_idx = fz.find_spike(f[f<25.], threshold=threshold)
                         if len(spike_idx) != 0:
 
                             # CSV file: write warning for spike
@@ -1157,7 +1157,7 @@ class Polarimeter:
 
                     # EVEN - Spike check
                     if spike_check and i == 0:
-                        spike_idx = f_strip.find_spike(f[f < 25.], threshold=threshold)
+                        spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
 
                         if len(spike_idx) != 0:
                             # CSV file: write warning for spike
@@ -1186,7 +1186,7 @@ class Polarimeter:
 
                     # ODD - Spike check
                     if spike_check and i == 0:
-                        spike_idx = f_strip.find_spike(f[f < 25.], threshold=threshold)
+                        spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
 
                         if len(spike_idx) != 0:
                             # CSV file: write warning for spike
@@ -1367,7 +1367,7 @@ class Polarimeter:
 
                 # Spike check
                 if spike_check and i == 0:
-                    spike_idx = f_strip.find_spike(f[f < 25.], threshold=threshold)
+                    spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
 
                     if len(spike_idx) != 0:
                         # CSV file: write warning for spike
@@ -1743,10 +1743,11 @@ class Polarimeter:
             t_warn = f"In the dataset there are {jumps['n']} Time Jumps."
             logging.info(t_warn + "\n\n")
 
-            # .txt file with all time jumps.
-            logging.info("I'm going to produce the caption for the file.")
-            _ = fz.tab_cap_time(pol_name=self.name, file_name=start_datetime)
-            new_file_name = f"JT_{self.name}_{start_datetime}.txt"
+            # .csv file with all time jumps.
+            logging.info("I'm going to produce the caption for the csv file.")
+            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+            fz.tab_cap_time(pol_name=self.name, file_name=start_datetime, output_dir=date_dir)
+            new_file_name = f"JT_{self.name}_{start_datetime}.csv"
 
             html_tab_content = "<p></p><style>table, th, td {border:1px solid black;}</style><body>" \
                                f"<h2>Time Jumps Pol {self.name}</h2>" \
@@ -1755,6 +1756,7 @@ class Polarimeter:
                                "<th>Gregorian Date</th><th>Julian Date [JHD]</th>" \
                                "</tr>"
             i = 1
+
             for idx, j_value, j_val_s in zip(jumps["idx"], jumps["value"], jumps["s_value"]):
                 jump_instant = self.times.value[idx]
                 greg_jump_instant = Time(jump_instant, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
@@ -1765,12 +1767,15 @@ class Polarimeter:
                                     f"<td align=center>{greg_jump_instant}</td>" \
                                     f"<td align=center>{jump_instant}</td>" \
                                     f"</tr>"
+                # CSV file: writing the table row by row
+                tab_content = [[f"{i}", f"{j_value}", f"{j_val_s}", f"{greg_jump_instant}", f"{jump_instant}"]]
 
-                tab_content = f"{i}\t\t{j_value}\t\t{j_val_s}\t{greg_jump_instant}\t\t{jump_instant}\n"
-                with open(new_file_name, "at") as new_file:
-                    new_file.write(tab_content)
+                with open(f'../plot/{date_dir}/Time_Jump/{new_file_name}', 'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerows(tab_content)
                 i += 1
 
+            # Report: writing the table
             html_tab_content += "</table></body><p></p><p>"
             self.warnings["time_warning"].append(html_tab_content)
         return jumps
@@ -1840,7 +1845,7 @@ class Polarimeter:
         for type in self.data.keys():
             for exit in self.data[type].keys():
 
-                spike_idxs = f_strip.find_spike(self.data[type][exit])
+                spike_idxs = fz.find_spike(self.data[type][exit])
                 if len(spike_idxs) != 0:
                     if not cap:
                         spike_tab += "<p></p>" \
@@ -1885,7 +1890,7 @@ class Polarimeter:
         for type in self.data.keys():
             for exit in self.data[type].keys():
 
-                spike_idxs = f_strip.find_spike(self.data[type][exit])
+                spike_idxs = fz.find_spike(self.data[type][exit])
                 if len(spike_idxs) != 0:
                     if not cap:
                         spike_list = [

@@ -5,6 +5,7 @@
 # updated to be used on the new version of the software of LSPE-STRIP
 # October 29th 2022, Brescia (Italy)
 
+import csv
 import logging
 import numpy as np
 import scipy.stats as scs
@@ -17,19 +18,23 @@ from rich.logging import RichHandler
 from striptease import DataFile
 
 
-def tab_cap_time(pol_name: str, file_name: str) -> str:
+def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
     """
     Create a new file .txt and write the caption of a tabular\n
     Parameters:\n
+    - **pol_name** (``str``): Name of the polarimeter
     - **file_name** (``str``): Name of the file to create and in which insert the caption\n
+    - **output_dir** (``str``): Name of the dir where the csv file must be saved
     This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
-    new_file_name = f"JT_{pol_name}_{file_name}.txt"
-    cap = "# Jump\t|\tDelta_t [JHD]\t |\tDelta_t [s]\t\t|\tGregorian Date|\t\tJHD Date\t\t\n"
+    new_file_name = f"JT_{pol_name}_{file_name}.csv"
+    cap = [["# Jump", "tDelta_t [JHD]", "Delta_t [s]", "Gregorian Date", "JHD Date"]]
 
-    file = open(new_file_name, "w")
-    file.write(cap)
-    file.close()
+    path = f'../plot/{output_dir}/Time_Jump/'
+    Path(path).mkdir(parents=True, exist_ok=True)
+    with open(f"{path}/{new_file_name}", 'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(cap)
 
     return cap
 
