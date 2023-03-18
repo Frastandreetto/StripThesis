@@ -54,6 +54,8 @@ class Polarimeter:
         self.date = [Time(start_datetime).mjd, Time(end_datetime).mjd]  # self.tag.mjd_start
         # Gregorian Date [in string format]
         self.gdate = [Time(start_datetime), Time(end_datetime)]
+        # Directory where to save all plot for a given analysis
+        self.date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
         # Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
         # Dictionary for scientific Analysis
@@ -415,10 +417,9 @@ class Polarimeter:
                 axs[i].set_title(f"TS GROUP {group} - Status {status}")
                 axs[i].legend(prop={'size': 9}, loc=7)
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f"../plot/{date_dir}/Thermal_Output/"
+        path = f"../plot/{self.date_dir}/Thermal_Output/"
         Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_thermal_status_{status}.png')
+        fig.savefig(f'{path}Thermal_status_{status}.png')
         if show:
             plt.show()
         plt.close(fig)
@@ -461,8 +462,7 @@ class Polarimeter:
 
                 n += 1
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f"../plot/{date_dir}/Thermal_Correlation/{self.name}/"
+        path = f"../plot/{self.date_dir}/Thermal_Correlation/{self.name}/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_Correlation_TS.png')
         if show:
@@ -609,7 +609,7 @@ class Polarimeter:
          - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         """
         col = ["plum", "gold"]
-        label = ["Voltage [$\mu$V]", "Current [mA]"]
+        label = ["Voltage [$\mu$V]", "Current [$\mu$A]"]
         for idx, item in enumerate(["V", "I"]):
             hk_name = self.hk_list[item]
 
@@ -633,8 +633,7 @@ class Polarimeter:
                     axs[i, j].set_ylabel(f"{label[idx]}")
                     axs[i, j].set_title(f"{hk_name[3 * i + j]}")
 
-            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-            path = f"../plot/{date_dir}/HouseKeeping/{self.name}/"
+            path = f"../plot/{self.date_dir}/HouseKeeping/{self.name}/"
             Path(path).mkdir(parents=True, exist_ok=True)
             fig.savefig(f'{path}{self.name}_HK_{item}.png')
             if show:
@@ -663,8 +662,7 @@ class Polarimeter:
                 axs[j].set_ylabel(f"{label[idx]}")
                 axs[j].set_title(f"{hk_name[j]}")
 
-            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-            path = f"../plot/{date_dir}/HouseKeeping/{self.name}/"
+            path = f"../plot/{self.date_dir}/HouseKeeping/{self.name}/"
             Path(path).mkdir(parents=True, exist_ok=True)
             fig.savefig(f'{path}{self.name}_HK_{item}.png')
             if show:
@@ -694,11 +692,10 @@ class Polarimeter:
             ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
             ax.set_title(f"{exit}")
             ax.set_xlabel("Time [s]")
-            ax.set_ylabel(f"Output {type}")
+            ax.set_ylabel(f"Output {type} [ADU]")
         plt.tight_layout()
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f"../plot/{date_dir}/Output/"
+        path = f"../plot/{self.date_dir}/Output/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}.png')
         if show:
@@ -721,7 +718,7 @@ class Polarimeter:
         eoa = EOA(even=even, odd=odd, all=all)
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'Plot {eoa} {type} - Date: {begin_date}', fontsize=14)
+        fig.suptitle(f'POL {self.name} - plot {eoa} {type}\nDate: {begin_date}', fontsize=14)
 
         for i in range(2):
             n = 0  # type: int
@@ -752,14 +749,13 @@ class Polarimeter:
                 if self.norm_mode == 1:
                     axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
-                axs[i, n].set_ylabel(f"Output [{type}]")
+                axs[i, n].set_ylabel(f"Output {type} [ADU]")
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f"../plot/{date_dir}/EvenOddAll_Analysis/EOA_Output/{self.name}/"
+        path = f"../plot/{self.date_dir}/EvenOddAll_Analysis/EOA_Output/{self.name}/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_{eoa}_smooth={smooth_len}.png')
         if show:
@@ -820,14 +816,13 @@ class Polarimeter:
                 if self.norm_mode == 1:
                     axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
-                axs[i, n].set_ylabel(f"RMS [{type}]")
+                axs[i, n].set_ylabel(f"RMS {type} [ADU]")
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/EvenOddAll_Analysis/EOA_RMS/{self.name}/'
+        path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/EOA_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.png')
         if show:
@@ -846,7 +841,7 @@ class Polarimeter:
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'Correlation {type} - Date: {begin_date}', fontsize=14)
+        fig.suptitle(f'Correlation POL {self.name} {type}\nDate: {begin_date}', fontsize=14)
 
         for i in range(2):
             n = 0  # type: int
@@ -864,15 +859,14 @@ class Polarimeter:
                 axs[i, n].set_title(f'Corr {type} {exit}')
                 # XY-axis
                 axs[i, n].set_aspect('equal')
-                axs[i, n].set_xlabel("Even Samples")
-                axs[i, n].set_ylabel(f"Odd Samples")
+                axs[i, n].set_xlabel("Even Samples [ADU]")
+                axs[i, n].set_ylabel(f"Odd Samples [ADU]")
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f"../plot/{date_dir}/EvenOddAll_Analysis/Correlation/EO_Output/{self.name}/"
+        path = f"../plot/{self.date_dir}/EvenOddAll_Analysis/Correlation/EO_Output/{self.name}/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_Correlation_EO.png')
         if show:
@@ -909,15 +903,14 @@ class Polarimeter:
                 axs[i, n].set_title(f'RMS Corr {type} {exit}')
                 # XY-axis
                 axs[i, n].set_aspect('equal')
-                axs[i, n].set_xlabel("RMS Even Samples")
-                axs[i, n].set_ylabel(f"RMS Odd Samples")
+                axs[i, n].set_xlabel("RMS Even Samples [ADU]")
+                axs[i, n].set_ylabel(f"RMS Odd Samples [ADU]")
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/EvenOddAll_Analysis/Correlation/EO_RMS/{self.name}/'
+        path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/Correlation/EO_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}_Correlation_RMS_EO.png')
         if show:
@@ -967,14 +960,13 @@ class Polarimeter:
                 if self.norm_mode == 1:
                     axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
-                axs[i, n].set_ylabel(f"{data_name}")
+                axs[i, n].set_ylabel(f"{data_name} [ADU]")
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/SciData_Analysis/SciData_Output/{self.name}/'
+        path = f'../plot/{self.date_dir}/SciData_Analysis/SciData_Output/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{data_name}_smooth={smooth_len}.png')
         if show:
@@ -1026,14 +1018,13 @@ class Polarimeter:
                 if self.norm_mode == 1:
                     axs[i, n].set_xlabel("Time [s]")
                 # Y-axis
-                axs[i, n].set_ylabel(f"RMS {data_name}")
+                axs[i, n].set_ylabel(f"RMS {data_name} [ADU]")
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
                 n += 1
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/SciData_Analysis/SciData_RMS/{self.name}/'
+        path = f'../plot/{self.date_dir}/SciData_Analysis/SciData_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{data_name}_RMS_smooth={smooth_len}.png')
         if show:
@@ -1069,8 +1060,7 @@ class Polarimeter:
         axs[1].set_ylabel("$\Delta$ t [s]")
         axs[1].set_ylim(-1.0, 1.0)
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/Timestamps_Jump_Analysis/'
+        path = f'../plot/{self.date_dir}/Timestamps_Jump_Analysis/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_Timestamps.png')
         if show:
@@ -1119,7 +1109,7 @@ class Polarimeter:
                 # Spike check
                 msg = ""
                 first_msg = True
-                threshold = 4.5
+                threshold = 5.3
 
                 if i == 1:
                     axs[i, n].sharey(axs[1, 0])
@@ -1133,12 +1123,13 @@ class Polarimeter:
 
                     # ALL - Spike check
                     if spike_check and i == 0:
-                        spike_idx = fz.find_spike(f[f<25.], threshold=threshold)
+                        spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
                         if len(spike_idx) != 0:
 
                             # CSV file: write warning for spike
                             csv_spike.append([f"FFT {type} {exit} SPIKES (ALL)"])
-                            csv_spike.append(["n Spike", "idx Spike", "Frequency value [Hz]"])
+                            csv_spike.append(["n Spike", "idx Spike",
+                                              "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
 
                             # Report: write warning for spike
                             msg += f"Spikes in FFT type: {type}, exit: {exit} - all"
@@ -1146,7 +1137,7 @@ class Polarimeter:
 
                             # CSV file: listing spikes in FFT ALL
                             for index, item in enumerate(spike_idx):
-                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}"])
+                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
 
                 if even != 0:
                     f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs / 2,
@@ -1163,7 +1154,8 @@ class Polarimeter:
                             # CSV file: write warning for spike
                             csv_spike.append([""])
                             csv_spike.append([f"FFT {type} {exit} SPIKES (EVEN)"])
-                            csv_spike.append(["n Spike", "idx Spike", "Frequency value [Hz]"])
+                            csv_spike.append(["n Spike", "idx Spike",
+                                              "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
 
                             # Report: write warning for spike
                             if first_msg:
@@ -1175,7 +1167,7 @@ class Polarimeter:
 
                             # CSV file: listing spikes in FFT EVEN
                             for index, item in enumerate(spike_idx):
-                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}"])
+                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
 
                 if odd != 0:
                     f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs / 2,
@@ -1192,7 +1184,8 @@ class Polarimeter:
                             # CSV file: write warning for spike
                             csv_spike.append([""])
                             csv_spike.append([f"FFT {type} {exit} SPIKES (EVEN)"])
-                            csv_spike.append(["n Spike", "idx Spike", "Frequency value [Hz]"])
+                            csv_spike.append(["n Spike", "idx Spike",
+                                              "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
 
                             # Report: write warning for spike
                             if first_msg:
@@ -1204,7 +1197,7 @@ class Polarimeter:
 
                             # CSV file: listing spikes in FFT ODD
                             for index, item in enumerate(spike_idx):
-                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}"])
+                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
 
                 if not first_msg:
                     self.warnings["spike_warning"].append(msg + ".<br /><p></p>")
@@ -1223,8 +1216,8 @@ class Polarimeter:
                 n += 1
 
         eoa = EOA(even=even, odd=odd, all=all)
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/EvenOddAll_Analysis/FFT_EOA_Output/{self.name}/'
+
+        path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/FFT_EOA_Output/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_FFT_{type}_{eoa}.png')
         if show:
@@ -1298,8 +1291,8 @@ class Polarimeter:
                 n += 1
 
         eoa = EOA(even=even, odd=odd, all=all)
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/EvenOddAll_Analysis/FFT_EOA_RMS/{self.name}/'
+
+        path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/FFT_EOA_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_FFT_RMS_{type}_{eoa}.png')
         if show:
@@ -1343,7 +1336,7 @@ class Polarimeter:
 
         # Spike check
         msg = ""
-        threshold = 4.5
+        threshold = 5.3
         first_msg = True
         csv_spike = [[""]]
 
@@ -1373,7 +1366,7 @@ class Polarimeter:
                         # CSV file: write warning for spike
                         csv_spike.append([""])
                         csv_spike.append([f"FFT {data_name} {exit} SPIKES"])
-                        csv_spike.append(["n Spike", "idx Spike", "Frequency value [Hz]"])
+                        csv_spike.append(["n Spike", "idx Spike", "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
 
                         # Report: write warning for spike
                         if first_msg:
@@ -1385,7 +1378,7 @@ class Polarimeter:
 
                         # CSV file: listing spikes in FFT
                         for index, item in enumerate(spike_idx):
-                            csv_spike.append([f"{index}", f"{item}", f"{f[item]}"])
+                            csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
 
                 # Title
                 axs[i, n].set_title(f"FFT {data_name} {exit}")
@@ -1400,8 +1393,7 @@ class Polarimeter:
 
                 n += 1
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/SciData_Analysis/FFT_Output_SciData/{self.name}/'
+        path = f'../plot/{self.date_dir}/SciData_Analysis/FFT_Output_SciData/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_FFT_{data_name}.png')
         if show:
@@ -1469,8 +1461,7 @@ class Polarimeter:
 
                 n += 1
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/SciData_Analysis/FFT_RMS_SciData/{self.name}/'
+        path = f'../plot/{self.date_dir}/SciData_Analysis/FFT_RMS_SciData/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_FFT_RMS_{data_name}.png')
         if show:
@@ -1553,7 +1544,6 @@ class Polarimeter:
             for j in keys:
                 logging.debug(f"Correlation {i} with {j}.")
                 if np.abs(corr_matrix[i][j]) > warn_threshold:
-
                     # CSV file: adding high correlation value
                     csv_matrix.append([f"{data_name}", f"{i}-{j}", f"{corr_matrix[i][j]}"])
 
@@ -1588,8 +1578,7 @@ class Polarimeter:
         pl_m2 = sn.heatmap(corr_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
         pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=18)
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/Correlation_Matrix/Data/{self.name}/'
+        path = f'../plot/{self.date_dir}/Correlation_Matrix/Data/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_CorrMat_{data_name[:-5]}.png')
         if show:
@@ -1675,7 +1664,6 @@ class Polarimeter:
             for j in keys:
                 logging.debug(f"Correlation {i} with {j}.")
                 if np.abs(corr_matrix[i][j]) > warn_threshold:
-
                     # CSV file: adding high correlation value
                     csv_matrix.append([f"{data_name}", f"{i}-{j}", f"{corr_matrix[i][j]}"])
 
@@ -1710,8 +1698,7 @@ class Polarimeter:
         pl_m2 = sn.heatmap(corr_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
         pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=18)
 
-        date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-        path = f'../plot/{date_dir}/Correlation_Matrix/RMS/{self.name}/'
+        path = f'../plot/{self.date_dir}/Correlation_Matrix/RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_CorrMat_{data_name}.png')
         if show:
@@ -1745,8 +1732,8 @@ class Polarimeter:
 
             # .csv file with all time jumps.
             logging.info("I'm going to produce the caption for the csv file.")
-            date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
-            fz.tab_cap_time(pol_name=self.name, file_name=start_datetime, output_dir=date_dir)
+
+            fz.tab_cap_time(pol_name=self.name, file_name=start_datetime, output_dir=self.date_dir)
             new_file_name = f"JT_{self.name}_{start_datetime}.csv"
 
             html_tab_content = "<p></p><style>table, th, td {border:1px solid black;}</style><body>" \
@@ -1770,7 +1757,7 @@ class Polarimeter:
                 # CSV file: writing the table row by row
                 tab_content = [[f"{i}", f"{j_value}", f"{j_val_s}", f"{greg_jump_instant}", f"{jump_instant}"]]
 
-                with open(f'../plot/{date_dir}/Time_Jump/{new_file_name}', 'a', newline='') as file:
+                with open(f'../plot/{self.date_dir}/Time_Jump/{new_file_name}', 'a', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerows(tab_content)
                 i += 1
@@ -1871,7 +1858,6 @@ class Polarimeter:
                                 f"<td align=center>{self.data[type][exit][item] - np.median(self.data[type][exit])}" \
                                 f"</td>" \
                                 f"</tr>"
-                        logging.info(f"Spike n.{idx} in {exit} - {type}.\n")
         if cap:
             spike_tab += rows + "</table></body><p></p><p></p><p></p>"
         else:
@@ -1908,7 +1894,7 @@ class Polarimeter:
         if cap:
             spike_list = spike_list + rows
         else:
-            spike_list = ["No spikes detected in DEM and PWR Output.<br /><p></p>"]
+            spike_list = [["No spikes detected in DEM and PWR Output.<br /><p></p>"]]
 
         return spike_list
 

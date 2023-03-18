@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-# This file contains the 13th version (0.0.13) of the new LSPE-Strip pipeline.
+# This file contains the 14th version (0.0.14) of the new LSPE-Strip pipeline.
 # It produces a complete scan of a polarimeter.
 # December 7th 2022, Brescia (Italy)
 
@@ -52,9 +52,9 @@ def main():
 
     # Flag For Future
     # Set nperseg = np.inf to reach the lowest frequency in FFT
-    # Set nperseg = 6* 10**5 to reach 10^-4Hz in FFT
+    # Set nperseg = 6 * 10**5 to reach 10^-4Hz in FFT
     # Set nperseg = 10**4 to reach 10^-3Hz in FFT
-    nperseg = np.inf
+    nperseg = 6 * 10**5
 
     # Common Info for all the polarimeters
     gdate = [Time(start_datetime), Time(end_datetime)]
@@ -268,10 +268,11 @@ def main():
 
     good_gen_sampling = True  # Bool that indicates if the sampling of all TS is good
 
+    ts_exp_med = 20.36
     for status in range(2):
         for sensor_name in p.thermal_list[f"{status}"]:
             th_holes = fz.find_jump(v=p.thermal_sensors["thermal_times"][f"{status}"],
-                                    exp_med=10.,
+                                    exp_med=ts_exp_med,
                                     tolerance=0.1)
 
             ############################################################################################################
@@ -372,9 +373,10 @@ def main():
         logging.warning(f"Loading {name_pol}...")
         p = pol.Polarimeter(name_pol=name_pol, path_file=path_file, start_datetime=start_datetime,
                             end_datetime=end_datetime)
+
         ################################################################################################################
-        # STRIP WARNINGS
-        p.warnings["time_warning"] = t_warn
+        # Cleaning time warnings
+        p.warnings["time_warning"] = []
 
         ################################################################################################################
         # Loading Operations
@@ -382,6 +384,7 @@ def main():
         p.Load_Pol()
         p.Load_Thermal_Sensors()
         p.Load_HouseKeeping()
+
         ################################################################################################################
         # CSV INFO
         csv_pol_info = [["Pol Name"],
@@ -508,7 +511,8 @@ def main():
                 p.Plot_Correlation_TS(type=type, begin=0, end=-1, show=False)
 
             logging.info("\nDone.\nEven-Odd Analysis started.\n")
-            
+
+            """
             i = 1
             for type in p.data.keys():
                 logging.info(f"Going to Plot Even Odd {type} Output and RMS.")
@@ -533,12 +537,12 @@ def main():
                     logging.info(f"{type}: {3 * i}/18) RMS plot done.")
                     i += 1
                 logging.info(f"{type}: Done.\n")
-
+            """
             for type in p.data.keys():
                 logging.info(f"Going to Plot {type} Even-Odd Correlation.")
                 p.Plot_Correlation_EvenOdd(type, begin=0, end=-1, show=False)
                 logging.info(f"Done.\n")
-            
+
             i = 1
             for type in p.data.keys():
                 logging.info(f"Going to Plot {type} Even-Odd FFT.")
@@ -641,9 +645,15 @@ def main():
 
             # WARNINGS
             t_warner = ""
+
+            # GENERAL STRIP WARNINGS regarding times
+            for bros in t_warn:
+                t_warner += bros
+            # Time Warnings
             for bros in p.warnings["time_warning"]:
                 t_warner += bros
 
+            # Correlation Warnings
             t = 0.4
             if len(p.warnings["corr_warning"]) == 0:
                 corr_warner = "Nothing to notify. All correlations seem ok."
@@ -653,6 +663,7 @@ def main():
                     corr_warner += bros + "<br />"
             corr_warner = f"Correlation Warning Threshold set at {t}.<br />" + corr_warner
 
+            # Even Odd Warnings
             eo_warner = ""
             if len(p.warnings["eo_warning"]) == 0:
                 eo_warner = "Nothing to point out.\n"
@@ -660,6 +671,7 @@ def main():
                 for bros in p.warnings["eo_warning"]:
                     eo_warner += bros + "<br />"
 
+            # Spike Warnings
             spike_warner = ""
             for bros in p.warnings["spike_warning"]:
                 spike_warner += bros
@@ -694,6 +706,10 @@ def main():
             filename = Path(f"{rep_output_dir}/report_{name_pol}.html")
             with open(filename, 'w') as outf:
                 outf.write(template.render(data))
+
+    csvFilePath = f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.csv'
+    jsonFilePath = f'{csv_output_dir}/General_Report_{gdate[0]}__{gdate[1]}.json'
+    fz.csv_to_json(csvFilePath, jsonFilePath)
 
 
 if __name__ == "__main__":

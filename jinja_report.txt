@@ -122,7 +122,7 @@ table, th, td {
 {% for status in ["0", "1"] %}
 <font size="5"><br /><b>Plot of Thermal Sensor in status {{status}}:<b/></font><br />
 <p></p>
-<img src= "{{plot_dir}}/Thermal_Output/{{name_polarimeter}}_thermal_status_{{status}}.png"/>
+<img src= "{{plot_dir}}/Thermal_Output/Thermal_status_{{status}}.png"/>
 {% endfor %}
 
 The main results for each sensor are here scheduled.

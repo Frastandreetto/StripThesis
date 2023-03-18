@@ -6,6 +6,7 @@
 # October 29th 2022, Brescia (Italy)
 
 import csv
+import json
 import logging
 import numpy as np
 import scipy.stats as scs
@@ -243,7 +244,7 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
     exp_med = exp_med / 86400  # Conversion in days
     med_dt = np.median(dt.value)  # If ".value" is not used the time needed is 1.40min vs 340ms... Same results.
     median_ok = True
-    if np.abs(np.abs(med_dt/100) - np.abs(exp_med)) > tolerance / 86400:  # Over the tolerance
+    if np.abs(np.abs(med_dt) - np.abs(exp_med)) > tolerance / 86400:  # Over the tolerance
         msg = f"Median is out of range: {med_dt}, expected {exp_med}."
         logging.warning(msg)
         median_ok = False
@@ -274,3 +275,29 @@ def dir_format(old_string: str) -> str:
     new_string = new_string.replace(".000", "")
     new_string = new_string.replace(":", "-")
     return new_string
+
+
+def csv_to_json(csv_file_path: str, json_file_path):
+    """
+    Convert a csv file into a json file
+    Parameters:\n
+    - csv_file_path (``str``): path of the csv file that have to be converted
+    - json_file_path (``str``): path of the json file converted
+    """
+    json_array = []
+
+    # read csv file
+    with open(csv_file_path, encoding='utf-8') as csv_file:
+        # load csv file data using csv library's dictionary reader
+        csvReader = csv.DictReader(csv_file)
+
+        # convert each csv row into python dict
+        for row in csvReader:
+            # add this python dict to json array
+            json_array.append(row)
+
+    # convert python json_array to JSON String and write to file
+    with open(json_file_path, 'w', encoding='utf-8') as json_file:
+        json_string = json.dumps(json_array, indent=4)
+        json_file.write(json_string)
+
