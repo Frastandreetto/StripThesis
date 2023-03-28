@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-# This file contains the 14th version (0.0.14) of the new LSPE-Strip pipeline.
-# It produces a complete scan of a polarimeter.
-# December 7th 2022, Brescia (Italy)
+# This file contains the first release of a new LSPE-Strip pipeline for functional verification.
+# It produces a complete scan of a polarimeter producing reports in html, csv and json.
+# December 7th 2022, Brescia (Italy) - March 29th 2023, Milano (Italy).
 
 # Libraries & Modules
 import csv

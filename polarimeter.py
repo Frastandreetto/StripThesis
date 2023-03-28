@@ -382,9 +382,9 @@ class Polarimeter:
                 "TILES": ["TS-CX4-Module-G", "TS-CX6-Module-O", "TS-CX2-Module-V"],
                 "FRAME": ["TS-CX10-Frame-120", "TS-DT6-Frame-South"],
                 "POLAR": ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy"],
-                "100-200": ["TS-CX16-Filter", "TS-DT3-Shield-Base"],  # , "TS-SP2-L-Support" # Excluded for the moment
+                "100-200K": ["TS-CX16-Filter", "TS-DT3-Shield-Base"],  # , "TS-SP2-L-Support" # Excluded for the moment
                 # "VERIFY": ["EX-CX18-SpareCx"],  # Excluded for the moment
-                "COL_HEAD": ["TS-SP1-SpareDT"]
+                "COLD_HEAD": ["TS-SP1-SpareDT"]
             },
             "1": {
                 "TILES": ["TS-CX3-Module-B", "TS-CX7-Module-I", "TS-CX1-Module-R", "TS-CX5-Module-Y"],
@@ -424,6 +424,72 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
+    def Plot_FFT_TS(self, status: int, nseg=np.inf, show=False):
+        """
+        Plot the FFT of the calibrated acquisitions of Thermal Sensors of the polarimeter.\n
+            Parameters:\n
+         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+         - **nseg**: number of elements on which the periodogram is calculated. Then the average of all periodograms is
+         computed to produce the spectrogram. Changing this parameter allow to reach lower frequencies in the FFT plot:
+         in particular, the limInf of the x-axis is fs/nseg.
+         - **status** (``int``): *0* or *1* -> It refers to the status of the multiplexer that acquire the TS
+        """
+        thermals = {
+            "0": {
+                "COLD_HEAD": ["TS-SP1-SpareDT"],
+                "TILES": ["TS-CX4-Module-G", "TS-CX6-Module-O", "TS-CX2-Module-V"],
+                "FRAME": ["TS-CX10-Frame-120", "TS-DT6-Frame-South"],
+                "POLAR": ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy"],
+                "100-200K": ["TS-CX16-Filter", "TS-DT3-Shield-Base"]  # , "TS-SP2-L-Support" # Excluded for the moment
+                # "VERIFY": ["EX-CX18-SpareCx"],  # Excluded for the moment
+            },
+            "1": {
+                "COLD_HEAD": ["TS-SP1-SpareDT"],
+                "TILES": ["TS-CX3-Module-B", "TS-CX7-Module-I", "TS-CX1-Module-R", "TS-CX5-Module-Y"],
+                "FRAME": ["TS-CX8-Frame-0", "TS-CX9-Frame-60", "TS-CX11-Frame-North", "TS-CX15-IF-Frame-0"],
+                "POLAR": ["TS-CX13-Pol-Qx"],
+                "100-200K": ["TS-DT5-Shield-Side"],  # , "TS-CX17-Wheel-Center" # Excluded for the moment
+                # "VERIFY": ["EX-DT2-SpareDT"],
+            }}
+
+        if status == 0 or status == 1:
+            n_rows = len(thermals[f"{status}"].keys())
+            fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(15, 10))
+        else:
+            sys.exit("Invalid Status. It must be 0 or 1.")
+
+        fig.suptitle(f'Plot Thermal Sensors FFT status {status}- Date: {self.gdate[0]}', fontsize=14)
+        color = "teal"
+        fs = 1 / 20.
+        for i, group in enumerate(thermals[f"{status}"].keys()):
+            for j, sensor_name in enumerate(thermals[f"{status}"][group]):
+
+                if sensor_name == "TS-SP1-SpareDT":
+                    color = "cyan"
+                else:
+                    color = "teal"
+                f, s = scipy.signal.welch(self.thermal_sensors["thermal_data"]["calibrated"][sensor_name],
+                                          fs=fs, nperseg=min(int(fs * 10 ** 4), nseg))
+                axs[i].plot(f[f < 25.], s[f < 25.],
+                            linewidth=0.2, label=f"{sensor_name}", marker=".", markerfacecolor='blue', markersize=4)
+
+                # Title
+                axs[i].set_title(f"FFT TS GROUP {group}")
+                # XY-axis
+                axs[i].set_yscale("log")
+                axs[i].set_xscale("log")
+                axs[i].set_xlabel(f"$Frequency$ $[Hz]$")
+                axs[i].set_ylabel(f"PSD [K**2/Hz]")
+                # Legend
+                axs[i].legend(prop={'size': 9}, loc=7)
+
+        path = f"../plot/{self.date_dir}/Thermal_Output/FFT/"
+        Path(path).mkdir(parents=True, exist_ok=True)
+        fig.savefig(f'{path}FFT_Thermal_status_{status}.png', dpi=600)
+        if show:
+            plt.show()
+        plt.close(fig)
+
     def Plot_Correlation_TS(self, type: str, begin=0, end=-1, show=False):
         """
         Plot of Correlation between Raw data DEM or PWR & Thermal Sensor Outputs.\n
@@ -455,7 +521,7 @@ class Polarimeter:
                 axs[idx, n].set_title(f'Corr {ts} vs {type} {exit}')
                 # XY-axis
                 # axs[idx, n].set_aspect('equal')
-                axs[idx, n].set_xlabel(f"{type} Output")
+                axs[idx, n].set_xlabel(f"{type} Output [ADU]")
                 axs[idx, n].set_ylabel(f"Temperature [K]")
                 # Legend
                 axs[idx, n].legend(prop={'size': 9}, loc=7)
@@ -609,11 +675,11 @@ class Polarimeter:
          - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         """
         col = ["plum", "gold"]
-        label = ["Voltage [$\mu$V]", "Current [$\mu$A]"]
+        label = ["Voltage [mV]", "Current [$\mu$A]"]
         for idx, item in enumerate(["V", "I"]):
             hk_name = self.hk_list[item]
 
-            fig, axs = plt.subplots(nrows=4, ncols=3, constrained_layout=True, figsize=(15, 12), sharey='row')
+            fig, axs = plt.subplots(nrows=4, ncols=3, constrained_layout=True, figsize=(15, 8), sharey='row')
             fig.suptitle(f'Plot Housekeeping parameters: {item} - Date: {self.gdate[0]}', fontsize=14)
             for i in range(4):
                 for j in range(3):
@@ -635,7 +701,7 @@ class Polarimeter:
 
             path = f"../plot/{self.date_dir}/HouseKeeping/{self.name}/"
             Path(path).mkdir(parents=True, exist_ok=True)
-            fig.savefig(f'{path}{self.name}_HK_{item}.png')
+            fig.savefig(f'{path}{self.name}_HK_{item}.png', dpi=400)
             if show:
                 plt.show()
             plt.close(fig)
@@ -651,7 +717,7 @@ class Polarimeter:
         for idx, item in enumerate(["O"]):
             hk_name = self.hk_list[item]
 
-            fig, axs = plt.subplots(nrows=1, ncols=4, constrained_layout=True, figsize=(15, 4), sharey='row')
+            fig, axs = plt.subplots(nrows=1, ncols=4, constrained_layout=True, figsize=(15, 3), sharey='row')
             fig.suptitle(f'Plot Housekeeping parameters: {item} - Date: {self.gdate[0]}', fontsize=14)
             for j in range(4):
                 axs[j].scatter(self.hk_t[item][hk_name[j]],
@@ -664,7 +730,7 @@ class Polarimeter:
 
             path = f"../plot/{self.date_dir}/HouseKeeping/{self.name}/"
             Path(path).mkdir(parents=True, exist_ok=True)
-            fig.savefig(f'{path}{self.name}_HK_{item}.png')
+            fig.savefig(f'{path}{self.name}_HK_{item}.png', dpi=400)
             if show:
                 plt.show()
             plt.close(fig)
@@ -681,23 +747,23 @@ class Polarimeter:
         - **begin**, **end** (``int``): interval of dataset that has to be considered\n
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         """
-        fig = plt.figure(figsize=(17, 5))
+        fig = plt.figure(figsize=(20, 6))
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'{self.name} Output {type} - Date: {begin_date}', fontsize=14)
+        fig.suptitle(f'{self.name} Output {type} - Date: {begin_date}', fontsize=18)
         o = 0
         for exit in ["Q1", "Q2", "U1", "U2"]:
             o = o + 1
             ax = fig.add_subplot(1, 4, o)
             ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
             ax.set_title(f"{exit}")
-            ax.set_xlabel("Time [s]")
-            ax.set_ylabel(f"Output {type} [ADU]")
+            ax.set_xlabel("Time [s]", size=15)
+            ax.set_ylabel(f"Output {type} [ADU]", size=15)
         plt.tight_layout()
 
         path = f"../plot/{self.date_dir}/Output/"
         Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_{type}.png')
+        fig.savefig(f'{path}{self.name}_{type}.png', dpi=400)
         if show:
             plt.show()
         plt.close(fig)
@@ -718,7 +784,7 @@ class Polarimeter:
         eoa = EOA(even=even, odd=odd, all=all)
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'POL {self.name} - plot {eoa} {type}\nDate: {begin_date}', fontsize=14)
+        fig.suptitle(f'POL {self.name} - plot {eoa} {type}\nDate: {begin_date}', fontsize=18)
 
         for i in range(2):
             n = 0  # type: int
@@ -741,15 +807,15 @@ class Polarimeter:
                                    fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len)[:-1],
                                    color="forestgreen", alpha=all, label="All Output")
                 # Title
-                axs[i, n].set_title(f'{type} {exit}')
+                axs[i, n].set_title(f'{type} {exit}', size=15)
                 # X-axis
                 # axs[i, n].set_xticklabels(rotation=45, ha="right")
                 if self.norm_mode == 0:
-                    axs[i, n].set_xlabel("# Samples")
+                    axs[i, n].set_xlabel("# Samples", size=15)
                 if self.norm_mode == 1:
-                    axs[i, n].set_xlabel("Time [s]")
+                    axs[i, n].set_xlabel("Time [s]", size=15)
                 # Y-axis
-                axs[i, n].set_ylabel(f"Output {type} [ADU]")
+                axs[i, n].set_ylabel(f"Output {type} [ADU]", size=15)
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
@@ -757,7 +823,7 @@ class Polarimeter:
 
         path = f"../plot/{self.date_dir}/EvenOddAll_Analysis/EOA_Output/{self.name}/"
         Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_{type}_{eoa}_smooth={smooth_len}.png')
+        fig.savefig(f'{path}{self.name}_{type}_{eoa}_smooth={smooth_len}.pdf', dpi=400)
         if show:
             plt.show()
         plt.close(fig)
@@ -780,7 +846,7 @@ class Polarimeter:
         eoa = EOA(even=even, odd=odd, all=all)
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'RMS {eoa} {type} - Date: {begin_date}', fontsize=14)
+        fig.suptitle(f'POL {self.name} - RMS {eoa} {type}\nDate: {begin_date}', fontsize=18)
 
         for i in range(2):
             n = 0  # type: int
@@ -812,11 +878,11 @@ class Polarimeter:
                 axs[i, n].set_title(f'RMS {type} {exit}')
                 # X-axis
                 if self.norm_mode == 0:
-                    axs[i, n].set_xlabel("# Samples")
+                    axs[i, n].set_xlabel("# Samples", size=15)
                 if self.norm_mode == 1:
-                    axs[i, n].set_xlabel("Time [s]")
+                    axs[i, n].set_xlabel("Time [s]", size=15)
                 # Y-axis
-                axs[i, n].set_ylabel(f"RMS {type} [ADU]")
+                axs[i, n].set_ylabel(f"RMS {type} [ADU]", size=15)
                 # Legend
                 axs[i, n].legend(prop={'size': 9}, loc=7)
 
@@ -824,7 +890,7 @@ class Polarimeter:
 
         path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/EOA_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.png')
+        fig.savefig(f'{path}{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.pdf', dpi=400)
         if show:
             plt.show()
         plt.close(fig)
