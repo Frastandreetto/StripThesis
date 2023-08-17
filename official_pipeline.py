@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 # This file contains the new LSPE-Strip official pipeline for functional verification.
-# It includes different analysis modalities: ...
+# It includes different analysis modalities: total analysis, housekeeping analysis and thermal analysis
 # July 23rd 2023, Brescia (Italy) - ...
 
 import argparse
@@ -10,7 +10,8 @@ import logging
 from pathlib import Path
 from rich.logging import RichHandler
 
-import f_strip
+# MyLibraries & MyModules
+import f_strip as fz
 
 
 def main():
@@ -157,6 +158,10 @@ def main():
     parser_C.add_argument('--nperseg_thermal', '-nps_th', type=int, default=256,
                           help='int value that defines the number of elements of the array of thermal measures'
                                'on which the fft is calculated.')
+    # nperseg FFT Thermal
+    parser_C.add_argument('--status', '-stat', type=int, default=2, choices=[0, 1, 2],
+                          help='int value that defines the status of the thermal sensors to analyze: 0 or 1. '
+                               'If it is set on 2, both states will be analyzed.')
 
     ####################################################################################################################
     # Option for all the modalities
@@ -186,10 +191,10 @@ def main():
         raise SystemExit(1)
 
     # Check on datatime objects: start_datetime & end_datetime
-    if not f_strip.datetime_check(args.start_datetime):
+    if not fz.datetime_check(args.start_datetime):
         logging.error("start_datetime: wrong datetime format.")
         raise SystemExit(1)
-    if not f_strip.datetime_check(args.end_datetime):
+    if not fz.datetime_check(args.end_datetime):
         logging.error("end_datetime: wrong datetime format.")
         raise SystemExit(1)
 
@@ -198,25 +203,32 @@ def main():
         logging.error("end_datetime is before than start_datetime: wrong datetime values.")
         raise SystemExit(1)
 
-    # Check on the names of the polarimeters
+    # MODE A and B: Check on the names of the polarimeters
     if args.subcommand == "tot" or args.subcommand == "pol_hk":
         name_pol = args.name_pol.split()
 
-        if not f_strip.name_check(name_pol):
+        if not fz.name_check(name_pol):
             logging.error("The names of the polarimeters provided are not valid. Please check them again."
                           "They must be written as follows: 'B0 B1'")
             raise SystemExit(1)
 
+    # MODE C: Check on the status value
+        if args.subcommand == "thermal_hk":
+            if args.status not in (["0", "1", "2"]):
+                logging.error("Invalid status value. Please choose between the values 0 and 1 for a single analysis."
+                              "Choose the value 2 to have both.")
+                raise SystemExit(1)
+
     ####################################################################################################################
     if args.subcommand == "tot":
         logging.info("The total analysis is beginning... Have a seat!")
-        # f_strip.total()
+        # tot_strip.tot()
     elif args.subcommand == "pol_hk":
         logging.info("The housekeeping analysis is beginning...")
-        # f_strip.pol_hk()
+        # fz.pol_hk()
     elif args.subcommand == "thermal_hk":
         logging.info("The thermal analysis is beginning...")
-        # f_strip.thermal_hk()
+        # fz.thermal_hk()
 
 
 if __name__ == "__main__":

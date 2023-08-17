@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-# This file contains part of the code used in the bachelor thesis of Francesco Andreetto (2020)
-# updated to be used on the new version of the software of LSPE-STRIP
-# November 1st 2022, Brescia (Italy)
+# This file contains the class Polarimeter
+# Part of this code was used in Francesco Andreetto's bachelor thesis (2020) and master thesis (2023).
+# Use this class with the new version of the pipeline for functional verification of LSPE-STRIP (2023).
+
+# Creation: November 1st 2022, Brescia (Italy)
 
 # Libraries & Modules
 import csv
@@ -26,6 +28,10 @@ from typing import List, Dict, Any
 
 # MyLibraries & MyModules
 import f_strip as fz
+
+# Use the module logging to produce nice messages on the shell
+logging.basicConfig(level="INFO", format='%(message)s',
+                    datefmt="[%X]", handlers=[RichHandler()])
 
 
 ########################################################################################################
@@ -74,7 +80,10 @@ class Polarimeter:
                   "TS-CX7-Module-I", "TS-CX8-Frame-0", "TS-CX13-Pol-Qx", "TS-CX17-Wheel-Center",
                   "EX-DT2-SpareDT", "TS-DT5-Shield-Side", "TS-CX1-Module-R", "TS-CX3-Module-B"]}
 
+        # The following TS was excluded during the system level tests in March 2023.
+        # Pay attention if it must be included for your purpose now!
         # TS-SP2-SpareCx
+
         thermal_times = {"0": [], "1": []}
         raw = {}
         calibrated = {}
@@ -117,6 +126,9 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
+                # Conversion to list to better handle the data array
+                self.data[type][exit] = list(self.data[type][exit])
+
         self.STRIP_SAMPLING_FREQ = 0
 
     def Load_X(self, type: str):
@@ -219,6 +231,8 @@ class Polarimeter:
             self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ  # Seconds
         if norm_mode == 2:
             self.times = self.times.value  # JHD
+        # Conversion to list to better handle the data array
+        self.times = list(self.times)
 
     def Prepare(self, norm_mode: int):
         """
@@ -490,6 +504,9 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
+    # PROBLEM: CORRELAZIONI TS - DEM/PWR non fattibili senza il nome di un polarimetro.
+    # CREAZIONE FUNZIONE DI CORRELZIONE GENERICA TRA DUE DATASET CHE VADA BENE PER TUTTI I TIPI DI DATI:
+    # TS, DEM, PWR, Altro?
     def Plot_Correlation_TS(self, type: str, begin=0, end=-1, show=False):
         """
         Plot of Correlation between Raw data DEM or PWR & Thermal Sensor Outputs.\n
@@ -1719,13 +1736,10 @@ class Polarimeter:
         csv_matrix = [""]
 
         for i in corr_matrix.keys():
-            """
-            Put at nan the values on the diagonal of the matrix (self correlations)
-            """
+            # Assign a nan value on the diagonal of the matrix (self correlations=1)
             corr_matrix[i][i] = np.nan
-            """
-            Write a warning in the report if there is high correlation between the channels
-            """
+
+            # Write a warning in the report if there is high correlation between the channels
             keys.remove(i)
             for j in keys:
                 logging.debug(f"Correlation {i} with {j}.")
@@ -1965,6 +1979,7 @@ class Polarimeter:
         return spike_list
 
 
+# MOVE THIS IN f_strip
 def RMS(data, window: int, exit: str, eoa: int, begin=0, end=-1):
     """
     Calculate the RMS of a vector using the rolling window
@@ -1989,6 +2004,7 @@ def RMS(data, window: int, exit: str, eoa: int, begin=0, end=-1):
     return rms
 
 
+# MOVE THIS IN f_strip
 def EOA(even: int, odd: int, all: int) -> str:
     """
     Parameters:\n
