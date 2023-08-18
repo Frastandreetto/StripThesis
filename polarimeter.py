@@ -507,7 +507,7 @@ class Polarimeter:
         """
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
-        eoa = EOA(even=even, odd=odd, all=all)
+        eoa = fz.EOA(even=even, odd=odd, all=all)
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'POL {self.name} - plot {eoa} {type}\nDate: {begin_date}', fontsize=18)
@@ -569,7 +569,7 @@ class Polarimeter:
         """
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
-        eoa = EOA(even=even, odd=odd, all=all)
+        eoa = fz.EOA(even=even, odd=odd, all=all)
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'POL {self.name} - RMS {eoa} {type}\nDate: {begin_date}', fontsize=18)
@@ -584,19 +584,19 @@ class Polarimeter:
                 if even != 0:
                     axs[i, n].plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
                                    fz.mob_mean(
-                                       RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
+                                       fz.RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
                                        smooth_len=smooth_len),
                                    color="royalblue", alpha=even, label="Even Output")
                 if odd != 0:
                     axs[i, n].plot(self.times[begin + 1:end:2][:-window - smooth_len + 2],
                                    fz.mob_mean(
-                                       RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
+                                       fz.RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
                                        smooth_len=smooth_len),
                                    color="crimson", alpha=odd, label="Odd Output")
                 if all != 0:
                     axs[i, n].plot(self.times[begin:end][:-window - smooth_len + 2],
                                    fz.mob_mean(
-                                       RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end),
+                                       fz.RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end),
                                        smooth_len=smooth_len),
                                    color="forestgreen", alpha=all, label="All Output")
 
@@ -687,8 +687,8 @@ class Polarimeter:
                     axs[i, n].sharey(axs[1, 0])
                     axs[i, n].sharex(axs[1, 0])
 
-                x = RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
-                y = RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
+                x = fz.RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
+                y = fz.RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
                 axs[i, n].plot(x, y, "*", color="teal", label="Corr RMS")
 
                 # Title
@@ -796,8 +796,9 @@ class Polarimeter:
                     axs[i, n].sharey(axs[1, 0])
 
                 sci_data = self.Demodulation(type=type, exit=exit)
-                rms_all = fz.mob_mean(RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end),
-                                      smooth_len=smooth_len)
+                rms_all = fz.mob_mean(
+                    fz.RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end),
+                    smooth_len=smooth_len)
 
                 axs[i, n].plot(sci_data["times"][begin:len(rms_all) + begin], rms_all,
                                color="mediumvioletred", label=f"RMS {data_name}")
@@ -888,7 +889,7 @@ class Polarimeter:
         scaling = "spectrum"
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
-        eoa = EOA(even=even, odd=odd, all=all)
+        eoa = fz.EOA(even=even, odd=odd, all=all)
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'FFT Output {eoa} {type} - Date: {begin_date}', fontsize=14)
 
@@ -1007,7 +1008,7 @@ class Polarimeter:
 
                 n += 1
 
-        eoa = EOA(even=even, odd=odd, all=all)
+        eoa = fz.EOA(even=even, odd=odd, all=all)
 
         path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/FFT_EOA_Output/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
@@ -1040,7 +1041,7 @@ class Polarimeter:
         scaling = "spectrum"
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
-        eoa = EOA(even=even, odd=odd, all=all)
+        eoa = fz.EOA(even=even, odd=odd, all=all)
 
         begin_date = self.Date_Update(n_samples=begin, modify=False)
         fig.suptitle(f'FFT RMS {eoa} {type} - Date: {begin_date}', fontsize=14)
@@ -1052,19 +1053,19 @@ class Polarimeter:
                     axs[i, n].sharey(axs[1, 0])
 
                 if all != 0:
-                    rms = RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
+                    rms = fz.RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
                     f, s = scipy.signal.welch(rms, fs=fs, nperseg=min(len(rms), nseg), scaling=scaling)
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
                                    alpha=all, label="All samples")
 
                 if even != 0:
-                    rms = RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
+                    rms = fz.RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
                     f, s = scipy.signal.welch(rms, fs=fs / 2, nperseg=min(len(rms), nseg), scaling=scaling)
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
                                    alpha=even, label=f"Even samples")
 
                 if odd != 0:
-                    rms = RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
+                    rms = fz.RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
                     f, s = scipy.signal.welch(rms, fs=fs / 2, nperseg=min(len(rms), nseg), scaling=scaling)
                     axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
                                    alpha=odd, label=f"Odd samples")
@@ -1082,7 +1083,7 @@ class Polarimeter:
 
                 n += 1
 
-        eoa = EOA(even=even, odd=odd, all=all)
+        eoa = fz.EOA(even=even, odd=odd, all=all)
 
         path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/FFT_EOA_RMS/{self.name}/'
         Path(path).mkdir(parents=True, exist_ok=True)
@@ -1234,7 +1235,7 @@ class Polarimeter:
 
                 sci_data = self.Demodulation(type=type, exit=exit)
 
-                rms = RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end)
+                rms = fz.RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end)
                 f, s = scipy.signal.welch(rms, fs=fs, nperseg=min(len(rms), nseg), scaling=scaling)
 
                 axs[i, n].plot(f[f < 25.], s[f < 25.], linewidth=0.2, marker=".",
@@ -1407,7 +1408,7 @@ class Polarimeter:
         if scientific:
             for exit in self.data[type].keys():
                 sci_data = self.Demodulation(type=type, exit=exit)
-                sci[exit] = RMS(sci_data["sci_data"], window=100, exit=exit, eoa=0, begin=begin, end=end)
+                sci[exit] = fz.RMS(sci_data["sci_data"], window=100, exit=exit, eoa=0, begin=begin, end=end)
 
                 if type == "DEM":
                     data_name = "RMS_DEMODULATED"
@@ -1424,8 +1425,8 @@ class Polarimeter:
                 data_name = f"RMS_{type}"
                 eoa = 0
             for exit in self.data[type].keys():
-                sci[exit] = RMS(self.data[type],
-                                window=100, exit=exit, eoa=eoa, begin=begin, end=end)
+                sci[exit] = fz.RMS(self.data[type],
+                                   window=100, exit=exit, eoa=eoa, begin=begin, end=end)
 
         fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(14, 7))
 
@@ -1686,48 +1687,3 @@ class Polarimeter:
             spike_list = [["No spikes detected in DEM and PWR Output.<br /><p></p>"]]
 
         return spike_list
-
-
-# MOVE THIS IN f_strip
-def RMS(data, window: int, exit: str, eoa: int, begin=0, end=-1):
-    """
-    Calculate the RMS of a vector using the rolling window
-    Parameters:\n
-    - **data** is a dictionary with four keys (exits) of a particular type *"DEM"* or *"PWR"*
-    - **window**: number of elements on which the RMS is calculated
-    - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*
-    - **eoa** (``int``): flag in order to calculate RMS for\n
-        all samples (*eoa=0*), can be used for Demodulated and Total Power scientific data (50Hz)\n
-        odd samples (*eoa=1*)\n
-        even samples (*eoa=2*)\n
-    - **begin**, **end** (``int``): interval of dataset that has to be considered
-    """
-    if eoa == 0:
-        rms = np.std(fz.rolling_window(data[exit][begin:end], window), axis=1)
-    elif eoa == 1:
-        rms = np.std(fz.rolling_window(data[exit][begin + 1:end:2], window), axis=1)
-    elif eoa == 2:
-        rms = np.std(fz.rolling_window(data[exit][begin:end - 1:2], window), axis=1)
-    else:
-        rms = np.nan
-    return rms
-
-
-# MOVE THIS IN f_strip
-def EOA(even: int, odd: int, all: int) -> str:
-    """
-    Parameters:\n
-    - **even**, **odd**, **all** (``int``)
-    If the variables are different from zero, this returns a string that contains the letters of the samples plotted:\n
-    "E" for even (``int``)\n
-    "O" for odd (``int``)\n
-    "A" for all (``int``)\n
-    """
-    eoa = ""
-    if even != 0:
-        eoa += "E"
-    if odd != 0:
-        eoa += "O"
-    if all != 0:
-        eoa += "A"
-    return eoa

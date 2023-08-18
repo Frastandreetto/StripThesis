@@ -115,6 +115,49 @@ def mob_mean(v, smooth_len: int):
     return m
 
 
+def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1):
+    """
+    Calculate the RMS of a vector using the rolling window
+    Parameters:\n
+    - **data** is a dictionary with four keys (exits) of a particular type *"DEM"* or *"PWR"*
+    - **window**: number of elements on which the RMS is calculated
+    - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*
+    - **eoa** (``int``): flag in order to calculate RMS for\n
+        all samples (*eoa=0*), can be used for Demodulated and Total Power scientific data (50Hz)\n
+        odd samples (*eoa=1*)\n
+        even samples (*eoa=2*)\n
+    - **begin**, **end** (``int``): interval of dataset that has to be considered
+    """
+    if eoa == 0:
+        rms = np.std(rolling_window(data[exit][begin:end], window), axis=1)
+    elif eoa == 1:
+        rms = np.std(rolling_window(data[exit][begin + 1:end:2], window), axis=1)
+    elif eoa == 2:
+        rms = np.std(rolling_window(data[exit][begin:end - 1:2], window), axis=1)
+    else:
+        rms = np.nan
+    return rms
+
+
+def EOA(even: int, odd: int, all: int) -> str:
+    """
+    Parameters:\n
+    - **even**, **odd**, **all** (``int``)
+    If the variables are different from zero, this returns a string that contains the corresponding letters:\n
+    "E" for even (``int``)\n
+    "O" for odd (``int``)\n
+    "A" for all (``int``)\n
+    """
+    eoa = ""
+    if even != 0:
+        eoa += "E"
+    if odd != 0:
+        eoa += "O"
+    if all != 0:
+        eoa += "A"
+    return eoa
+
+
 def find_spike(v, threshold=8.5, n_chunk=5) -> []:
     """
         Look up for 'spikes' in a given array.\n
