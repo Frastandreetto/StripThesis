@@ -4,6 +4,7 @@
 # It includes different analysis modalities: total analysis, housekeeping analysis and thermal analysis
 # July 23rd 2023, Brescia (Italy) - ...
 
+# Libraries & Modules
 import argparse
 import logging
 
@@ -12,32 +13,45 @@ from rich.logging import RichHandler
 
 # MyLibraries & MyModules
 import f_strip as fz
+import stripop_tot as strip_a
+import stripop_pol_hk as strip_b
+import stripop_thermal_hk as strip_c
 
 
 def main():
     """
         Pipeline that can be used in three different operative modalities:
+
         A) "tot" -> Performs the analysis of one or more polarimeters producing a complete report.
-        The analysis can include plots of: Even-Odd Output, Scientific Data, FFT and correlation Matrices.
+        The analysis can include plots of: Even-Odd Output, Scientific Data, FFT, correlation and Matrices.
         The reports produced include also info about the state of the housekeeping parameters and the thermal sensors.
-        Parameters:
-            - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
-            - **start_datetime** (``str``): start time
-            - **end_datetime** (``str``): end time
-            - **name_pol** (``str``): name of the polarimeter. If more than one write them into ' ' separated by space.
+
+            Parameters:
+                - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
+                - **start_datetime** (``str``): start time
+                - **end_datetime** (``str``): end time
+                - **name_pol** (``str``): name of the polarimeter. If more than one write them spaced into ' '.
 
         B) "pol_hk" -> Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
-        Parameters:
-            - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
-            - **start_datetime** (``str``): start time
-            - **end_datetime** (``str``): end time
-            - **name_pol** (``str``): name of the polarimeter. If more than one write them into ' ' separated by space.
+
+            Parameters:
+                - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
+                - **start_datetime** (``str``): start time
+                - **end_datetime** (``str``): end time
+                - **name_pol** (``str``): name of the polarimeter. If more than one write them spaced into ' '.
 
         C) "thermal_hk" -> Performs only the analysis of the thermal sensors of Strip.
-        Parameters:
+
+            Parameters:
             - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
             - **start_datetime** (``str``): start time
             - **end_datetime** (``str``): end time
+            - **status** (``int``): status of the multiplexer of the TS to analyze: 0, 1 or 2 (which stands for both).
+            - **fft** (``bool``): If true, the code will compute the power spectra of the TS.
+            - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
+            - **corr_t** (``float``): lim sup for the correlation value between two dataset:
+             if the value computed is higher than the threshold, a warning is produced.
+
     """
     # Use the module logging to produce nice messages on the shell
     logging.basicConfig(level="INFO", format='%(message)s',
@@ -86,6 +100,9 @@ def main():
                           help='Integer number used to convert the array of the data into a matrix '
                                'with a number "window" of elements per row and then calculate the RMS on every row. '
                                'window=1 equals no conversion.')
+    # FFT
+    parser_A.add_argument('--fourier', '-fft', action="store_true",
+                          help='If true, the code will compute the power spectra of the scientific data.')
     # nperseg FFT data
     parser_A.add_argument('--nperseg', '-nps', type=int, default=256,
                           help='int value that defines the number of elements of the array of scientific data'
@@ -94,9 +111,6 @@ def main():
     parser_A.add_argument('--nperseg_thermal', '-nps_th', type=int, default=256,
                           help='int value that defines the number of elements of the array of thermal measures'
                                'on which the fft is calculated.')
-    # FFT
-    parser_A.add_argument('--fourier', '-fft', action="store_true",
-                          help='If true, the code will compute the power spectra of the scientific data.')
     # Spikes Sci-data
     parser_A.add_argument('--spike_data', '-sd', action="store_true",
                           help='If true, the code will look for spikes in Sci-data')
@@ -108,8 +122,8 @@ def main():
     parser_A.add_argument('--corr_mat', '-cm', action="store_true",
                           help='If true, the code will compute the correlation matrices '
                                'of the even-odd and scientific data.')
-    # Correlation Matrices Threshold
-    parser_A.add_argument('--corr_mat_t', '-cmt', type=float, default=0.4,
+    # Correlation Threshold
+    parser_A.add_argument('--corr_t', '-ct', type=float, default=0.4,
                           help='Floating point number used as lim sup for the correlation value between two dataset: '
                                'if the value computed is higher than the threshold, a warning is produced.')
 
@@ -154,14 +168,21 @@ def main():
     parser_C.add_argument("end_datetime", action='store', type=str,
                           help='- Ending datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
     # Flags (optional)
+    # FFT
+    parser_C.add_argument('--fourier', '-fft', action="store_true",
+                          help='If true, the code will compute the power spectra of the thermal measures.')
     # nperseg FFT Thermal
     parser_C.add_argument('--nperseg_thermal', '-nps_th', type=int, default=256,
                           help='int value that defines the number of elements of the array of thermal measures'
                                'on which the fft is calculated.')
-    # nperseg FFT Thermal
+    # status
     parser_C.add_argument('--status', '-stat', type=int, default=2, choices=[0, 1, 2],
-                          help='int value that defines the status of the thermal sensors to analyze: 0 or 1. '
+                          help='int value that defines the status of the multiplexer of the TS to analyze: 0 or 1. '
                                'If it is set on 2, both states will be analyzed.')
+    # correlation threshold
+    parser_C.add_argument('--corr_t', '-ct', type=float, default=0.4,
+                          help='Floating point number used as lim sup for the correlation value between two dataset: '
+                               'if the value computed is higher than the threshold, a warning is produced.')
 
     ####################################################################################################################
     # Option for all the modalities
@@ -212,7 +233,7 @@ def main():
                           "They must be written as follows: 'B0 B1'")
             raise SystemExit(1)
 
-    # MODE C: Check on the status value
+        # MODE C: Check on the status value
         if args.subcommand == "thermal_hk":
             if args.status not in (["0", "1", "2"]):
                 logging.error("Invalid status value. Please choose between the values 0 and 1 for a single analysis."
@@ -220,15 +241,28 @@ def main():
                 raise SystemExit(1)
 
     ####################################################################################################################
+    # Operations: A-B-C
     if args.subcommand == "tot":
         logging.info("The total analysis is beginning... Have a seat!")
-        # tot_strip.tot()
+        # Total Analysis Operation
+        strip_a.tot(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
+                    name_pol=args.name_pol, eoa=args.even_odd_all, smooth=args.smooth, window=args.window,
+                    fft=args.fourier, nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
+                    spike_data=args.spike_data, spike_fft=args.spike_fft, corr_mat=args.corr_mat, corr_t=args.corr_t,
+                    output_dir=args.output_dir)
+
     elif args.subcommand == "pol_hk":
         logging.info("The housekeeping analysis is beginning...")
-        # fz.pol_hk()
+        # Housekeeping Analysis Operation
+        strip_b.pol_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
+                       name_pol=args.name_pol, output_dir=args.output_dir)
+
     elif args.subcommand == "thermal_hk":
+        # Thermal Sensors Analysis Operation
         logging.info("The thermal analysis is beginning...")
-        # fz.thermal_hk()
+        strip_c.thermal_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
+                           status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
+                           corr_t=args.corr_t, output_dir=args.output_dir)
 
 
 if __name__ == "__main__":
