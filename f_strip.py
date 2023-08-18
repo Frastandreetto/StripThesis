@@ -5,6 +5,7 @@
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2023)
 # October 29th 2022, Brescia (Italy)
 
+# Libraries & Modules
 import csv
 import json
 import logging
