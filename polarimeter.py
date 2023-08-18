@@ -10,7 +10,6 @@
 # Libraries & Modules
 import csv
 import logging
-import sys
 
 import numpy as np
 import pandas as pd
@@ -22,6 +21,7 @@ from astropy.time import Time
 from matplotlib import pyplot as plt
 from pathlib import Path
 from rich.logging import RichHandler
+from scipy import signal
 
 from striptease import DataStorage
 from typing import List, Dict, Any
@@ -70,25 +70,6 @@ class Polarimeter:
         power = {}
         dem = {}
         self.data = {"DEM": dem, "PWR": power}
-
-        # Dictionary for thermal Analysis
-        self.thermal_list = {
-            "0": ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy", "TS-CX16-Filter", "TS-CX6-Module-O", "TS-SP1-SpareDT",
-                  "TS-CX10-Frame-120", "TS-SP2-L-Support", "EX-CX18-SpareCx", "TS-DT3-Shield-Base",
-                  "TS-DT6-Frame-South", "TS-CX2-Module-V", "TS-CX4-Module-G"],
-            "1": ["TS-CX9-Frame-60", "TS-CX11-Frame-North", "TS-CX15-IF-Frame-0", "TS-CX5-Module-Y",
-                  "TS-CX7-Module-I", "TS-CX8-Frame-0", "TS-CX13-Pol-Qx", "TS-CX17-Wheel-Center",
-                  "EX-DT2-SpareDT", "TS-DT5-Shield-Side", "TS-CX1-Module-R", "TS-CX3-Module-B"]}
-
-        # The following TS was excluded during the system level tests in March 2023.
-        # Pay attention if it must be included for your purpose now!
-        # TS-SP2-SpareCx
-
-        thermal_times = {"0": [], "1": []}
-        raw = {}
-        calibrated = {}
-        thermal_data = {"raw": raw, "calibrated": calibrated}
-        self.thermal_sensors = {"thermal_times": thermal_times, "thermal_data": thermal_data}
 
         # Dictionary for Housekeeping Analysis
         self.hk_list = {"V": ["VG0_HK", "VG1_HK", "VG2_HK", "VG3_HK", "VG4_HK", "VG5_HK",
@@ -279,278 +260,6 @@ class Polarimeter:
 
         sci_data = {"sci_data": data, "times": times}
         return sci_data
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # THERMIC ANALYSIS
-    # ------------------------------------------------------------------------------------------------------------------
-    def Load_Thermal_Sensors(self):
-        """
-        Load all Thermal Sensor's data taking the names from the list in the constructor.
-        """
-        for status in range(2):
-            for calib, bol in zip(["raw", "calibrated"], [True, False]):
-                for sensor_name in self.thermal_list[f"{status}"]:
-                    self.thermal_sensors["thermal_times"][f"{status}"], \
-                        self.thermal_sensors["thermal_data"][calib][sensor_name] \
-                        = self.ds.load_cryo(self.date, sensor_name, get_raw=bol)
-
-    def Norm_Thermal(self):
-        """
-        Normalize all Thermal Sensor's timestamps putting one every 10 seconds from the beginning of the dataset.
-        """
-        for status, start in zip(["0", "1"], [0., 3.]):
-            sensor_name = self.thermal_list[status]
-            for i in range(12):
-                l1 = len(self.thermal_sensors["thermal_times"][status])
-                l2 = len(self.thermal_sensors["thermal_data"]["calibrated"][sensor_name[i]])
-                if l1 != l2:
-                    msg = f"The Thermal sensor: {sensor_name[i]} has a sampling problem.\n"
-                    logging.error(msg)
-                    self.warnings["time_warning"].append(msg + "<br />")
-
-                self.thermal_sensors["thermal_times"][status] = \
-                    start + np.arange(0, len(self.thermal_sensors["thermal_times"][status]) * 10, 10)
-
-    def Analyse_Thermal(self) -> {}:
-        """
-        Analise all Thermal Sensors' output: calculate the mean the std deviation for both raw and calibrated samples.
-        """
-        raw_m = {}
-        cal_m = {}
-        mean = {"raw": raw_m, "calibrated": cal_m}
-
-        raw_std = {}
-        cal_std = {}
-        dev_std = {"raw": raw_std, "calibrated": cal_std}
-
-        raw_nan = {}
-        cal_nan = {}
-        nan_percent = {"raw": raw_nan, "calibrated": cal_nan}
-
-        raw_max = {}
-        cal_max = {}
-        max_value = {"raw": raw_max, "calibrated": cal_max}
-
-        raw_min = {}
-        cal_min = {}
-        min_value = {"raw": raw_min, "calibrated": cal_min}
-
-        results = {"max": max_value, "min": min_value, "mean": mean, "dev_std": dev_std, "nan_percent": nan_percent}
-
-        for status in range(2):
-            for calib in ["raw", "calibrated"]:
-                for sensor_name in self.thermal_list[f"{status}"]:
-                    results["nan_percent"][calib][sensor_name] = 0.
-
-                    data = self.thermal_sensors["thermal_data"][calib][sensor_name]
-                    m = np.mean(data)
-                    if np.isnan(m):
-                        n_nan = len([t for t in np.isnan(data) if t == True])
-
-                        if len(data) == 0:
-                            results["nan_percent"][calib][sensor_name] = 100.
-                        else:
-                            results["nan_percent"][calib][sensor_name] = round((n_nan / len(data)), 4) * 100.
-
-                        if results["nan_percent"][calib][sensor_name] < 5:
-                            data = np.delete(data, np.argwhere(np.isnan(data)))
-                            m = np.mean(data)
-
-                    results["max"][calib][sensor_name] = max(data)
-                    results["min"][calib][sensor_name] = min(data)
-                    results["mean"][calib][sensor_name] = m
-                    results["dev_std"][calib][sensor_name] = np.std(data)
-
-        return results
-
-    def Thermal_table(self, results) -> str:
-        """
-        Create a string with the html code for a table of thermal results.
-        Now are listed in the table: the status of acquisition (0 or 1), the sensor name, the max value, the min value,
-        the mean, the standard deviation and the NaN percentage found for both RAW and calibrated (CAL) Temperatures.
-        """
-        html_table = ""
-        for status in range(2):
-            for sensor_name in self.thermal_list[f"{status}"]:
-                html_table += f"<tr><td align=center>{status}</td><td align=center>{sensor_name}</td>"
-                for calib in ['raw', 'calibrated']:
-                    html_table += f"<td align=center>{round(results['max'][calib][sensor_name], 4)}</td>" \
-                                  f"<td align=center>{round(results['min'][calib][sensor_name], 4)}</td>" \
-                                  f"<td align=center>{round(results['mean'][calib][sensor_name], 4)}</td>" \
-                                  f"<td align=center>{round(results['dev_std'][calib][sensor_name], 4)}</td>" \
-                                  f"<td align=center>{round(results['nan_percent'][calib][sensor_name], 4)}</td>"
-
-                html_table += f"</tr>"
-
-        return html_table
-
-    def Plot_Thermal(self, status: int, show=False):
-        """
-        Plot all the calibrated acquisitions of Thermal Sensors of the polarimeter.\n
-            Parameters:\n
-         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
-         - **status** (``int``): *0* or *1* -> It refers to the status of the multiplexer that acquire the TS
-        """
-        thermals = {
-            "0": {
-                "TILES": ["TS-CX4-Module-G", "TS-CX6-Module-O", "TS-CX2-Module-V"],
-                "FRAME": ["TS-CX10-Frame-120", "TS-DT6-Frame-South"],
-                "POLAR": ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy"],
-                "100-200K": ["TS-CX16-Filter", "TS-DT3-Shield-Base"],  # , "TS-SP2-L-Support" # Excluded for the moment
-                # "VERIFY": ["EX-CX18-SpareCx"],  # Excluded for the moment
-                "COLD_HEAD": ["TS-SP1-SpareDT"]
-            },
-            "1": {
-                "TILES": ["TS-CX3-Module-B", "TS-CX7-Module-I", "TS-CX1-Module-R", "TS-CX5-Module-Y"],
-                "FRAME": ["TS-CX8-Frame-0", "TS-CX9-Frame-60", "TS-CX11-Frame-North", "TS-CX15-IF-Frame-0"],
-                "POLAR": ["TS-CX13-Pol-Qx"],
-                "100-200K": ["TS-DT5-Shield-Side"],  # , "TS-CX17-Wheel-Center" # Excluded for the moment
-                "VERIFY": ["EX-DT2-SpareDT"],
-            }}
-        col = ["cornflowerblue", "indianred", "limegreen", "gold"]
-
-        if status == 0 or status == 1:
-            n_rows = len(thermals[f"{status}"].keys())
-            fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(13, 15))
-        else:
-            sys.exit("Invalid Status. It must be 0 or 1.")
-
-        fig.suptitle(f'Plot Thermal Sensors status {status}- Date: {self.gdate[0]}', fontsize=14)
-
-        for i, group in enumerate(thermals[f"{status}"].keys()):
-            for j, sensor_name in enumerate(thermals[f"{status}"][group]):
-                l1 = len(self.thermal_sensors["thermal_times"][f"{status}"])
-                l2 = len(self.thermal_sensors["thermal_data"]["calibrated"][sensor_name])
-                axs[i].scatter(
-                    self.thermal_sensors["thermal_times"][f"{status}"][:min(l1, l2)],
-                    self.thermal_sensors["thermal_data"]["calibrated"][sensor_name][:min(l1, l2)],
-                    marker=".", color=col[j], label=sensor_name)
-
-                axs[i].set_xlabel("Time [s]")
-                axs[i].set_ylabel("Temperature [K]")
-                axs[i].set_title(f"TS GROUP {group} - Status {status}")
-                axs[i].legend(prop={'size': 9}, loc=7)
-
-        path = f"../plot/{self.date_dir}/Thermal_Output/"
-        Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}Thermal_status_{status}.png')
-        if show:
-            plt.show()
-        plt.close(fig)
-
-    def Plot_FFT_TS(self, status: int, nseg=np.inf, show=False):
-        """
-        Plot the FFT of the calibrated acquisitions of Thermal Sensors of the polarimeter.\n
-            Parameters:\n
-         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
-         - **nseg**: number of elements on which the periodogram is calculated. Then the average of all periodograms is
-         computed to produce the spectrogram. Changing this parameter allow to reach lower frequencies in the FFT plot:
-         in particular, the limInf of the x-axis is fs/nseg.
-         - **status** (``int``): *0* or *1* -> It refers to the status of the multiplexer that acquire the TS
-        """
-        thermals = {
-            "0": {
-                "COLD_HEAD": ["TS-SP1-SpareDT"],
-                "TILES": ["TS-CX4-Module-G", "TS-CX6-Module-O", "TS-CX2-Module-V"],
-                "FRAME": ["TS-CX10-Frame-120", "TS-DT6-Frame-South"],
-                "POLAR": ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy"],
-                "100-200K": ["TS-CX16-Filter", "TS-DT3-Shield-Base"]  # , "TS-SP2-L-Support" # Excluded for the moment
-                # "VERIFY": ["EX-CX18-SpareCx"],  # Excluded for the moment
-            },
-            "1": {
-                "COLD_HEAD": ["TS-SP1-SpareDT"],
-                "TILES": ["TS-CX3-Module-B", "TS-CX7-Module-I", "TS-CX1-Module-R", "TS-CX5-Module-Y"],
-                "FRAME": ["TS-CX8-Frame-0", "TS-CX9-Frame-60", "TS-CX11-Frame-North", "TS-CX15-IF-Frame-0"],
-                "POLAR": ["TS-CX13-Pol-Qx"],
-                "100-200K": ["TS-DT5-Shield-Side"],  # , "TS-CX17-Wheel-Center" # Excluded for the moment
-                # "VERIFY": ["EX-DT2-SpareDT"],
-            }}
-
-        if status == 0 or status == 1:
-            n_rows = len(thermals[f"{status}"].keys())
-            fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(15, 10))
-        else:
-            sys.exit("Invalid Status. It must be 0 or 1.")
-
-        fig.suptitle(f'Plot Thermal Sensors FFT status {status}- Date: {self.gdate[0]}', fontsize=14)
-        color = "teal"
-        fs = 1 / 20.
-        for i, group in enumerate(thermals[f"{status}"].keys()):
-            for j, sensor_name in enumerate(thermals[f"{status}"][group]):
-
-                if sensor_name == "TS-SP1-SpareDT":
-                    color = "cyan"
-                else:
-                    color = "teal"
-                f, s = scipy.signal.welch(self.thermal_sensors["thermal_data"]["calibrated"][sensor_name],
-                                          fs=fs, nperseg=min(int(fs * 10 ** 4), nseg))
-                axs[i].plot(f[f < 25.], s[f < 25.],
-                            linewidth=0.2, label=f"{sensor_name}", marker=".", markerfacecolor='blue', markersize=4)
-
-                # Title
-                axs[i].set_title(f"FFT TS GROUP {group}")
-                # XY-axis
-                axs[i].set_yscale("log")
-                axs[i].set_xscale("log")
-                axs[i].set_xlabel(f"$Frequency$ $[Hz]$")
-                axs[i].set_ylabel(f"PSD [K**2/Hz]")
-                # Legend
-                axs[i].legend(prop={'size': 9}, loc=7)
-
-        path = f"../plot/{self.date_dir}/Thermal_Output/FFT/"
-        Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}FFT_Thermal_status_{status}.png', dpi=600)
-        if show:
-            plt.show()
-        plt.close(fig)
-
-    # PROBLEM: CORRELAZIONI TS - DEM/PWR non fattibili senza il nome di un polarimetro.
-    # CREAZIONE FUNZIONE DI CORRELZIONE GENERICA TRA DUE DATASET CHE VADA BENE PER TUTTI I TIPI DI DATI:
-    # TS, DEM, PWR, Altro?
-    def Plot_Correlation_TS(self, type: str, begin=0, end=-1, show=False):
-        """
-        Plot of Correlation between Raw data DEM or PWR & Thermal Sensor Outputs.\n
-        Parameters:\n
-        - **type** (``str``) of data "DEM" or "PWR"\n
-        - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
-        """
-        fig, axs = plt.subplots(nrows=4, ncols=4, constrained_layout=True, figsize=(17, 15))
-
-        begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'Correlation Thermal Sensors vs {type} Output - Date: {begin_date}', fontsize=14)
-
-        # Note: all Thermal Sensors chosen are in configuration "0"
-        ts_list = ["TS-CX6-Module-O", "TS-CX2-Module-V", "TS-SP1-SpareDT", "TS-CX16-Filter"]
-
-        for idx, ts in enumerate(ts_list):
-            n = 0  # type: int
-            for exit in self.data[f"{type}"].keys():
-                if idx == 0:
-                    axs[idx, n].sharey(axs[1, 0])
-                    axs[idx, n].sharex(axs[1, 0])
-
-                x = self.data[type][exit][begin:end]
-                y = np.interp(self.times[begin:end], self.thermal_sensors["thermal_times"]["0"],
-                              self.thermal_sensors["thermal_data"]["calibrated"][f"{ts}"])
-                axs[idx, n].plot(x, y, "*", color="steelblue", label="Corr Data")
-
-                # Title
-                axs[idx, n].set_title(f'Corr {ts} vs {type} {exit}')
-                # XY-axis
-                # axs[idx, n].set_aspect('equal')
-                axs[idx, n].set_xlabel(f"{type} Output [ADU]")
-                axs[idx, n].set_ylabel(f"Temperature [K]")
-                # Legend
-                axs[idx, n].legend(prop={'size': 9}, loc=7)
-
-                n += 1
-
-        path = f"../plot/{self.date_dir}/Thermal_Correlation/{self.name}/"
-        Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_{type}_Correlation_TS.png')
-        if show:
-            plt.show()
-        plt.close(fig)
 
     # ------------------------------------------------------------------------------------------------------------------
     # HOUSE-KEEPING ANALYSIS
@@ -1560,14 +1269,14 @@ class Polarimeter:
        - **type** (``str``) of data *"DEM"* or *"PWR"*
        - **begin**, **end** (``int``): interval of dataset that has to be considered
        - **scientific** (``bool``):\n
-            *True* -> Scientific data are processed\n
-            *False* -> Outputs are processed
+            *True* -> Process Scientific data \n
+            *False* -> Process Outputs
        - **even** (``bool``):\n
-            *True* -> Even Outputs are processed\n
-            *False* -> Other Outputs are processed
+            *True* -> Process Even Outputs\n
+            *False* -> Process Other Outputs
        - **odd** (``bool``):\n
-            *True* -> Odd Outputs are processed\n
-            *False* -> Other Outputs are processed
+            *True* -> Process Odd Outputs\n
+            *False* -> Process Other Outputs
        - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
@@ -1679,14 +1388,14 @@ class Polarimeter:
        - **type** (``str``) of data *"DEM"* or *"PWR"*
        - **begin**, **end** (``int``): interval of dataset that has to be considered
        - **scientific** (``bool``):\n
-            *True* -> Scientific data are processed\n
-            *False* -> Outputs are processed
+            *True* -> Process Scientific data\n
+            *False* -> Process Outputs
         - **even** (``bool``):\n
-            *True* -> Even Outputs are processed\n
-            *False* -> Other Outputs are processed
+            *True* -> Process Even Outputs\n
+            *False* -> Process Other Outputs
        - **odd** (``bool``):\n
-            *True* -> Odd Outputs are processed\n
-            *False* -> Other Outputs are processed
+            *True* -> Process Odd Outputs\n
+            *False* -> Process Other Outputs
        - **show** (bool):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
