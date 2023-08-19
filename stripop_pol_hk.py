@@ -10,6 +10,9 @@ import logging
 
 from rich.logging import RichHandler
 
+# MyLibraries & MyModules
+import polarimeter as pol
+
 # Use the module logging to produce nice messages on the shell
 logging.basicConfig(level="INFO", format='%(message)s',
                     datefmt="[%X]", handlers=[RichHandler()])
@@ -24,7 +27,41 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
             - **end_datetime** (``str``): end time
             - **name_pol** (``str``): name of the polarimeter. If more than one, write them into ' ' separated by space.
             - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
-
     """
-    logging.info('I am B, and I am working for you!')
+    logging.info('Ready to analyze the HouseKeeping Parameters.')
+    # Converting the string of polarimeters into a list
+    name_pol = name_pol.split()
+    # Repeating the analysis for all the polarimeters in the list
+    for np in name_pol:
+        logging.warning(f'Parsing {np}')
+        # Initializing a Polarimeter
+        p = pol.Polarimeter(name_pol=np, path_file=path_file,
+                            start_datetime=start_datetime, end_datetime=end_datetime)
+        # Loading the HK
+        logging.info('Loading HK.')
+        p.Load_HouseKeeping()
+        # Normalizing the HK measures
+        logging.info('Normalizing HK.')
+        p.Norm_HouseKeeping()
+
+        # Analyzing HK and collecting the results
+        logging.info('Analyzing HK.')
+        hk_results = p.Analyse_HouseKeeping()
+
+        # Preparing html table for the report
+        logging.info('Producing HK table for the report.')
+        hk_table_html = p.HK_table(results=hk_results)
+
+        # Plots of the Bias HK: Tensions and Currents
+        logging.info('Plotting Bias HK.')
+        p.Plot_HouseKeeping_VI()
+        # Plots of the Offsets
+        logging.info('Plotting Offset.')
+        p.Plot_HouseKeeping_OFF()
+
+        # Add some correlations (?)
+
+        # Print the report
+        logging.info(f"Once ready, I will put the report into: {output_dir}.")
+
     return
