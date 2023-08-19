@@ -219,9 +219,14 @@ def main():
         logging.error("end_datetime: wrong datetime format.")
         raise SystemExit(1)
 
-    # Check on the consequentiality of the datetime
+    # Check on datetime
+    # Consequentiality of the datetime
     if args.end_datetime < args.start_datetime:
         logging.error("end_datetime is before than start_datetime: wrong datetime values.")
+        raise SystemExit(1)
+
+    if args.end_datetime == args.start_datetime:
+        logging.error("end_datetime is equal to start_datetime: wrong datetime values.")
         raise SystemExit(1)
 
     # MODE A and B: Check on the names of the polarimeters
@@ -260,9 +265,19 @@ def main():
     elif args.subcommand == "thermal_hk":
         # Thermal Sensors Analysis Operation
         logging.info("The thermal analysis is beginning...")
-        strip_c.thermal_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
-                           status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
-                           corr_t=args.corr_t, output_dir=args.output_dir)
+
+        # If status is not specified, the analysis is done on both the states of the multiplexer
+        if args.status == 2:
+            for status in [0, 1]:
+                strip_c.thermal_hk(path_file=args.path_file,
+                                   start_datetime=args.start_datetime, end_datetime=args.end_datetime,
+                                   status=status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
+                                   corr_t=args.corr_t, output_dir=args.output_dir)
+        else:
+            strip_c.thermal_hk(path_file=args.path_file,
+                               start_datetime=args.start_datetime, end_datetime=args.end_datetime,
+                               status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
+                               corr_t=args.corr_t, output_dir=args.output_dir)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 ########################################################################################################
 class Thermal_Sensors:
 
-    def __init__(self, path_file: str, start_datetime: str, end_datetime: str, status: int, nperseg: int):
+    def __init__(self, path_file: str, start_datetime: str, end_datetime: str, status: int, nperseg_thermal: int):
         """
         Constructor
 
@@ -41,7 +41,7 @@ class Thermal_Sensors:
                 - **start_datetime** (``str``): start time
                 - **end_datetime** (``str``): end time
                 - **status** (``int``): defines the status of the multiplexer of the thermal sensors to analyze: 0 or 1.
-                - **nperseg**: number of elements on which the periodogram is calculated.
+                - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
                 Then the average of all periodograms is computed to produce the spectrogram.
                 Changing this parameter allow to reach lower frequencies in the FFT plot:
                 in particular, the limInf of the x-axis is fs/nperseg.
@@ -67,7 +67,7 @@ class Thermal_Sensors:
                 "FRAME": ["TS-CX10-Frame-120", "TS-DT6-Frame-South"],
                 "POLAR": ["TS-CX12-Pol-W", "TS-CX14-Pol-Qy"],
                 "100-200K": ["TS-CX16-Filter", "TS-DT3-Shield-Base"],  # , "TS-SP2-L-Support" # Excluded for now
-                # "VERIFY": ["EX-CX18-SpareCx"],  # Excluded for the moment
+                # "VERIFY": ["EX-CX18-SpareCx"],  # Excluded for now
                 "COLD_HEAD": ["TS-SP1-SpareDT"]}
         elif self.status == 1:
             self.ts_names = {
@@ -92,7 +92,7 @@ class Thermal_Sensors:
         self.ts = {"thermal_times": thermal_times, "thermal_data": thermal_data}
 
         # nperseg: number of elements on which the periodogram is calculated.
-        self.nperseg = nperseg
+        self.nperseg_thermal = nperseg_thermal
 
         # --------------------------------------------------------------------------------------------------------------
         # Warnings
@@ -121,36 +121,44 @@ class Thermal_Sensors:
                     # Conversion to list to better handle the data array
                     self.ts["thermal_data"][calib][sensor_name] = list(self.ts["thermal_data"][calib][sensor_name])
 
-    def Norm_TS(self):
+    def Norm_TS(self) -> []:
         """
         Check if the TIME array and the CALIBRATED DATA array have the same length.
-        Normalize all Thermal Sensor's timestamps putting one every 10 seconds from the beginning of the dataset.
+        Normalize all Thermal Sensor's timestamps putting one every 30 seconds from the beginning of the dataset.
         """
         # Check if the TIME array and the CALIBRATED DATA array have the same length
+        # Return a list of problematic TS
+        problematic_ts = []
         for group in self.ts_names.keys():
             for sensor_name in self.ts_names[group]:
                 len_times = len(self.ts["thermal_times"])
                 len_data = len(self.ts["thermal_data"]["calibrated"][sensor_name])
                 if len_times != len_data:
-                    # Save a warning message that will be print on video and on the report
-                    msg = f"The Thermal sensor: {sensor_name} has a sampling problem.\n"
-                    logging.error(msg)
-                    self.warnings["time_warning"].append(msg + "<br />")
+                    if len_times == len_data + 1 and self.status == 1:
+                        self.ts["thermal_times"] = self.ts["thermal_times"][1:]
+                    else:
+                        # Save a warning message that will be print on video and on the report
+                        msg = f"The Thermal sensor: {sensor_name} has a sampling problem.\n"
+                        logging.error(msg)
+                        self.warnings["time_warning"].append(msg + "<br />")
+                        problematic_ts.append(sensor_name)
 
-        # Set the starting point for the new timestamps: 0s for status 0 and 3s for status 1
+        # Set the starting point for the new timestamps: 0s for status 0 and 10s for status 1
         if self.status == 0:
             start = 0.
         elif self.status == 1:
-            start = 3.
+            start = 10.
         else:
             start = np.nan
             logging.error("Invalid status value. Please choose between the values 0 and 1 for a single analysis.")
             SystemExit(1)
 
-        # Assign new timestamps equally spaced every 10s
-        self.ts["thermal_times"] = start + np.arange(start=0, stop=len(self.ts["thermal_times"]) * 10, step=10)
+        # Assign new timestamps equally spaced every 30s
+        self.ts["thermal_times"] = start + np.arange(start=0, stop=len(self.ts["thermal_times"]) * 30, step=30)
         # Conversion to list to better handle the data array
         self.ts["thermal_times"] = list(self.ts["thermal_times"])
+
+        return problematic_ts
 
     def Analyse_TS(self) -> {}:
         """
@@ -273,7 +281,7 @@ class Thermal_Sensors:
         fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(13, 15))
 
         # Set the title of the figure
-        fig.suptitle(f'Plot Thermal Sensors status {self.status}- Date: {self.gdate[0]}', fontsize=14)
+        fig.suptitle(f'Plot Thermal Sensors status {self.status} - Date: {self.gdate[0]}', fontsize=10)
 
         # Plot the dataset
         for i, group in enumerate(self.ts_names.keys()):
@@ -326,7 +334,7 @@ class Thermal_Sensors:
                 # Choose the length of the data segment (between 10**4 and nperseg provided) on which calculate the fft
                 # Changing this parameter allow to reach lower freq in the plot: the limInf of the x-axis is fs/nperseg.
                 f, s = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][sensor_name],
-                                          fs=fs, nperseg=min(int(fs * 10 ** 4), self.nperseg))
+                                          fs=fs, nperseg=min(int(fs * 10 ** 4), self.nperseg_thermal))
                 # Plot the periodogram (fft)
                 axs[i].plot(f[f < 25.], s[f < 25.],
                             linewidth=0.2, label=f"{sensor_name}", marker=".", markerfacecolor=color, markersize=4)

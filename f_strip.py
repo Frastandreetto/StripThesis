@@ -399,7 +399,7 @@ def same_length(array1, array2) -> []:
 
 # warn_threshold => used for anomalies & warnings
 def correlation_mat(dict1: {}, dict2: {}, data_name: str,
-                    start_datetime: str, end_datetime: str, show=False, warn_threshold=0.4) -> {}:
+                    start_datetime: str, end_datetime: str, show=False, corr_t=0.4) -> {}:
     """
        Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
 
@@ -411,7 +411,7 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
        - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
-       - **warn_threshold** (``int``): if it is overcome by one of the values of the matrix a warning is produced.\n
+       - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced.\n
     """
     self_correlation = False
     # If the second dictionary is not provided we are in a Self correlation case
@@ -469,19 +469,22 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
 
 
 def correlation_plot(array1: [], array2: [], dict1: {}, dict2: {}, time1: [], time2: [],
-                     data_name1: str, data_name2: str, start_datetime: str, end_datetime: str, show=False):
+                     data_name1: str, data_name2: str, start_datetime: str, end_datetime: str, show=False,
+                     corr_t=0.4):
     """
-       Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
-       Parameters:\n
-       - **array1**, **array2** (``array``): arrays ([]) of n1 and n2 elements
-       - **dict1**, **dict2** (``array``): dictionaries ({}) with N1, N2 keys
-       - **time1**, **time2** (``array``): arrays ([]) of timestamps: not necessary if the dataset have same length.
-       - **data_name1**, **data_name2** (``str``): names of the dataset. Used for titles, labels and to save the png.
-       - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
-       - **end_datetime** (``str``): end date of dataset. Used for the title of the figure and to save the png.
-       - **show** (``bool``):\n
+        Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
+        Parameters:\n
+        - **array1**, **array2** (``array``): arrays ([]) of n1 and n2 elements
+        - **dict1**, **dict2** (``array``): dictionaries ({}) with N1, N2 keys
+        - **time1**, **time2** (``array``): arrays ([]) of timestamps: not necessary if the dataset have same length.
+        - **data_name1**, **data_name2** (``str``): names of the dataset. Used for titles, labels and to save the png.
+        - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
+        - **end_datetime** (``str``): end date of dataset. Used for the title of the figure and to save the png.
+        - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
+        - **corr_t** (``int``): if it is overcome by the correlation value of a plot, a warning is produced.\n
+
     """
     # Data comprehension -----------------------------------------------------------------------------------------------
     # Type check
@@ -529,7 +532,7 @@ def correlation_plot(array1: [], array2: [], dict1: {}, dict2: {}, time1: [], ti
     logging.debug(f"Number of col:{n_col}, of row:{n_rows}, fig size: {fig_size}")
     data_name = f"{data_name1}-{data_name2}"
     fig, axs = plt.subplots(nrows=n_rows, ncols=n_col, constrained_layout=True, figsize=fig_size)
-    fig.suptitle(f'Correlation {data_name} - Date: {start_datetime}', fontsize=10)
+    fig.suptitle(f'Correlation {data_name} \n Date: {start_datetime}', fontsize=10)
 
     # array1 vs array2 -------------------------------------------------------------------------------------------------
     if n_col == 1:
