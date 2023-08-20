@@ -159,6 +159,31 @@ def EOA(even: int, odd: int, all: int) -> str:
     return eoa
 
 
+def eoa_values(eoa_str: str) -> []:
+    """
+    Parameters:\n
+    - **eoa_str** (``str``): string of 0,1,2 or 3 letters from a combination of the letters e, o and a
+    Return a string of combinations of 3 values (e, o, a) taken from a dictionary that contains 3 keys
+    and the values 0 or 0 and 1 for each keys
+    """
+    # Initialize a dictionary with 0 values for e,o,a keys
+    eoa_dict = {"e": [0], "o": [0], "a": [0]}
+    eoa_list = [char for char in eoa_str]
+
+    # If a letter appears also the value 1 is included in the dictionary
+    for key in eoa_dict.keys():
+        if key in eoa_list:
+            eoa_dict[key].append(1)
+
+    # Store the combinations of 0 and 1 depending on which letters were provided
+    eoa_combinations = [(val1, val2, val3)
+                        for val1 in eoa_dict["e"]
+                        for val2 in eoa_dict["o"]
+                        for val3 in eoa_dict["a"]]
+
+    return eoa_combinations
+
+
 def find_spike(v, threshold=8.5, n_chunk=5) -> []:
     """
         Look up for 'spikes' in a given array.\n

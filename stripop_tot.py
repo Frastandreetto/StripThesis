@@ -10,6 +10,11 @@ import logging
 
 from rich.logging import RichHandler
 
+# MyLibraries & MyModules
+import f_strip as fz
+import polarimeter as pol
+import thermalsensors as ts
+
 # Use the module logging to produce nice messages on the shell
 logging.basicConfig(level="INFO", format='%(message)s',
                     datefmt="[%X]", handlers=[RichHandler()])
@@ -49,5 +54,186 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
              between two dataset: if the value computed is higher than the threshold, a warning is produced.
             - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
     """
-    logging.info('I am A, and I am working for you!')
+    logging.info('\nReady to analyze Strip.')
+    # ------------------------------------------------------------------------------------------------------------------
+    # Thermal Sensors Analysis
+    # ------------------------------------------------------------------------------------------------------------------
+
+    logging.info('\nReady to analyze the Thermal Sensors.')
+    for status in [0, 1]:
+        TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime, end_datetime=end_datetime,
+                                status=status, nperseg_thermal=nperseg_thermal)
+
+        # Loading the TS
+        logging.info(f'Loading TS. Status {status}')
+        TS.Load_TS()
+        # Normalizing TS measures: flag to specify the sampling frequency? Now 30s
+        logging.info(f'Normalizing TS. Status {status}')
+        # Saving a list of sampling problematic TS
+        problematic_TS = TS.Norm_TS()
+
+        # Analyzing TS and collecting the results
+        logging.info(f'Analyzing TS. Status {status}')
+        ts_results = TS.Analyse_TS()
+
+        # Preparing html table for the report
+        logging.info(f'Producing TS table for the report. Status {status}')
+        th_table_html = TS.Thermal_table(results=ts_results)
+
+        # Plots of all TS
+        logging.info(f'Plotting all TS measures for status {status} of the multiplexer.')
+        TS.Plot_TS()
+
+        # Fourier's analysis if asked
+        if fft:
+            logging.info(f'Plotting the FFT of all the TS measures for status {status} of the multiplexer.')
+            TS.Plot_FFT_TS()
+
+        # TS Correlation plots
+        # Collecting all names
+        all_names = [name for groups in TS.ts_names.values() for name in groups if name not in problematic_TS]
+        # Printing the plots with no repetitions
+        logging.info(f'Plotting Correlation plots of the TS with each other.')
+        for i, n1 in enumerate(all_names):
+            for n2 in all_names[i + 1:]:
+                fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
+                                    array2=TS.ts["thermal_data"]["calibrated"][n2],
+                                    dict1={},
+                                    dict2={},
+                                    time1=TS.ts["thermal_times"],
+                                    time2=TS.ts["thermal_times"],
+                                    data_name1=f"{status}_{n1}",
+                                    data_name2=f"{n2}",
+                                    start_datetime=start_datetime,
+                                    end_datetime=end_datetime,
+                                    corr_t=corr_t
+                                    )
+    # ------------------------------------------------------------------------------------------------------------------
+    # Polarimeters Analysis
+    # ------------------------------------------------------------------------------------------------------------------
+
+    logging.info("\nReady to analyze the Polarimeters now.")
+    # Converting the string of polarimeters into a list
+    name_pol = name_pol.split()
+    # Repeating the analysis for all the polarimeters in the list
+    for np in name_pol:
+        logging.warning(f'--------------------------------------------------------------------------------------'
+                        f'\nParsing {np}')
+        # Initializing a Polarimeter
+        p = pol.Polarimeter(name_pol=np, path_file=path_file,
+                            start_datetime=start_datetime, end_datetime=end_datetime)
+
+        # --------------------------------------------------------------------------------------------------------------
+        # Housekeeping Analysis
+        # --------------------------------------------------------------------------------------------------------------
+        # Loading the HK
+        logging.warning('--------------------------------------------------------------------------------------'
+                        '\nHousekeeping Analysis.\nLoading HK.')
+        p.Load_HouseKeeping()
+        # Normalizing the HK measures
+        logging.info('Normalizing HK.')
+        p.Norm_HouseKeeping()
+
+        # Analyzing HK and collecting the results
+        logging.info('Analyzing HK.')
+        hk_results = p.Analyse_HouseKeeping()
+
+        # Preparing html table for the report
+        logging.info('Producing HK table for the report.')
+        hk_table_html = p.HK_table(results=hk_results)
+
+        # Plots of the Bias HK: Tensions and Currents
+        logging.info('Plotting Bias HK.')
+        p.Plot_HouseKeeping_VI()
+        # Plots of the Offsets
+        logging.info('Plotting Offset.')
+        p.Plot_HouseKeeping_OFF()
+
+        # Add some correlations (?)
+
+        # --------------------------------------------------------------------------------------------------------------
+        # Scientific Output Analysis
+        # --------------------------------------------------------------------------------------------------------------
+        # Loading the Scientific Outputs
+        logging.warning('--------------------------------------------------------------------------------------'
+                        '\nScientific Analysis. \nLoading Scientific Outputs.')
+        p.Load_Pol()
+        # Preparing the Polarimeter for the analysis: normalization and data cleanse
+        logging.info('Preparing the Polarimeter.')
+        p.Prepare(norm_mode=1)
+
+        for type in ['DEM', 'PWR']:
+            # Plot the Scientific Output
+            logging.info(f'Plotting {type} Outputs.')
+            p.Plot_Output(type=type, begin=0, end=-1, show=False)
+
+            # ----------------------------------------------------------------------------------------------------------
+            # Even Odd All Analysis
+            # ----------------------------------------------------------------------------------------------------------
+            if eoa == ' ':
+                pass
+            else:
+                logging.warning(f'--------------------------------------------------------------------------------------'
+                                f'\nEven-Odd-All Analysis.')
+                combos = fz.eoa_values(eoa)
+                for combo in combos:
+                    # If even, odd, all are equal to 0
+                    if all(value == 0 for value in combo):
+                        # Do nothing
+                        pass
+                    else:
+                        # Plotting Even Odd All Outputs
+                        logging.info(f'\nEven = {combo[0]}, Odd = {combo[1]}, All = {combo[2]}.')
+                        logging.info(f'Plotting Even Odd All Outputs. Type {type}.')
+                        p.Plot_EvenOddAll(type=type, even=combo[0], odd=combo[1], all=combo[2],
+                                          begin=0, end=-1, smooth_len=smooth, show=False)
+                        # Plotting Even Odd All Outputs RMS
+                        logging.info(f'Plotting Even Odd All Outputs RMS. Type {type}.')
+                        p.Plot_RMS_EOA(type=type, window=window, even=combo[0], odd=combo[1], all=combo[2],
+                                       begin=0, end=-1, smooth_len=smooth, show=False)
+
+                        if fft:
+                            logging.warning("--------------------------------------------------------------------------"
+                                            "Spectral Analysis Even-Odd-All")
+                            # Plotting Even Odd All FFT
+                            logging.info(f'Plotting Even Odd All FFT. Type {type}.')
+                            p.Plot_FFT_EvenOdd(type=type, even=combo[0], odd=combo[1], all=combo[2],
+                                               begin=0, end=-1, nseg=nperseg, show=False, spike_check=spike_fft)
+                            # Plotting Even Odd All FFT of the RMS
+                            logging.info(f'Plotting Even Odd All FFT of the RMS. Type {type}.')
+                            p.Plot_FFT_RMS_EO(type=type, window=window, even=combo[0], odd=combo[1], all=combo[2],
+                                              begin=0, end=-1, nseg=nperseg, show=False)
+            # ----------------------------------------------------------------------------------------------------------
+            # Scientific Data Analysis
+            # ----------------------------------------------------------------------------------------------------------
+            # Plot of Scientific Data
+            logging.warning("--------------------------------------------------------------------------------------"
+                            "\nScientific Data Analysis.")
+            logging.info(f'\nPlot of Scientific Data. Type {type}.')
+            p.Plot_SciData(type=type, begin=0, end=-1, smooth_len=smooth, show=False)
+            # Plot of RMS of Scientific Data
+            logging.info(f'Plot of RMS of Scientific Data. Type {type}.')
+            p.Plot_RMS_SciData(type=type, window=window, begin=0, end=-1, smooth_len=smooth, show=False)
+            # Plot of FFT of Scientific Data
+
+            if fft:
+                logging.warning("--------------------------------------------------------------------------------------"
+                                "\nSpectral Analysis Scientific Data.")
+                logging.info(f'Plot of FFT of Scientific Data. Type {type}.')
+                p.Plot_FFT_SciData(type=type, begin=0, end=-1, nseg=nperseg, show=False, spike_check=spike_fft)
+                # Plot of FFT of the RMS of Scientific Data
+                logging.info(f'Plot of FFT of the RMS of Scientific Data. Type {type}.')
+                p.Plot_FFT_RMS_SciData(type=type, window=window, begin=0, end=-1, nseg=nperseg, show=False)
+
+            # Correlation plots (?)
+            logging.warning(f'--------------------------------------------------------------------------------------'
+                            f'\nCorrelation plots (?). Type {type}.')
+            if corr_mat:
+                # Correlation matrices (?)
+                logging.warning(f'--------------------------------------------------------------------------------------'
+                                f'Correlation matrices with threshold {corr_t}(?). Type {type}.')
+
+        # Print the report
+        logging.info(f"\nOnce ready, I will put the report into: {output_dir}.")
+
     return

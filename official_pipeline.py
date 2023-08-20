@@ -96,10 +96,9 @@ def main():
     parser_A.add_argument('--smooth', '-sm', type=int, default=1,
                           help='Smoothing length used to flatter the data. smooth=1 equals no smooth.')
     # Rolling Window
-    parser_A.add_argument('--window', '-w', type=int, default=1,
+    parser_A.add_argument('--window', '-w', type=int, default=2,
                           help='Integer number used to convert the array of the data into a matrix '
-                               'with a number "window" of elements per row and then calculate the RMS on every row. '
-                               'window=1 equals no conversion.')
+                               'with a number "window" of elements per row and then calculate the RMS on every row.')
     # FFT
     parser_A.add_argument('--fourier', '-fft', action="store_true",
                           help='If true, the code will compute the power spectra of the scientific data.')
@@ -202,53 +201,59 @@ def main():
     try:
         Path(args.path_file)
     except AttributeError:
-        logging.error("Modality not selected. Type -h for help!")
+        logging.error('Modality not selected. Type -h for help!')
         raise SystemExit(1)
 
     if not Path(args.path_file).exists():
-        logging.error(f"The target directory {args.path_file} does not exist. "
-                      f"Please select a real location of the hdf5 file index.\n"
-                      "Note: no quotation marks needed.")
+        logging.error(f'The target directory {args.path_file} does not exist. '
+                      f'Please select a real location of the hdf5 file index.\n'
+                      'Note: no quotation marks needed.')
         raise SystemExit(1)
 
     # Check on datatime objects: start_datetime & end_datetime
     if not fz.datetime_check(args.start_datetime):
-        logging.error("start_datetime: wrong datetime format.")
+        logging.error('start_datetime: wrong datetime format.')
         raise SystemExit(1)
     if not fz.datetime_check(args.end_datetime):
-        logging.error("end_datetime: wrong datetime format.")
+        logging.error('end_datetime: wrong datetime format.')
         raise SystemExit(1)
 
     # Check on datetime
     # Consequentiality of the datetime
     if args.end_datetime < args.start_datetime:
-        logging.error("end_datetime is before than start_datetime: wrong datetime values.")
+        logging.error('end_datetime is before than start_datetime: wrong datetime values.')
+        raise SystemExit(1)
+    # Same datetime
+    if args.end_datetime == args.start_datetime:
+        logging.error('end_datetime is equal to start_datetime: wrong datetime values.')
         raise SystemExit(1)
 
-    if args.end_datetime == args.start_datetime:
-        logging.error("end_datetime is equal to start_datetime: wrong datetime values.")
-        raise SystemExit(1)
+    # MODE A: check on EOA string
+    if args.subcommand == "tot":
+        if args.even_odd_all not in [' ', 'e', 'o', 'a', 'eo', 'ea', 'oa', 'eoa']:
+            logging.error('Wrong data name:. Please choose between the options: e, o, a, eo, ea, oa, eoa')
+            raise SystemExit(1)
 
     # MODE A and B: Check on the names of the polarimeters
     if args.subcommand == "tot" or args.subcommand == "pol_hk":
         name_pol = args.name_pol.split()
 
         if not fz.name_check(name_pol):
-            logging.error("The names of the polarimeters provided are not valid. Please check them again."
-                          "They must be written as follows: 'B0 B1'")
+            logging.error('The names of the polarimeters provided are not valid. Please check them again.'
+                          'They must be written as follows: \'B0 B1\'')
             raise SystemExit(1)
 
-        # MODE C: Check on the status value
-        if args.subcommand == "thermal_hk":
-            if args.status not in (["0", "1", "2"]):
-                logging.error("Invalid status value. Please choose between the values 0 and 1 for a single analysis."
-                              "Choose the value 2 to have both.")
-                raise SystemExit(1)
+    # MODE C: Check on the status value
+    if args.subcommand == "thermal_hk":
+        if args.status not in (['0', '1', '2']):
+            logging.error('Invalid status value. Please choose between the values 0 and 1 for a single analysis.'
+                          'Choose the value 2 to have both.')
+            raise SystemExit(1)
 
     ####################################################################################################################
     # Operations: A-B-C
     if args.subcommand == "tot":
-        logging.info("The total analysis is beginning... Have a seat!")
+        logging.info('The total analysis is beginning... Take a seat!')
         # Total Analysis Operation
         strip_a.tot(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                     name_pol=args.name_pol, eoa=args.even_odd_all, smooth=args.smooth, window=args.window,
@@ -257,14 +262,14 @@ def main():
                     output_dir=args.output_dir)
 
     elif args.subcommand == "pol_hk":
-        logging.info("The housekeeping analysis is beginning...")
+        logging.info('The housekeeping analysis is beginning...')
         # Housekeeping Analysis Operation
         strip_b.pol_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                        name_pol=args.name_pol, output_dir=args.output_dir)
 
     elif args.subcommand == "thermal_hk":
         # Thermal Sensors Analysis Operation
-        logging.info("The thermal analysis is beginning...")
+        logging.info('The thermal analysis is beginning...')
 
         # If status is not specified, the analysis is done on both the states of the multiplexer
         if args.status == 2:

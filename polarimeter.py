@@ -107,8 +107,8 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
-                # Conversion to list to better handle the data array
-                self.data[type][exit] = list(self.data[type][exit])
+                # Conversion to list to better handle the data array in correlation plots
+                # self.data[type][exit] = list(self.data[type][exit])
 
         self.STRIP_SAMPLING_FREQ = 0
 
@@ -212,8 +212,8 @@ class Polarimeter:
             self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ  # Seconds
         if norm_mode == 2:
             self.times = self.times.value  # JHD
-        # Conversion to list to better handle the data array
-        self.times = list(self.times)
+        # Conversion to list to better handle the data array in correlation plots
+        # self.times = list(self.times)
 
     def Prepare(self, norm_mode: int):
         """
@@ -505,54 +505,63 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
+        # If even, odd, all are equal to 0
+        if not (even or odd or all):
+            # Do nothing
+            pass
+        else:
+            # Plot what provided otherwise
+            # Creating the eoa string from the values of even, odd, all
+            eoa = fz.EOA(even=even, odd=odd, all=all)
+            # Updating the beginning date for the figure title
+            begin_date = self.Date_Update(n_samples=begin, modify=False)
 
-        eoa = fz.EOA(even=even, odd=odd, all=all)
+            # Creating the fig and the title
+            fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
+            fig.suptitle(f'POL {self.name} - plot {eoa} {type}\nDate: {begin_date}', fontsize=18)
 
-        begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'POL {self.name} - plot {eoa} {type}\nDate: {begin_date}', fontsize=18)
+            # ?
+            for i in range(2):
+                n = 0  # type: int
+                for exit in ["Q1", "Q2", "U1", "U2"]:
+                    if i == 1:
+                        axs[i, n].sharey(axs[1, 0])
 
-        for i in range(2):
-            n = 0  # type: int
-            for exit in ["Q1", "Q2", "U1", "U2"]:
-                if i == 1:
-                    axs[i, n].sharey(axs[1, 0])
+                    if even != 0:
+                        axs[i, n].plot(self.times[begin:end - 1:2][:- smooth_len],
+                                       fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len)[:-1],
+                                       color="royalblue", alpha=even, label="Even Output")
 
-                if even != 0:
-                    axs[i, n].plot(self.times[begin:end - 1:2][:- smooth_len],
-                                   fz.mob_mean(self.data[type][exit][begin:end - 1:2], smooth_len=smooth_len)[:-1],
-                                   color="royalblue", alpha=even, label="Even Output")
+                    if odd != 0:
+                        axs[i, n].plot(self.times[begin + 1:end:2][:- smooth_len],
+                                       fz.mob_mean(self.data[type][exit][begin + 1:end:2], smooth_len=smooth_len)[:-1],
+                                       color="crimson", alpha=odd, label="Odd Output")
 
-                if odd != 0:
-                    axs[i, n].plot(self.times[begin + 1:end:2][:- smooth_len],
-                                   fz.mob_mean(self.data[type][exit][begin + 1:end:2], smooth_len=smooth_len)[:-1],
-                                   color="crimson", alpha=odd, label="Odd Output")
+                    if all != 0:
+                        axs[i, n].plot(self.times[begin:end][:- smooth_len],
+                                       fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len)[:-1],
+                                       color="forestgreen", alpha=all, label="All Output")
+                    # Title
+                    axs[i, n].set_title(f'{type} {exit}', size=15)
+                    # X-axis
+                    # axs[i, n].set_xticklabels(rotation=45, ha="right")
+                    if self.norm_mode == 0:
+                        axs[i, n].set_xlabel("# Samples", size=15)
+                    if self.norm_mode == 1:
+                        axs[i, n].set_xlabel("Time [s]", size=15)
+                    # Y-axis
+                    axs[i, n].set_ylabel(f"Output {type} [ADU]", size=15)
+                    # Legend
+                    axs[i, n].legend(prop={'size': 9}, loc=7)
 
-                if all != 0:
-                    axs[i, n].plot(self.times[begin:end][:- smooth_len],
-                                   fz.mob_mean(self.data[type][exit][begin:end], smooth_len=smooth_len)[:-1],
-                                   color="forestgreen", alpha=all, label="All Output")
-                # Title
-                axs[i, n].set_title(f'{type} {exit}', size=15)
-                # X-axis
-                # axs[i, n].set_xticklabels(rotation=45, ha="right")
-                if self.norm_mode == 0:
-                    axs[i, n].set_xlabel("# Samples", size=15)
-                if self.norm_mode == 1:
-                    axs[i, n].set_xlabel("Time [s]", size=15)
-                # Y-axis
-                axs[i, n].set_ylabel(f"Output {type} [ADU]", size=15)
-                # Legend
-                axs[i, n].legend(prop={'size': 9}, loc=7)
+                    n += 1
 
-                n += 1
-
-        path = f"../plot/{self.date_dir}/EvenOddAll_Analysis/EOA_Output/{self.name}/"
-        Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_{type}_{eoa}_smooth={smooth_len}.pdf', dpi=400)
-        if show:
-            plt.show()
-        plt.close(fig)
+            path = f"../plot/{self.date_dir}/EvenOddAll_Analysis/EOA_Output/{self.name}/"
+            Path(path).mkdir(parents=True, exist_ok=True)
+            fig.savefig(f'{path}{self.name}_{type}_{eoa}_smooth={smooth_len}.pdf', dpi=400)
+            if show:
+                plt.show()
+            plt.close(fig)
 
     def Plot_RMS_EOA(self, type: str, window: int, even: int, odd: int, all: int, begin=0, end=-1, smooth_len=1,
                      show=True):
@@ -567,59 +576,70 @@ class Polarimeter:
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         Note: the 4 plots are repeated on two rows (uniform Y-scale below)\n
         """
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
+        # If even, odd, all are equal to 0
+        if not (even or odd or all):
+            # Do nothing
+            pass
+        else:
+            # Plot what provided otherwise
+            # Creating the eoa string from the values of even, odd, all
+            eoa = fz.EOA(even=even, odd=odd, all=all)
+            # Updating the beginning date for the figure title
+            begin_date = self.Date_Update(n_samples=begin, modify=False)
 
-        eoa = fz.EOA(even=even, odd=odd, all=all)
+            # Creating the fig and the title
+            fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
+            fig.suptitle(f'POL {self.name} - RMS {eoa} {type}\nDate: {begin_date}', fontsize=18)
 
-        begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'POL {self.name} - RMS {eoa} {type}\nDate: {begin_date}', fontsize=18)
+            for i in range(2):
+                n = 0  # type: int
+                for exit in ["Q1", "Q2", "U1", "U2"]:
 
-        for i in range(2):
-            n = 0  # type: int
-            for exit in ["Q1", "Q2", "U1", "U2"]:
+                    if i == 1:
+                        axs[i, n].sharey(axs[1, 0])
 
-                if i == 1:
-                    axs[i, n].sharey(axs[1, 0])
+                    if even != 0:
+                        axs[i, n].plot(self.times[begin:end - 1:2][:-window - smooth_len + 1],
+                                       fz.mob_mean(
+                                           fz.RMS(self.data[type], window=window, exit=exit, eoa=2,
+                                                  begin=begin, end=end),
+                                           smooth_len=smooth_len)[:-1],
+                                       color="royalblue", alpha=even, label="Even Output")
+                    if odd != 0:
+                        axs[i, n].plot(self.times[begin + 1:end:2][:-window - smooth_len + 1],
+                                       fz.mob_mean(
+                                           fz.RMS(self.data[type], window=window, exit=exit, eoa=1,
+                                                  begin=begin, end=end),
+                                           smooth_len=smooth_len)[:-1],
+                                       color="crimson", alpha=odd, label="Odd Output")
+                    if all != 0:
+                        axs[i, n].plot(self.times[begin:end][:-window - smooth_len + 1],
+                                       fz.mob_mean(
+                                           fz.RMS(self.data[type], window=window, exit=exit, eoa=0,
+                                                  begin=begin, end=end),
+                                           smooth_len=smooth_len)[:-1],
+                                       color="forestgreen", alpha=all, label="All Output")
 
-                if even != 0:
-                    axs[i, n].plot(self.times[begin:end - 1:2][:-window - smooth_len + 2],
-                                   fz.mob_mean(
-                                       fz.RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end),
-                                       smooth_len=smooth_len),
-                                   color="royalblue", alpha=even, label="Even Output")
-                if odd != 0:
-                    axs[i, n].plot(self.times[begin + 1:end:2][:-window - smooth_len + 2],
-                                   fz.mob_mean(
-                                       fz.RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end),
-                                       smooth_len=smooth_len),
-                                   color="crimson", alpha=odd, label="Odd Output")
-                if all != 0:
-                    axs[i, n].plot(self.times[begin:end][:-window - smooth_len + 2],
-                                   fz.mob_mean(
-                                       fz.RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end),
-                                       smooth_len=smooth_len),
-                                   color="forestgreen", alpha=all, label="All Output")
+                    # Title
+                    axs[i, n].set_title(f'RMS {type} {exit}')
+                    # X-axis
+                    if self.norm_mode == 0:
+                        axs[i, n].set_xlabel("# Samples", size=15)
+                    if self.norm_mode == 1:
+                        axs[i, n].set_xlabel("Time [s]", size=15)
+                    # Y-axis
+                    axs[i, n].set_ylabel(f"RMS {type} [ADU]", size=15)
+                    # Legend
+                    axs[i, n].legend(prop={'size': 9}, loc=7)
 
-                # Title
-                axs[i, n].set_title(f'RMS {type} {exit}')
-                # X-axis
-                if self.norm_mode == 0:
-                    axs[i, n].set_xlabel("# Samples", size=15)
-                if self.norm_mode == 1:
-                    axs[i, n].set_xlabel("Time [s]", size=15)
-                # Y-axis
-                axs[i, n].set_ylabel(f"RMS {type} [ADU]", size=15)
-                # Legend
-                axs[i, n].legend(prop={'size': 9}, loc=7)
+                    n += 1
 
-                n += 1
-
-        path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/EOA_RMS/{self.name}/'
-        Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.pdf', dpi=400)
-        if show:
-            plt.show()
-        plt.close(fig)
+            path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/EOA_RMS/{self.name}/'
+            Path(path).mkdir(parents=True, exist_ok=True)
+            fig.savefig(f'{path}{self.name}_{type}_RMS_{eoa}_smooth={smooth_len}.pdf', dpi=400)
+            if show:
+                plt.show()
+            plt.close(fig)
 
     def Plot_Correlation_EvenOdd(self, type: str, begin=0, end=-1, show=True):
         """
@@ -884,140 +904,145 @@ class Polarimeter:
             *False* -> do nothing
         Return a list containing the spike info for the CSV file
         """
-        # Note: The Sampling Frequency for the Even-Odd Data is 50Hz the half of STRIP one
-        fs = self.STRIP_SAMPLING_FREQ
-        scaling = "spectrum"
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
+        # If even, odd, all are equal to 0
+        if not (even or odd or all):
+            # Do nothing
+            pass
+        else:
+            # Note: The Sampling Frequency for the Even-Odd Data is 50Hz the half of STRIP one
+            fs = self.STRIP_SAMPLING_FREQ
+            scaling = "spectrum"
+            fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
-        eoa = fz.EOA(even=even, odd=odd, all=all)
-        begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'FFT Output {eoa} {type} - Date: {begin_date}', fontsize=14)
+            eoa = fz.EOA(even=even, odd=odd, all=all)
+            begin_date = self.Date_Update(n_samples=begin, modify=False)
+            fig.suptitle(f'FFT Output {eoa} {type} - Date: {begin_date}', fontsize=14)
 
-        csv_spike = [[""]]
+            csv_spike = [[""]]
 
-        for i in range(2):
-            n = 0  # type: int
-            for exit in ["Q1", "Q2", "U1", "U2"]:
+            for i in range(2):
+                n = 0  # type: int
+                for exit in ["Q1", "Q2", "U1", "U2"]:
 
-                # Spike check
-                msg = ""
-                first_msg = True
-                threshold = 5.3
+                    # Spike check
+                    msg = ""
+                    first_msg = True
+                    threshold = 5.3
 
-                if i == 1:
-                    axs[i, n].sharey(axs[1, 0])
+                    if i == 1:
+                        axs[i, n].sharey(axs[1, 0])
 
-                if all != 0:
-                    f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs,
-                                              nperseg=min(len(self.data[type][exit][begin:end]), nseg),
-                                              scaling=scaling)
-                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
-                                   alpha=all, label="All samples")
+                    if all != 0:
+                        f, s = scipy.signal.welch(self.data[type][exit][begin:end], fs=fs,
+                                                  nperseg=min(len(self.data[type][exit][begin:end]), nseg),
+                                                  scaling=scaling)
+                        axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
+                                       alpha=all, label="All samples")
 
-                    # ALL - Spike check
-                    if spike_check and i == 0:
-                        spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
-                        if len(spike_idx) != 0:
+                        # ALL - Spike check
+                        if spike_check and i == 0:
+                            spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
+                            if len(spike_idx) != 0:
 
-                            # CSV file: write warning for spike
-                            csv_spike.append([f"FFT {type} {exit} SPIKES (ALL)"])
-                            csv_spike.append(["n Spike", "idx Spike",
-                                              "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
+                                # CSV file: write warning for spike
+                                csv_spike.append([f"FFT {type} {exit} SPIKES (ALL)"])
+                                csv_spike.append(["n Spike", "idx Spike",
+                                                  "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
 
-                            # Report: write warning for spike
-                            msg += f"Spikes in FFT type: {type}, exit: {exit} - all"
-                            first_msg = False
-
-                            # CSV file: listing spikes in FFT ALL
-                            for index, item in enumerate(spike_idx):
-                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
-
-                if even != 0:
-                    f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs / 2,
-                                              nperseg=min(len(self.data[type][exit][begin:end - 1:2]), nseg),
-                                              scaling=scaling)
-                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
-                                   alpha=even, label=f"Even samples")
-
-                    # EVEN - Spike check
-                    if spike_check and i == 0:
-                        spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
-
-                        if len(spike_idx) != 0:
-                            # CSV file: write warning for spike
-                            csv_spike.append([""])
-                            csv_spike.append([f"FFT {type} {exit} SPIKES (EVEN)"])
-                            csv_spike.append(["n Spike", "idx Spike",
-                                              "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
-
-                            # Report: write warning for spike
-                            if first_msg:
-                                msg += f"Spikes in FFT type:{type}, exit:{exit} - "
+                                # Report: write warning for spike
+                                msg += f"Spikes in FFT type: {type}, exit: {exit} - all"
                                 first_msg = False
-                            else:
-                                msg += ", "
-                            msg += f"even"
 
-                            # CSV file: listing spikes in FFT EVEN
-                            for index, item in enumerate(spike_idx):
-                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
+                                # CSV file: listing spikes in FFT ALL
+                                for index, item in enumerate(spike_idx):
+                                    csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
 
-                if odd != 0:
-                    f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs / 2,
-                                              nperseg=min(len(self.data[type][exit][begin + 1:end:2]), nseg),
-                                              scaling=scaling)
-                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
-                                   alpha=odd, label=f"Odd samples")
+                    if even != 0:
+                        f, s = scipy.signal.welch(self.data[type][exit][begin:end - 1:2], fs=fs / 2,
+                                                  nperseg=min(len(self.data[type][exit][begin:end - 1:2]), nseg),
+                                                  scaling=scaling)
+                        axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
+                                       alpha=even, label=f"Even samples")
 
-                    # ODD - Spike check
-                    if spike_check and i == 0:
-                        spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
+                        # EVEN - Spike check
+                        if spike_check and i == 0:
+                            spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
 
-                        if len(spike_idx) != 0:
-                            # CSV file: write warning for spike
-                            csv_spike.append([""])
-                            csv_spike.append([f"FFT {type} {exit} SPIKES (EVEN)"])
-                            csv_spike.append(["n Spike", "idx Spike",
-                                              "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
+                            if len(spike_idx) != 0:
+                                # CSV file: write warning for spike
+                                csv_spike.append([""])
+                                csv_spike.append([f"FFT {type} {exit} SPIKES (EVEN)"])
+                                csv_spike.append(["n Spike", "idx Spike",
+                                                  "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
 
-                            # Report: write warning for spike
-                            if first_msg:
-                                msg += f"Spikes in FFT type: {type}, exit: {exit} - "
-                                first_msg = False
-                            else:
-                                msg += ", "
-                            msg += f"odd"
+                                # Report: write warning for spike
+                                if first_msg:
+                                    msg += f"Spikes in FFT type:{type}, exit:{exit} - "
+                                    first_msg = False
+                                else:
+                                    msg += ", "
+                                msg += f"even"
 
-                            # CSV file: listing spikes in FFT ODD
-                            for index, item in enumerate(spike_idx):
-                                csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
+                                # CSV file: listing spikes in FFT EVEN
+                                for index, item in enumerate(spike_idx):
+                                    csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
 
-                if not first_msg:
-                    self.warnings["spike_warning"].append(msg + ".<br /><p></p>")
+                    if odd != 0:
+                        f, s = scipy.signal.welch(self.data[type][exit][begin + 1:end:2], fs=fs / 2,
+                                                  nperseg=min(len(self.data[type][exit][begin + 1:end:2]), nseg),
+                                                  scaling=scaling)
+                        axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
+                                       alpha=odd, label=f"Odd samples")
 
-                # Title
-                axs[i, n].set_title(f"FFT {type} {exit}")
-                # X-axis
-                axs[i, n].set_xlabel("Frequency [Hz]")
-                axs[i, n].set_xscale('log')
-                # Y-axis
-                axs[i, n].set_ylabel(f"PSD {type} [ADU**2/Hz]")
-                axs[i, n].set_yscale('log')
-                # Legend
-                axs[i, n].legend(prop={'size': 6}, loc=7)
+                        # ODD - Spike check
+                        if spike_check and i == 0:
+                            spike_idx = fz.find_spike(f[f < 25.], threshold=threshold)
 
-                n += 1
+                            if len(spike_idx) != 0:
+                                # CSV file: write warning for spike
+                                csv_spike.append([""])
+                                csv_spike.append([f"FFT {type} {exit} SPIKES (EVEN)"])
+                                csv_spike.append(["n Spike", "idx Spike",
+                                                  "Frequency value [Hz]", "Spike Value [ADU**2/Hz]"])
 
-        eoa = fz.EOA(even=even, odd=odd, all=all)
+                                # Report: write warning for spike
+                                if first_msg:
+                                    msg += f"Spikes in FFT type: {type}, exit: {exit} - "
+                                    first_msg = False
+                                else:
+                                    msg += ", "
+                                msg += f"odd"
 
-        path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/FFT_EOA_Output/{self.name}/'
-        Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_FFT_{type}_{eoa}.png')
-        if show:
-            plt.show()
-        plt.close(fig)
+                                # CSV file: listing spikes in FFT ODD
+                                for index, item in enumerate(spike_idx):
+                                    csv_spike.append([f"{index}", f"{item}", f"{f[item]}", f"{s[item]}"])
 
-        return csv_spike
+                    if not first_msg:
+                        self.warnings["spike_warning"].append(msg + ".<br /><p></p>")
+
+                    # Title
+                    axs[i, n].set_title(f"FFT {type} {exit}")
+                    # X-axis
+                    axs[i, n].set_xlabel("Frequency [Hz]")
+                    axs[i, n].set_xscale('log')
+                    # Y-axis
+                    axs[i, n].set_ylabel(f"PSD {type} [ADU**2/Hz]")
+                    axs[i, n].set_yscale('log')
+                    # Legend
+                    axs[i, n].legend(prop={'size': 6}, loc=7)
+
+                    n += 1
+
+            eoa = fz.EOA(even=even, odd=odd, all=all)
+
+            path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/FFT_EOA_Output/{self.name}/'
+            Path(path).mkdir(parents=True, exist_ok=True)
+            fig.savefig(f'{path}{self.name}_FFT_{type}_{eoa}.png')
+            if show:
+                plt.show()
+            plt.close(fig)
+
+            return csv_spike
 
     def Plot_FFT_RMS_EO(self, type: str, window: int, even: int, odd: int, all: int, begin=0, end=-1, nseg=np.inf,
                         show=True):
@@ -1036,61 +1061,66 @@ class Polarimeter:
             *False* -> save the figure only
         Note: plots on two rows (uniform Y-scale below)
         """
-        # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
-        fs = self.STRIP_SAMPLING_FREQ
-        scaling = "spectrum"
-        fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
+        # If even, odd, all are equal to 0
+        if not (even or odd or all):
+            # Do nothing
+            pass
+        else:
+            # The Sampling Frequency for the Scientific Data is 50Hz the half of STRIP one
+            fs = self.STRIP_SAMPLING_FREQ
+            scaling = "spectrum"
+            fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
-        eoa = fz.EOA(even=even, odd=odd, all=all)
+            eoa = fz.EOA(even=even, odd=odd, all=all)
 
-        begin_date = self.Date_Update(n_samples=begin, modify=False)
-        fig.suptitle(f'FFT RMS {eoa} {type} - Date: {begin_date}', fontsize=14)
+            begin_date = self.Date_Update(n_samples=begin, modify=False)
+            fig.suptitle(f'FFT RMS {eoa} {type} - Date: {begin_date}', fontsize=14)
 
-        for i in range(2):
-            n = 0  # type: int
-            for exit in ["Q1", "Q2", "U1", "U2"]:
-                if i == 1:
-                    axs[i, n].sharey(axs[1, 0])
+            for i in range(2):
+                n = 0  # type: int
+                for exit in ["Q1", "Q2", "U1", "U2"]:
+                    if i == 1:
+                        axs[i, n].sharey(axs[1, 0])
 
-                if all != 0:
-                    rms = fz.RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
-                    f, s = scipy.signal.welch(rms, fs=fs, nperseg=min(len(rms), nseg), scaling=scaling)
-                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
-                                   alpha=all, label="All samples")
+                    if all != 0:
+                        rms = fz.RMS(self.data[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
+                        f, s = scipy.signal.welch(rms, fs=fs, nperseg=min(len(rms), nseg), scaling=scaling)
+                        axs[i, n].plot(f[f < 25.], s[f < 25.], color="forestgreen", linewidth=0.2, marker=".",
+                                       alpha=all, label="All samples")
 
-                if even != 0:
-                    rms = fz.RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
-                    f, s = scipy.signal.welch(rms, fs=fs / 2, nperseg=min(len(rms), nseg), scaling=scaling)
-                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
-                                   alpha=even, label=f"Even samples")
+                    if even != 0:
+                        rms = fz.RMS(self.data[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
+                        f, s = scipy.signal.welch(rms, fs=fs / 2, nperseg=min(len(rms), nseg), scaling=scaling)
+                        axs[i, n].plot(f[f < 25.], s[f < 25.], color="royalblue", linewidth=0.2, marker=".",
+                                       alpha=even, label=f"Even samples")
 
-                if odd != 0:
-                    rms = fz.RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
-                    f, s = scipy.signal.welch(rms, fs=fs / 2, nperseg=min(len(rms), nseg), scaling=scaling)
-                    axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
-                                   alpha=odd, label=f"Odd samples")
+                    if odd != 0:
+                        rms = fz.RMS(self.data[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
+                        f, s = scipy.signal.welch(rms, fs=fs / 2, nperseg=min(len(rms), nseg), scaling=scaling)
+                        axs[i, n].plot(f[f < 25.], s[f < 25.], color="crimson", linewidth=0.2, marker=".",
+                                       alpha=odd, label=f"Odd samples")
 
-                # Title
-                axs[i, n].set_title(f"FFT {type} {exit}")
-                # X-axis
-                axs[i, n].set_xlabel("Frequency [Hz]")
-                axs[i, n].set_xscale('log')
-                # Y-axis
-                axs[i, n].set_ylabel(f"PSD RMS {type} [ADU**2/Hz]")
-                axs[i, n].set_yscale('log')
-                # Legend
-                axs[i, n].legend(prop={'size': 6}, loc=7)
+                    # Title
+                    axs[i, n].set_title(f"FFT {type} {exit}")
+                    # X-axis
+                    axs[i, n].set_xlabel("Frequency [Hz]")
+                    axs[i, n].set_xscale('log')
+                    # Y-axis
+                    axs[i, n].set_ylabel(f"PSD RMS {type} [ADU**2/Hz]")
+                    axs[i, n].set_yscale('log')
+                    # Legend
+                    axs[i, n].legend(prop={'size': 6}, loc=7)
 
-                n += 1
+                    n += 1
 
-        eoa = fz.EOA(even=even, odd=odd, all=all)
+            eoa = fz.EOA(even=even, odd=odd, all=all)
 
-        path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/FFT_EOA_RMS/{self.name}/'
-        Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}{self.name}_FFT_RMS_{type}_{eoa}.png')
-        if show:
-            plt.show()
-        plt.close(fig)
+            path = f'../plot/{self.date_dir}/EvenOddAll_Analysis/FFT_EOA_RMS/{self.name}/'
+            Path(path).mkdir(parents=True, exist_ok=True)
+            fig.savefig(f'{path}{self.name}_FFT_RMS_{type}_{eoa}.png')
+            if show:
+                plt.show()
+            plt.close(fig)
 
     def Plot_FFT_SciData(self, type: str, begin=0, end=-1, nseg=np.inf, show=True, spike_check=False):
         """
