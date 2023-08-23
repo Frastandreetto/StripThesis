@@ -72,10 +72,11 @@ class Polarimeter:
         self.data = {"DEM": dem, "PWR": power}
 
         # Dictionary for Housekeeping Analysis
-        self.hk_list = {"V": ["VG0_HK", "VG1_HK", "VG2_HK", "VG3_HK", "VG4_HK", "VG5_HK",
-                              "VD0_HK", "VD1_HK", "VD2_HK", "VD3_HK", "VD4_HK", "VD5_HK"],
-                        "I": ["IG0_HK", "IG1_HK", "IG2_HK", "IG3_HK", "IG4_HK", "IG5_HK",
-                              "ID0_HK", "ID1_HK", "ID2_HK", "ID3_HK", "ID4_HK", "ID5_HK"],
+        self.hk_list = {"V": ["VG0_HK", "VD0_HK", "VG1_HK", "VD1_HK", "VG2_HK", "VD2_HK", "VG3_HK", "VD3_HK",
+                              "VG4_HK", "VD4_HK", "VD5_HK", "VG5_HK"],
+                        "I": ["IG0_HK",
+                              "ID0_HK", "IG1_HK", "ID1_HK", "IG2_HK", "ID2_HK", "IG3_HK", "ID3_HK",
+                              "IG4_HK", "ID4_HK", "IG5_HK", "ID5_HK"],
                         "O": ["DET0_OFFS", "DET1_OFFS", "DET2_OFFS", "DET3_OFFS"]
                         }
         tensions = {}
@@ -141,6 +142,7 @@ class Polarimeter:
         \t*"True"* -> The beginning date is definitely modified and provided.\n
         \t*"False"* -> A copy of the beginning date is modified and provided.\n
         """
+        # A second expressed in days unit
         s = 1 / 86_400
         if modify:
             self.date[0] += s * (n_samples / 100)  # Julian Date increased
@@ -393,6 +395,81 @@ class Polarimeter:
                               f"</tr>"
         return html_table
 
+    def Plot_Housekeeping(self, hk_kind: str, show=False):
+        """
+        Plot all the acquisitions of the chosen HouseKeeping parameters of the polarimeter.
+            Parameters:\n
+        - **hk** (``str``): defines the hk to plot.
+            *V* -> Drain Voltage and Gate Voltage,
+            *I* -> Drain Current and Gate Current,
+            *O* -> the Offsets.
+         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+        """
+        # --------------------------------------------------------------------------------------------------------------
+        # Step 1: define data
+        if hk_kind not in ["V", "I", "O"]:
+            logging.error(f"Wrong name: no HK parameters is defined by {hk_kind}. Choose between V, I or O.")
+            raise SystemExit(1)
+
+        # Voltage
+        elif hk_kind == "V":
+            col = "plum"
+            label = "Voltage [mV]"
+            n_rows = 6
+            n_col = 2
+            fig_size = (8, 15)
+
+        # Current
+        elif hk_kind == "I":
+            col = "gold"
+            label = "Current [$\mu$A]"
+            n_rows = 6
+            n_col = 2
+            fig_size = (8, 15)
+
+        # Offset
+        elif hk_kind == "O":
+            col = "teal"
+            label = "Offset [ADU]"
+            n_rows = 2
+            n_col = 2
+            fig_size = (8, 8)
+
+        hk_name = self.hk_list[hk_kind]
+
+        fig, axs = plt.subplots(nrows=n_rows, ncols=n_col, constrained_layout=True, figsize=fig_size, sharey='row')
+        fig.suptitle(f'Plot Housekeeping parameters: {hk_kind} - Date: {self.gdate[0]}', fontsize=14)
+        for i in range(n_rows):
+            for j in range(n_col):
+
+                l1 = len(self.hk_t[hk_kind][hk_name[2 * i + j]])
+                l2 = len(self.hk[hk_kind][hk_name[2 * i + j]])
+
+                if l1 != l2:
+                    msg = f"The House-Keeping: {hk_name[2 * i + j]} has a sampling problem.\n"
+                    logging.error(msg)
+                    self.warnings["time_warning"].append(msg + "<br />")
+
+                axs[i, j].scatter(self.hk_t[hk_kind][hk_name[2* i + j]][:min(l1, l2)],
+                                  self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)], marker=".", color=col)
+
+                axs[i, j].set_xlabel("Time [s]")
+                axs[i, j].set_ylabel(f"{label}")
+                axs[i, j].set_title(f"{hk_name[2 * i + j]}")
+
+        # Creating the name of the png file
+        name_file = f"HK_{hk_kind}"
+
+        # Creating the directory path
+        path = f'../plot/{self.date_dir}/HK/'
+        Path(path).mkdir(parents=True, exist_ok=True)
+        fig.savefig(f'{path}{name_file}.png')
+
+        # If true, show the plot on video
+        if show:
+            plt.show()
+        plt.close(fig)
+
     def Plot_HouseKeeping_VI(self, show=False):
         """
         Plot all the acquisitions of HouseKeeping parameters of the polarimeter: Drain Voltage, Gate Voltage,
@@ -520,7 +597,7 @@ class Polarimeter:
             fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
             fig.suptitle(f'POL {self.name} - plot {eoa} {type}\nDate: {begin_date}', fontsize=18)
 
-            # ?
+            # The 4 plots are repeated on two rows (uniform Y-scale below)
             for i in range(2):
                 n = 0  # type: int
                 for exit in ["Q1", "Q2", "U1", "U2"]:
@@ -1250,7 +1327,8 @@ class Polarimeter:
         elif type == "PWR":
             data_name = "TOT_POWER"
         else:
-            data_name = "WRONG NAME"
+            logging.error("Wrong type name: choose between DEM or PWR")
+            raise SystemExit(1)
 
         fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(17, 9))
 
