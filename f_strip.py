@@ -9,6 +9,7 @@
 import csv
 import json
 import logging
+import scipy.signal
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -23,6 +24,7 @@ from numba import njit
 from pathlib import Path
 from rich.logging import RichHandler
 from striptease import DataFile
+from typing import Dict, Any
 
 
 def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
@@ -87,6 +89,43 @@ def diff_cons(v):
 
 
 @njit
+def mob_mean(v, smooth_len: int):
+    """
+    Calculate a mobile mean on a number of elements given by smooth_len, used to smooth plots.\n
+    Parameters:\n
+    - **v** is an array-like object
+    - **smooth_len** (int): number of elements on which the mobile mean is calculated
+    """
+    m = np.zeros(len(v) - smooth_len + 1)
+    for i in np.arange(len(m)):
+        m[i] = np.mean(v[i:i + smooth_len])
+    return m
+
+
+def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0, end=-1) -> Dict[str, Any]:
+    """
+    Demodulation\n
+    Calculate the double demodulation at 50Hz of the dataset provided\n
+    Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data\n
+    Parameters:\n
+    - **dataset** (``dict``): dictionary ({}) containing the dataset with the output of a polarimeter
+    - **timestamps** (``list``): list ([]) containing the Timestamps of the output of a polarimeter
+    - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*\n
+    - **type** (``str``) of data *"DEM"* or *"PWR"*
+    - **begin**, **end** (``int``): interval of dataset that has to be considered
+    """
+    times = mean_cons(timestamps)
+    data = {}
+    if type == "PWR":
+        data[exit] = mean_cons(dataset[type][exit][begin:end])
+    if type == "DEM":
+        data[exit] = diff_cons(dataset[type][exit][begin:end])
+
+    sci_data = {"sci_data": data, "times": times}
+    return sci_data
+
+
+@njit
 def rolling_window(v, window: int):
     """
     Rolling Window Function\n
@@ -100,20 +139,6 @@ def rolling_window(v, window: int):
     shape = v.shape[:-1] + (v.shape[-1] - window + 1, window)
     strides = v.strides + (v.strides[-1],)
     return np.lib.stride_tricks.as_strided(v, shape=shape, strides=strides)
-
-
-@njit
-def mob_mean(v, smooth_len: int):
-    """
-    Calculate a mobile mean on a number of elements given by smooth_len, used to smooth plots.\n
-    Parameters:\n
-    - **v** is an array-like object
-    - **smooth_len** (int): number of elements on which the mobile mean is calculated
-    """
-    m = np.zeros(len(v) - smooth_len + 1)
-    for i in np.arange(len(m)):
-        m[i] = np.mean(v[i:i + smooth_len])
-    return m
 
 
 def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1):
@@ -136,7 +161,8 @@ def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1):
     elif eoa == 2:
         rms = np.std(rolling_window(data[exit][begin:end - 1:2], window), axis=1)
     else:
-        rms = np.nan
+        logging.error("Wrong EOA value: it must be 0,1 or 2.")
+        raise SystemExit(1)
     return rms
 
 
@@ -409,6 +435,26 @@ def datetime_check(date_str: str) -> bool:
         return False
 
 
+def date_update(start_datetime: str, n_samples: int, sampling_frequency: int) -> Time:
+    """
+    Calculates and returns the new Gregorian date in which the analysis begins, given a number of samples that
+    must be skipped from the beginning of the dataset.
+    Parameters:\n
+    - **start_datetime** (``str``): start time of the dataset
+    - **n_samples** (``int``) number of samples that must be skipped\n
+    - **sampling_freq** (``int``): sampling frequency of the dataset
+    """
+    # Convert the str in a Time object: Julian Date MJD
+    jdate = Time(start_datetime).mjd
+    # A second expressed in days unit
+    s = 1 / 86_400
+    # Julian Date increased
+    jdate += s * (n_samples / sampling_frequency)
+    # New Gregorian Date
+    new_date = Time(jdate, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+    return new_date
+
+
 def same_length(array1, array2) -> []:
     """
         Check if the two array are of the same length. If not, the longer becomes as long as the smaller
@@ -493,14 +539,299 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
     return {"There will be a dict of anomalies"}
 
 
-def correlation_plot(array1: [], array2: [], dict1: {}, dict2: {}, time1: [], time2: [],
+def data_plot(pol_name: str,
+              dataset: dict,
+              timestamps: list,
+              start_datetime: str, end_datetime: str,
+              begin: int, end: int,
+              type: str,
+              even: str, odd: str, all: str,
+              demodulated: bool, rms: bool, fft: bool,
+              window: int, smooth_len: int, nperseg: int,
+              show: bool):
+    """
+    Generic function that create a Plot of the dataset provided.\n
+    Parameters:
+        -**pol_name** (``str``): name of the polarimeter we want to analyze
+        - **dataset** (``dict``): dictionary ({}) containing the dataset with the output of a polarimeter
+        - **timestamps** (``list``): list ([]) containing the Timestamps of the output of a polarimeter
+        - **start_datetime** (``str``): start time
+        - **end_datetime** (``str``): end time
+        - **begin**, **end** (``int``): interval of dataset that has to be considered\n
+
+        - **type** (``str``) of data *"DEM"* or *"PWR"*\n
+        - **even**, **odd**, **all** (int): used to set the transparency of the dataset (0=transparent, 1=visible)\n
+
+        - **demodulated** (``bool``): if true, demodulated data are computed, if false even-odd-all output are plotted
+        - **rms** (``bool``) if true, the rms are computed
+        - **fft** (``bool``) if true, the fft are computed
+
+        - **window** (``int``): number of elements on which the RMS is calculated
+        - **smooth_len** (``int``): number of elements on which the mobile mean is calculated
+        - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
+        - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+    """
+    # Initialize the plot directory from start_datetime and end_datetime
+    path_dir = dir_format(f"{Time(start_datetime)}__{Time(end_datetime)}")
+
+    # Initialize the name of the plot
+    name_plot = f"{pol_name} "
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Step 1: define the operations: FFT, RMS, OUTPUT
+
+    # Calculate fft
+    if fft:
+        # Update the name of the plot
+        name_plot += " FFT"
+        # Update the name of the plot directory
+        path_dir += "/FFT"
+    else:
+        pass
+
+    # Calculate rms
+    if rms:
+        # Update the name of the plot
+        name_plot += " RMS"
+        # Update the name of the plot directory
+        path_dir += "/RMS"
+    else:
+        pass
+
+    if not fft and not rms:
+        # Update the name of the plot directory
+        path_dir += "/SCIDATA" if demodulated else "/OUTPUT"
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Step 2: define type of data
+    # Demodulated Scientific Data vs Scientific Output
+    if type == "DEM":
+        # Update the name of the plot
+        name_plot += " DEMODULATED" if demodulated else f" {type} {EOA(even, odd, all)}"
+        # Update the name of the plot directory
+        path_dir += "/DEMODULATED" if demodulated else f"/{type}"
+    elif type == "PWR":
+        # Update the name of the plot
+        name_plot += " TOTPOWER" if demodulated else f"{type} {EOA(even, odd, all)}"
+        # Update the name of the plot directory
+        path_dir += "/TOTPOWER" if demodulated else f"/{type}"
+    else:
+        logging.error("Wrong type! Choose between DEM or PWR!")
+        raise SystemExit(1)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Step 3: Creating the plot
+
+    # Updating the start datatime for the plot title
+    begin_date = date_update(n_samples=begin, start_datetime=start_datetime, sampling_frequency=100)
+
+    # Creating the figure with the subplots
+    fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(20, 12))
+    # Title of the figure
+    fig.suptitle(f'POL {name_plot}\nDate: {begin_date}', fontsize=14)
+
+    logging.info(f"Plot of POL {name_plot}")
+    # The 4 plots are repeated on two rows (uniform Y-scale below)
+    for row in range(2):
+        col = 0  # type: int
+        for exit in ["Q1", "Q2", "U1", "U2"]:
+            # Setting the Y-scale uniform on the 2nd row
+            if row == 1:
+                axs[row, col].sharey(axs[1, 0])
+
+            # ------------------------------------------------------------------------------------------------------
+            # Demodulation: Scientific Data
+            if demodulated:
+                # Creating a dict with the Scientific Data of an exit of a specific type and their new timestamps
+                sci_data = demodulation(dataset=dataset, timestamps=timestamps,
+                                        type=type, exit=exit, begin=begin, end=end)
+                if rms:
+                    # Calculate the RMS of the Scientific Data
+                    rms_sd = RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end)
+
+                    # Plot of FFT of the RMS of the SciData DEMODULATED/TOTPOWER -----------------------------------
+                    if fft:
+                        f, s = scipy.signal.welch(rms_sd, fs=50, nperseg=min(len(rms_sd), nperseg), scaling="spectrum")
+                        axs[row, col].plot(f[f < 25.], s[f < 25.],
+                                           linewidth=0.2, marker=".", color="mediumvioletred",
+                                           label=f"{name_plot[3:]}")
+
+                    # Plot of RMS of the SciData DEMODULATED/TOTPOWER ----------------------------------------------
+                    else:
+                        # Smoothing of the rms of the SciData. Smooth_len=1 -> No smoothing
+                        rms_sd = mob_mean(rms_sd, smooth_len=smooth_len)
+
+                        axs[row, col].plot(sci_data["times"][begin:len(rms_sd) + begin], rms_sd,
+                                           color="mediumvioletred", label=f"{name_plot[3:]}")
+
+                else:
+                    # Plot of the FFT of the SciData DEMODULATED/TOTPOWER ------------------------------------------
+                    if fft:
+                        f, s = scipy.signal.welch(sci_data["sci_data"][exit][begin:end], fs=50,
+                                                  nperseg=min(len(sci_data["sci_data"][exit][begin:end]), nperseg),
+                                                  scaling="spectrum")
+                        axs[row, col].plot(f[f < 25.], s[f < 25.],
+                                           linewidth=0.2, marker=".", color="mediumpurple",
+                                           label=f"{name_plot[3:]}")
+
+                    # Plot of the SciData DEMODULATED/TOTPOWER -----------------------------------------------------
+                    else:
+                        # Smoothing of the SciData  Smooth_len=1 -> No smoothing
+                        y = mob_mean(sci_data["sci_data"][exit][begin:end], smooth_len=smooth_len)
+                        axs[row, col].plot(sci_data["times"][begin:len(y) + begin], y,
+                                           color="mediumpurple", label=f"{name_plot[3:]}")
+
+            # ------------------------------------------------------------------------------------------------------
+            # Output
+            else:
+                # If even, odd, all are equal to 0
+                if not (even or odd or all):
+                    # Do not plot anything
+                    logging.error("No plot can be printed if even, odd, all values are all 0.")
+                    raise SystemExit(1)
+                else:
+                    if rms:
+                        rms_even = []
+                        rms_odd = []
+                        rms_all = []
+                        # Calculate the RMS of the Scientific Output: Even, Odd, All
+                        if even:
+                            rms_even = RMS(dataset[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
+                        if odd:
+                            rms_odd = RMS(dataset[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
+                        if all:
+                            rms_all = RMS(dataset[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
+
+                        # Plot of FFT of the RMS of the Output DEM/PWR ---------------------------------------------
+                        if fft:
+                            if even:
+                                f, s = scipy.signal.welch(rms_even, fs=50, nperseg=min(len(rms_even), nperseg),
+                                                          scaling="spectrum")
+                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
+                                                   linewidth=0.2, marker=".", alpha=even, label=f"Even samples")
+                            if odd:
+                                f, s = scipy.signal.welch(rms_odd, fs=50, nperseg=min(len(rms_odd), nperseg),
+                                                          scaling="spectrum")
+                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
+                                                   linewidth=0.2, marker=".", alpha=odd, label=f"Odd samples")
+                            if all:
+                                f, s = scipy.signal.welch(rms_all, fs=100, nperseg=min(len(rms_all), nperseg),
+                                                          scaling="spectrum")
+                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
+                                                   linewidth=0.2, marker=".", alpha=all, label="All samples")
+
+                        # Plot of RMS of the Output DEM/PWR --------------------------------------------------------
+                        else:
+                            if even:
+                                axs[row, col].plot(timestamps[begin:end - 1:2][:-window - smooth_len + 1],
+                                                   mob_mean(rms_even, smooth_len=smooth_len)[:-1],
+                                                   color="royalblue", alpha=even, label="Even Output")
+                            if odd:
+                                axs[row, col].plot(timestamps[begin + 1:end:2][:-window - smooth_len + 1],
+                                                   mob_mean(rms_odd, smooth_len=smooth_len)[:-1],
+                                                   color="crimson", alpha=odd, label="Odd Output")
+                            if all != 0:
+                                axs[row, col].plot(timestamps[begin:end][:-window - smooth_len + 1],
+                                                   mob_mean(rms_all, smooth_len=smooth_len)[:-1],
+                                                   color="forestgreen", alpha=all, label="All Output")
+
+                    else:
+                        # Plot of the FFT of the Output DEM/PWR ----------------------------------------------------
+                        if fft:
+                            if even:
+                                f, s = scipy.signal.welch(dataset[type][exit][begin:end - 1:2], fs=50,
+                                                          nperseg=min(len(dataset[type][exit][begin:end - 1:2]),
+                                                                      nperseg),
+                                                          scaling="spectrum")
+                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
+                                                   linewidth=0.2, marker=".", alpha=even, label="Even samples")
+                            if odd:
+                                f, s = scipy.signal.welch(dataset[type][exit][begin + 1:end:2], fs=50,
+                                                          nperseg=min(len(dataset[type][exit][begin + 1:end:2]),
+                                                                      nperseg),
+                                                          scaling="spectrum")
+                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
+                                                   linewidth=0.2, marker=".", alpha=odd, label="Odd samples")
+                            if all:
+                                f, s = scipy.signal.welch(dataset[type][exit][begin:end], fs=100,
+                                                          nperseg=min(len(dataset[type][exit][begin:end]), nperseg),
+                                                          scaling="spectrum")
+                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
+                                                   linewidth=0.2, marker=".", alpha=all, label="All samples")
+
+                        # Plot of the Output DEM/PWR ---------------------------------------------------------------
+                        else:
+                            if even != 0:
+                                axs[row, col].plot(timestamps[begin:end - 1:2][:- smooth_len],
+                                                   mob_mean(dataset[type][exit][begin:end - 1:2],
+                                                            smooth_len=smooth_len)[:-1],
+                                                   color="royalblue", alpha=even, label="Even Output")
+                            if odd != 0:
+                                axs[row, col].plot(timestamps[begin + 1:end:2][:- smooth_len],
+                                                   mob_mean(dataset[type][exit][begin + 1:end:2],
+                                                            smooth_len=smooth_len)[:-1],
+                                                   color="crimson", alpha=odd, label="Odd Output")
+                            if all != 0:
+                                axs[row, col].plot(timestamps[begin:end][:- smooth_len],
+                                                   mob_mean(dataset[type][exit][begin:end],
+                                                            smooth_len=smooth_len)[:-1],
+                                                   color="forestgreen", alpha=all, label="All Output")
+
+            # Subplots properties ----------------------------------------------------------------------------------
+
+            # Title subplot
+            axs[row, col].set_title(f'{exit}', size=15)
+
+            # X-axis
+            x_label = "Time [s]"
+            if fft:
+                x_label = "Frequency [Hz]"
+                axs[row, col].set_xscale('log')
+            axs[row, col].set_xlabel(f"{x_label}", size=10)
+
+            # Y-axis
+            y_label = "Output [ADU]"
+            if fft:
+                y_label = "Power Spectral Density [ADU**2/Hz]"
+                axs[row, col].set_yscale('log')
+            else:
+                if rms:
+                    y_label = "RMS [ADU]"
+
+            axs[row, col].set_ylabel(f"{y_label}", size=10)
+
+            # Legend
+            axs[row, col].legend(prop={'size': 10}, loc=7)
+
+            # Skipping to the following column of the subplot grid
+            col += 1
+    # ------------------------------------------------------------------------------------------------------------------
+    # Step 4: producing the file in the correct dir
+    # Creating the name of the png file: introducing _ in place of white spaces
+    name_file = dir_format(name_plot)
+
+    logging.debug(f"Title plot: {name_plot}, name file: {name_file}, name dir: {path_dir}")
+
+    path = f'../plot/{path_dir}/'
+    Path(path).mkdir(parents=True, exist_ok=True)
+    fig.savefig(f'{path}{name_file}.png')
+
+    # If true, show the plot on video
+    if show:
+        plt.show()
+    plt.close(fig)
+
+    return 88
+
+
+def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: [], time2: [],
                      data_name1: str, data_name2: str, start_datetime: str, end_datetime: str, show=False,
                      corr_t=0.4):
     """
         Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
         Parameters:\n
         - **array1**, **array2** (``array``): arrays ([]) of n1 and n2 elements
-        - **dict1**, **dict2** (``array``): dictionaries ({}) with N1, N2 keys
+        - **dict1**, **dict2** (``dict``): dictionaries ({}) with N1, N2 keys
         - **time1**, **time2** (``array``): arrays ([]) of timestamps: not necessary if the dataset have same length.
         - **data_name1**, **data_name2** (``str``): names of the dataset. Used for titles, labels and to save the png.
         - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
@@ -513,8 +844,10 @@ def correlation_plot(array1: [], array2: [], dict1: {}, dict2: {}, time1: [], ti
     """
     # Data comprehension -----------------------------------------------------------------------------------------------
     # Type check
+    # array and timestamps array must be list
     if not (all(isinstance(l, list) for l in (array1, array2, time1, time2))):
         logging.error("Wrong type: note that array1, array2, time1, time2 are list.")
+    # dict1 and dict2 must be dictionaries
     if not (all(isinstance(d, dict) for d in (dict1, dict2))):
         logging.error("Wrong type: note that dict1 and dict2 are dictionaries.")
 
