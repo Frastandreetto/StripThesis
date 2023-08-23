@@ -468,77 +468,6 @@ def same_length(array1, array2) -> []:
     return [array1, array2]
 
 
-# warn_threshold => used for anomalies & warnings
-def correlation_mat(dict1: {}, dict2: {}, data_name: str,
-                    start_datetime: str, end_datetime: str, show=False, corr_t=0.4) -> {}:
-    """
-       Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
-
-       Parameters:\n
-       - **dict1**, **dict2** (``array``): dataset
-       - **data_name** (``str``): name of the dataset. Used for the title of the figure and to save the png.
-       - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
-       - **end_datetime** (``str``): end date of dataset. Used for the title of the figure and to save the png.
-       - **show** (``bool``):\n
-            *True* -> show the plot and save the figure\n
-            *False* -> save the figure only
-       - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced.\n
-    """
-    self_correlation = False
-    # If the second dictionary is not provided we are in a Self correlation case
-    if dict2 == {}:
-        self_correlation = True
-        dict2 = dict1
-
-    # Convert dictionaries to DataFrames
-    df1 = pd.DataFrame(dict1)
-    df2 = pd.DataFrame(dict2)
-
-    # Initialize an empty DataFrame for correlations
-    correlation_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns)
-
-    # Calculate correlations
-    for key1 in df1.columns:
-        for key2 in df2.columns:
-            correlation_matrix.loc[key1, key2] = df1[key1].corr(df2[key2])
-
-    # Self correlation case
-    if self_correlation:
-        for i in correlation_matrix.keys():
-            # Put at Nan the values on the diagonal of the matrix (self correlations)
-            correlation_matrix[i][i] = np.nan
-
-    # Convert correlation matrix values to float
-    correlation_matrix = correlation_matrix.astype(float)
-
-    # Create a figure to plot the correlation matrices
-    fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(10, 5))
-    # Set the title of the figure
-    fig.suptitle(f'Correlation Matrix {data_name} - Date: {start_datetime}', fontsize=12)
-
-    pl_m1 = sn.heatmap(correlation_matrix, annot=True, ax=axs[0], cmap='coolwarm')
-    pl_m1.set_title(f"Correlation {data_name}", fontsize=14)
-    pl_m2 = sn.heatmap(correlation_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
-    pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=14)
-
-    # Procedure to save the png of the plot in the correct dir
-    # Gregorian Date [in string format]
-    gdate = [Time(start_datetime), Time(end_datetime)]
-    # Directory where to save all the plots of a given analysis
-    date_dir = dir_format(f"{gdate[0]}__{gdate[1]}")
-    path = f'../plot/{date_dir}/Correlation_Matrix/'
-    # Check if the dir exists. If not, it will be created.
-    Path(path).mkdir(parents=True, exist_ok=True)
-    fig.savefig(f'{path}{data_name}_CorrMat.png')
-
-    # If show is True the plot is visible on video
-    if show:
-        plt.show()
-    plt.close(fig)
-
-    return {"There will be a dict of anomalies"}
-
-
 def data_plot(pol_name: str,
               dataset: dict,
               timestamps: list,
@@ -926,6 +855,15 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         axs.set_ylabel(f"{label_y}")
         # Legend
         axs.legend(prop={'size': 9}, loc=4)
+
+        # Calculate the correlation coefficient matrix -----------------------------------------------------------------
+        correlation_matrix = np.corrcoef(x, y)
+        # Extract the correlation coefficient between the two datasets from the matrix
+        correlation_value = correlation_matrix[0, 1]
+        # Print a warning if the correlation value overcomes the threshold
+        if correlation_value > corr_t:
+            logging.warning(f"Found high correlation value: {correlation_value} between .")
+
     # ------------------------------------------------------------------------------------------------------------------
 
     elif n_col > 1:
@@ -949,6 +887,15 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                     # Legend
                     axs[r, c].legend(prop={'size': 9}, loc=4)
 
+                    # Calculate the correlation coefficient matrix -----------------------------------------------------
+                    correlation_matrix = np.corrcoef(x, y)
+                    # Extract the correlation coefficient between the two datasets x-y from the matrix
+                    correlation_value = correlation_matrix[0, 1]
+                    # Print a warning if the correlation value overcomes the threshold
+                    if correlation_value > corr_t:
+                        logging.warning(f'Found high correlation value between '
+                                        f'{data_name1} {r_exit} and {data_name2} {c_exit}: {correlation_value}.')
+
         # array1 vs dict1 ----------------------------------------------------------------------------------------------
         else:
             for c, exit in enumerate(dict1.keys()):
@@ -966,6 +913,15 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                 axs[c].set_ylabel(f"{label_y}")
                 # Legend
                 axs[c].legend(prop={'size': 9}, loc=4)
+
+                # Calculate the correlation coefficient matrix ---------------------------------------------------------
+                correlation_matrix = np.corrcoef(x, y)
+                # Extract the correlation coefficient between the two datasets from the matrix
+                correlation_value = correlation_matrix[0, 1]
+                # Print a warning if the correlation value overcomes the threshold
+                if correlation_value > corr_t:
+                    logging.warning(f"Found high correlation value between {data_name1} and {data_name2} "
+                                    f"in exit {exit}: {correlation_value}.")
     else:
         return
 
@@ -983,3 +939,77 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     if show:
         plt.show()
     plt.close(fig)
+
+
+def correlation_mat(dict1: {}, dict2: {}, data_name: str,
+                    start_datetime: str, end_datetime: str, show=False, corr_t=0.4) -> {}:
+    """
+       Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
+
+       Parameters:\n
+       - **dict1**, **dict2** (``array``): dataset
+       - **data_name** (``str``): name of the dataset. Used for the title of the figure and to save the png.
+       - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
+       - **end_datetime** (``str``): end date of dataset. Used for the title of the figure and to save the png.
+       - **show** (``bool``):\n
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only
+       - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced.\n
+    """
+    self_correlation = False
+    # If the second dictionary is not provided we are in a Self correlation case
+    if dict2 == {}:
+        self_correlation = True
+        dict2 = dict1
+    # Convert dictionaries to DataFrames
+    df1 = pd.DataFrame(dict1)
+    df2 = pd.DataFrame(dict2)
+
+    # Initialize an empty DataFrame for correlations
+    correlation_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns)
+
+    # Calculate correlations
+    for key1 in df1.columns:
+        for key2 in df2.columns:
+            correlation_matrix.loc[key1, key2] = df1[key1].corr(df2[key2])
+
+            # Check correlation values
+            if correlation_matrix.loc[key1, key2] > corr_t:
+                logging.warning(f"Found high correlation value between {key1} and {key2}: "
+                                f"{correlation_matrix.loc[key1, key2]}.")
+
+    # Self correlation case
+    if self_correlation:
+        for i in correlation_matrix.keys():
+            # Put at Nan the values on the diagonal of the matrix (self correlations)
+            correlation_matrix[i][i] = np.nan
+
+    # Convert correlation matrix values to float
+    correlation_matrix = correlation_matrix.astype(float)
+
+    # Create a figure to plot the correlation matrices
+    fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(10, 5))
+    # Set the title of the figure
+    fig.suptitle(f'Correlation Matrix {data_name} - Date: {start_datetime}', fontsize=12)
+
+    pl_m1 = sn.heatmap(correlation_matrix, annot=True, ax=axs[0], cmap='coolwarm')
+    pl_m1.set_title(f"Correlation {data_name}", fontsize=14)
+    pl_m2 = sn.heatmap(correlation_matrix, annot=True, ax=axs[1], cmap='coolwarm', vmin=-0.4, vmax=0.4)
+    pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=14)
+
+    # Procedure to save the png of the plot in the correct dir
+    # Gregorian Date [in string format]
+    gdate = [Time(start_datetime), Time(end_datetime)]
+    # Directory where to save all the plots of a given analysis
+    date_dir = dir_format(f"{gdate[0]}__{gdate[1]}")
+    path = f'../plot/{date_dir}/Correlation_Matrix/'
+    # Check if the dir exists. If not, it will be created.
+    Path(path).mkdir(parents=True, exist_ok=True)
+    fig.savefig(f'{path}{data_name}_CorrMat.png')
+
+    # If show is True the plot is visible on video
+    if show:
+        plt.show()
+    plt.close(fig)
+
+    return {"There will be a dict of anomalies"}
