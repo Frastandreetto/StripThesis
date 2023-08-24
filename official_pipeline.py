@@ -245,8 +245,8 @@ def main():
 
     # MODE C: Check on the status value
     if args.subcommand == "thermal_hk":
-        if args.status not in (['0', '1', '2']):
-            logging.error('Invalid status value. Please choose between the values 0 and 1 for a single analysis.'
+        if args.status not in ([0, 1, 2]):
+            logging.error('Invalid status value. Please choose between the values 0 and 1 for a single analysis. '
                           'Choose the value 2 to have both.')
             raise SystemExit(1)
 

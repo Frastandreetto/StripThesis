@@ -862,7 +862,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         correlation_value = correlation_matrix[0, 1]
         # Print a warning if the correlation value overcomes the threshold
         if correlation_value > corr_t:
-            logging.warning(f"Found high correlation value: {correlation_value} between .")
+            logging.warning(f"Found high correlation value: {correlation_value} between {data_name1} and {data_name2}.")
 
     # ------------------------------------------------------------------------------------------------------------------
 

@@ -54,10 +54,11 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
 
         # Plots of the Bias HK: Tensions and Currents
         logging.info('Plotting Bias HK.')
-        p.Plot_HouseKeeping_VI()
+        p.Plot_Housekeeping(hk_kind="V", show=False)
+        p.Plot_Housekeeping(hk_kind="I", show=False)
         # Plots of the Offsets
         logging.info('Plotting Offset.')
-        p.Plot_HouseKeeping_OFF()
+        p.Plot_Housekeeping(hk_kind="O", show=False)
 
         # Add some correlations (?)
 

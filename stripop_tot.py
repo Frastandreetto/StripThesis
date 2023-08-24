@@ -42,8 +42,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             with a number "window" of elements per row and then calculate the RMS on every row.
             window=1 equals no conversion.
             - **fft** (``bool``): If true, the code will compute the power spectra of the scientific data.
-            - **nperseg** (``int``): int value that defines the number of elements of the array of scientific data o
-            n which the fft is calculated.
+            - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
             - **nperseg_thermal** (``int``): int value that defines the number of elements of thermal measures
             on which the fft is calculated.
             - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
@@ -144,10 +143,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
         # Plots of the Bias HK: Tensions and Currents
         logging.info('Plotting Bias HK.')
-        p.Plot_HouseKeeping_VI()
+        p.Plot_Housekeeping(hk_kind="V", show=False)
+        p.Plot_Housekeeping(hk_kind="I", show=False)
         # Plots of the Offsets
         logging.info('Plotting Offset.')
-        p.Plot_HouseKeeping_OFF()
+        p.Plot_Housekeeping(hk_kind="O", show=False)
 
         # Add some correlations (?)
 
@@ -160,6 +160,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         p.Load_Pol()
         # Preparing the Polarimeter for the analysis: normalization and data cleanse
         logging.info('Preparing the Polarimeter.')
+        # Dataset in function of time [s]
         p.Prepare(norm_mode=1)
 
         for type in ['DEM', 'PWR']:
@@ -173,7 +174,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             if eoa == ' ':
                 pass
             else:
-                logging.warning(f'--------------------------------------------------------------------------------------'
+                logging.warning(f'-------------------------------------------------------------------------------------'
                                 f'\nEven-Odd-All Analysis.')
                 combos = fz.eoa_values(eoa)
                 for combo in combos:
@@ -185,24 +186,42 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         # Plotting Even Odd All Outputs
                         logging.info(f'\nEven = {combo[0]}, Odd = {combo[1]}, All = {combo[2]}.')
                         logging.info(f'Plotting Even Odd All Outputs. Type {type}.')
-                        p.Plot_EvenOddAll(type=type, even=combo[0], odd=combo[1], all=combo[2],
-                                          begin=0, end=-1, smooth_len=smooth, show=False)
+                        fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                                     start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                     type=type, even=combo[0], odd=combo[1], all=combo[2],
+                                     demodulated=False, rms=False, fft=False,
+                                     window=window, smooth_len=smooth, nperseg=nperseg,
+                                     show=False)
+
                         # Plotting Even Odd All Outputs RMS
                         logging.info(f'Plotting Even Odd All Outputs RMS. Type {type}.')
-                        p.Plot_RMS_EOA(type=type, window=window, even=combo[0], odd=combo[1], all=combo[2],
-                                       begin=0, end=-1, smooth_len=smooth, show=False)
+                        fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                                     start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                     type=type, even=combo[0], odd=combo[1], all=combo[2],
+                                     demodulated=False, rms=True, fft=False,
+                                     window=window, smooth_len=smooth, nperseg=nperseg,
+                                     show=False)
 
                         if fft:
                             logging.warning("--------------------------------------------------------------------------"
                                             "Spectral Analysis Even-Odd-All")
                             # Plotting Even Odd All FFT
                             logging.info(f'Plotting Even Odd All FFT. Type {type}.')
-                            p.Plot_FFT_EvenOdd(type=type, even=combo[0], odd=combo[1], all=combo[2],
-                                               begin=0, end=-1, nseg=nperseg, show=False, spike_check=spike_fft)
+                            fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                                         start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                         type=type, even=combo[0], odd=combo[1], all=combo[2],
+                                         demodulated=False, rms=False, fft=True,
+                                         window=window, smooth_len=smooth, nperseg=nperseg,
+                                         show=False)
+
                             # Plotting Even Odd All FFT of the RMS
                             logging.info(f'Plotting Even Odd All FFT of the RMS. Type {type}.')
-                            p.Plot_FFT_RMS_EO(type=type, window=window, even=combo[0], odd=combo[1], all=combo[2],
-                                              begin=0, end=-1, nseg=nperseg, show=False)
+                            fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                                         start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                         type=type, even=combo[0], odd=combo[1], all=combo[2],
+                                         demodulated=False, rms=True, fft=True,
+                                         window=window, smooth_len=smooth, nperseg=nperseg,
+                                         show=False)
             # ----------------------------------------------------------------------------------------------------------
             # Scientific Data Analysis
             # ----------------------------------------------------------------------------------------------------------
@@ -210,27 +229,47 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             logging.warning("--------------------------------------------------------------------------------------"
                             "\nScientific Data Analysis.")
             logging.info(f'\nPlot of Scientific Data. Type {type}.')
-            p.Plot_SciData(type=type, begin=0, end=-1, smooth_len=smooth, show=False)
+            fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                         start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                         type=type, even=1, odd=1, all=1,
+                         demodulated=True, rms=False, fft=False,
+                         window=window, smooth_len=smooth, nperseg=nperseg,
+                         show=False)
             # Plot of RMS of Scientific Data
             logging.info(f'Plot of RMS of Scientific Data. Type {type}.')
-            p.Plot_RMS_SciData(type=type, window=window, begin=0, end=-1, smooth_len=smooth, show=False)
+            fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                         start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                         type=type, even=1, odd=1, all=1,
+                         demodulated=True, rms=True, fft=False,
+                         window=window, smooth_len=smooth, nperseg=nperseg,
+                         show=False)
             # Plot of FFT of Scientific Data
 
             if fft:
                 logging.warning("--------------------------------------------------------------------------------------"
                                 "\nSpectral Analysis Scientific Data.")
                 logging.info(f'Plot of FFT of Scientific Data. Type {type}.')
-                p.Plot_FFT_SciData(type=type, begin=0, end=-1, nseg=nperseg, show=False, spike_check=spike_fft)
+                fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                             start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                             type=type, even=1, odd=1, all=1,
+                             demodulated=True, rms=False, fft=True,
+                             window=window, smooth_len=smooth, nperseg=nperseg,
+                             show=False)
                 # Plot of FFT of the RMS of Scientific Data
                 logging.info(f'Plot of FFT of the RMS of Scientific Data. Type {type}.')
-                p.Plot_FFT_RMS_SciData(type=type, window=window, begin=0, end=-1, nseg=nperseg, show=False)
+                fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                             start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                             type=type, even=1, odd=1, all=1,
+                             demodulated=True, rms=True, fft=True,
+                             window=window, smooth_len=smooth, nperseg=nperseg,
+                             show=False)
 
             # Correlation plots (?)
             logging.warning(f'--------------------------------------------------------------------------------------'
                             f'\nCorrelation plots (?). Type {type}.')
             if corr_mat:
                 # Correlation matrices (?)
-                logging.warning(f'--------------------------------------------------------------------------------------'
+                logging.warning(f'-------------------------------------------------------------------------------------'
                                 f'Correlation matrices with threshold {corr_t}(?). Type {type}.')
 
         # Print the report
