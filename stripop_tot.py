@@ -25,7 +25,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         fft: bool, nperseg: int, nperseg_thermal: int,
         spike_data: bool, spike_fft: bool,
         corr_mat: bool, corr_t: float,
-        output_dir: str):
+        output_dir: str, command_line: str):
     """
     Performs the analysis of one or more polarimeters producing a complete report.
     The analysis can include plots of: Even-Odd Output, Scientific Data, FFT, correlation and  Matrices.
@@ -51,7 +51,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             of the even-odd and scientific data.
             - **corr_t** (``float``): Floating point number used as lim sup for the correlation value
              between two dataset: if the value computed is higher than the threshold, a warning is produced.
-            - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
+            - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis
+            - **command_line** (`str`): Command line used to start the pipeline.
     """
     logging.info('\nReady to analyze Strip.')
     # ------------------------------------------------------------------------------------------------------------------

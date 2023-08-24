@@ -7,6 +7,7 @@
 # Libraries & Modules
 import argparse
 import logging
+import sys
 
 from pathlib import Path
 from rich.logging import RichHandler
@@ -174,11 +175,11 @@ def main():
     parser_C.add_argument('--nperseg_thermal', '-nps_th', type=int, default=256,
                           help='int value that defines the number of elements of the array of thermal measures'
                                'on which the fft is calculated.')
-    # status
+    # Status
     parser_C.add_argument('--status', '-stat', type=int, default=2, choices=[0, 1, 2],
                           help='int value that defines the status of the multiplexer of the TS to analyze: 0 or 1. '
                                'If it is set on 2, both states will be analyzed.')
-    # correlation threshold
+    # Correlation Threshold
     parser_C.add_argument('--corr_t', '-ct', type=float, default=0.4,
                           help='Floating point number used as lim sup for the correlation value between two dataset: '
                                'if the value computed is higher than the threshold, a warning is produced.')
@@ -188,7 +189,8 @@ def main():
     # Output directory of the reports
     parser.add_argument('--output_dir', '-od', type=str, default='../plot/default_reports',
                         help='Path of the dir that will contain the reports with the results of the analysis.')
-
+    # Command Line
+    parser.add_argument('--command_line', '-cl', type=str, help='Command line used to start the pipeline.')
     ####################################################################################################################
     # Call .parse_args() on the parser to get the Namespace object that contains all the user’s arguments.
     args = parser.parse_args()
@@ -259,13 +261,13 @@ def main():
                     name_pol=args.name_pol, eoa=args.even_odd_all, smooth=args.smooth, window=args.window,
                     fft=args.fourier, nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
                     spike_data=args.spike_data, spike_fft=args.spike_fft, corr_mat=args.corr_mat, corr_t=args.corr_t,
-                    output_dir=args.output_dir)
+                    output_dir=args.output_dir, command_line=args.command_line)
 
     elif args.subcommand == "pol_hk":
         logging.info('The housekeeping analysis is beginning...')
         # Housekeeping Analysis Operation
         strip_b.pol_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
-                       name_pol=args.name_pol, output_dir=args.output_dir)
+                       name_pol=args.name_pol, output_dir=args.output_dir, command_line=args.command_line)
 
     elif args.subcommand == "thermal_hk":
         # Thermal Sensors Analysis Operation
@@ -277,12 +279,12 @@ def main():
                 strip_c.thermal_hk(path_file=args.path_file,
                                    start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                    status=status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
-                                   corr_t=args.corr_t, output_dir=args.output_dir)
+                                   corr_t=args.corr_t, output_dir=args.output_dir, command_line=args.command_line)
         else:
             strip_c.thermal_hk(path_file=args.path_file,
                                start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
-                               corr_t=args.corr_t, output_dir=args.output_dir)
+                               corr_t=args.corr_t, output_dir=args.output_dir, command_line=args.command_line)
 
 
 if __name__ == "__main__":

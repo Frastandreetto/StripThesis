@@ -18,7 +18,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
                     datefmt="[%X]", handlers=[RichHandler()])
 
 
-def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str, output_dir: str):
+def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str, output_dir: str, command_line: str):
     """
     Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
         Parameters:
@@ -27,6 +27,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
             - **end_datetime** (``str``): end time
             - **name_pol** (``str``): name of the polarimeter. If more than one, write them into ' ' separated by space.
             - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
+            - **command_line** (`str`): Command line used to start the pipeline.
     """
     logging.info('Ready to analyze the HouseKeeping Parameters.')
     # Converting the string of polarimeters into a list

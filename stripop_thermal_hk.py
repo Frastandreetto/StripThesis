@@ -21,7 +21,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 
 def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                status: str, fft: bool, nperseg_thermal: int, corr_t: float,
-               output_dir: str):
+               output_dir: str, command_line: str):
     """
     Performs the analysis of one or more polarimeters producing a complete report.
     The analysis can include plots of: Even-Odd Output, Scientific Data, FFT and correlation Matrices.
@@ -37,6 +37,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             - **corr_t** (``float``): lim sup for the correlation value between two dataset:
              if the value computed is higher than the threshold, a warning is produced.
              - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
+             - **command_line** (`str`): Command line used to start the pipeline.
     """
     logging.info('Ready to analyze the Thermal Sensors.')
     TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime, end_datetime=end_datetime,
