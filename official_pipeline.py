@@ -9,6 +9,7 @@ import argparse
 import logging
 import sys
 
+from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from rich.logging import RichHandler
 
@@ -305,6 +306,35 @@ def main():
                                status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
                                corr_t=args.corr_t, command_line=command_line,
                                output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
+
+    # --------------------------------------------------------------------------------------------------------------
+    # REPORT
+    # --------------------------------------------------------------------------------------------------------------
+    logging.info(f"\nI am putting the header report into: {args.output_report_dir}.")
+
+    header_report_data = {
+        "path_file": args.path_file,
+        "analysis_date": str(f"{args.start_datetime} - {args.end_datetime}"),
+        "output_plot_dir": args.output_plot_dir,
+        "output_report_dir": args.output_report_dir,
+        "command_line": command_line
+    }
+
+    # root: location of the file.txt with the information to build the report
+    root = "../striptease/templates"
+    templates_dir = Path(root)
+
+    # Creating the Jinja2 environment
+    env = Environment(loader=FileSystemLoader(templates_dir))
+    # Getting instructions to create the head of the report
+    header_template = env.get_template('report_header.txt')
+
+    # Check if the dir exists. If not, it will be created.
+    Path(args.output_report_dir).mkdir(parents=True, exist_ok=True)
+    # Report generation
+    filename = Path(f"{args.output_report_dir}/report_head_{args.subcommand}.md")
+    with open(filename, 'w') as outf:
+        outf.write(header_template.render(header_report_data))
 
 
 if __name__ == "__main__":

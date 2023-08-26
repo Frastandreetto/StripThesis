@@ -291,6 +291,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # --------------------------------------------------------------------------------------------------------------
         # REPORT
         # --------------------------------------------------------------------------------------------------------------
+        """
         logging.info(f"\nOnce ready, I will put the report into: {output_report_dir}.")
 
         report_data = {
@@ -316,13 +317,13 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # Creating the Jinja2 environment
         env = Environment(loader=FileSystemLoader(templates_dir))
         # Getting instructions to create the head of the report
-        header_template = env.get_template('report_header.txt')
+        template = env.get_template('report_header.txt')
 
         # Check if the dir exists. If not, it will be created.
         Path(output_report_dir).mkdir(parents=True, exist_ok=True)
         # Report generation
-        filename = Path(f"{output_report_dir}/report_head.md")
+        filename = Path(f"{output_report_dir}/report_name.md")
         with open(filename, 'w') as outf:
-            outf.write(header_template.render(report_data))
-
+            outf.write(template.render(report_data))
+        """
     return
