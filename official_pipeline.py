@@ -58,6 +58,9 @@ def main():
     logging.basicConfig(level="INFO", format='%(message)s',
                         datefmt="[%X]", handlers=[RichHandler()])
 
+    # Command Line used to start the pipeline
+    command_line = " ".join(sys.argv)
+
     # Create the top-level argument parser by instantiating ArgumentParser
     # Note: the description is optional. It will appear if the help (-h) is required from the command line
     parser = argparse.ArgumentParser(prog='PROGRAM', description="Official pipeline for the functional verification "
@@ -89,10 +92,19 @@ def main():
     parser_A.add_argument('name_pol', type=str, help="str containing the name(s) of the polarimeter(s).")
 
     # Flags (optional)
+    # Thermal Sensors
+    parser_A.add_argument('--thermal_sensors', '-ts', action="store_true", default=False,
+                          help='If true, the code will analyze the Thermal Sensors of Strip.')
+    # Housekeeping Parameters
+    parser_A.add_argument('--housekeeping', '-hk', action="store_true", default=False,
+                          help='If true, the code will analyze the Housekeeping parameters of the Polarimeters.')
     # Even Odd All
     parser_A.add_argument('--even_odd_all', '-eoa', type=str, default='eoa',
                           help='Choose which data analyze by adding a letter in the string: '
                                'even samples (e), odd samples (o) or all samples (a).')
+    # Scientific Data
+    parser_A.add_argument('--scientific', '-sci', action="store_true", default=False,
+                          help='If true, the code will compute the double demodulation analyze the scientific data.')
     # Smoothing length
     parser_A.add_argument('--smooth', '-sm', type=int, default=1,
                           help='Smoothing length used to flatter the data. smooth=1 equals no smooth.')
@@ -186,11 +198,13 @@ def main():
 
     ####################################################################################################################
     # Option for all the modalities
+    # Output directory of the plots
+    parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot/',
+                        help='Path of the dir that will contain the plots of the analysis.')
     # Output directory of the reports
-    parser.add_argument('--output_dir', '-od', type=str, default='../plot/default_reports',
+    parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
                         help='Path of the dir that will contain the reports with the results of the analysis.')
-    # Command Line
-    parser.add_argument('--command_line', '-cl', type=str, help='Command line used to start the pipeline.')
+
     ####################################################################################################################
     # Call .parse_args() on the parser to get the Namespace object that contains all the user’s arguments.
     args = parser.parse_args()
@@ -258,16 +272,20 @@ def main():
         logging.info('The total analysis is beginning... Take a seat!')
         # Total Analysis Operation
         strip_a.tot(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
-                    name_pol=args.name_pol, eoa=args.even_odd_all, smooth=args.smooth, window=args.window,
+                    thermal_sensors=args.thermal_sensors, housekeeping=args.housekeeping,
+                    name_pol=args.name_pol, eoa=args.even_odd_all, scientific=args.scientific,
+                    smooth=args.smooth, window=args.window,
                     fft=args.fourier, nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
                     spike_data=args.spike_data, spike_fft=args.spike_fft, corr_mat=args.corr_mat, corr_t=args.corr_t,
-                    output_dir=args.output_dir, command_line=args.command_line)
+                    command_line=command_line,
+                    output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
     elif args.subcommand == "pol_hk":
         logging.info('The housekeeping analysis is beginning...')
         # Housekeeping Analysis Operation
         strip_b.pol_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
-                       name_pol=args.name_pol, output_dir=args.output_dir, command_line=args.command_line)
+                       name_pol=args.name_pol, command_line=command_line,
+                       output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
     elif args.subcommand == "thermal_hk":
         # Thermal Sensors Analysis Operation
@@ -279,12 +297,14 @@ def main():
                 strip_c.thermal_hk(path_file=args.path_file,
                                    start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                    status=status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
-                                   corr_t=args.corr_t, output_dir=args.output_dir, command_line=args.command_line)
+                                   corr_t=args.corr_t, command_line=command_line,
+                                   output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
         else:
             strip_c.thermal_hk(path_file=args.path_file,
                                start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
-                               corr_t=args.corr_t, output_dir=args.output_dir, command_line=args.command_line)
+                               corr_t=args.corr_t, command_line=command_line,
+                               output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
 
 if __name__ == "__main__":
