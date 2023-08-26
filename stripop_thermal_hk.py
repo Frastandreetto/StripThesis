@@ -8,6 +8,8 @@
 # Libraries & Modules
 import logging
 
+from jinja2 import Environment, FileSystemLoader
+from pathlib import Path
 from rich.logging import RichHandler
 
 # My Modules
@@ -57,7 +59,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
 
     # Preparing html table for the report
     logging.info('Producing TS table for the report.')
-    th_table_html = TS.Thermal_table(results=ts_results)
+    th_table = TS.Thermal_table(results=ts_results)
 
     # Plots of all TS
     logging.info(f'Plotting all TS measures for status {status} of the multiplexer.')
@@ -87,7 +89,43 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                                 end_datetime=end_datetime,
                                 corr_t=corr_t
                                 )
-    # Print the report
-    logging.info(f"Once ready, I will put the report into: {output_report_dir}.")
 
+    # --------------------------------------------------------------------------------------------------------------
+    # REPORT
+    # --------------------------------------------------------------------------------------------------------------
+    logging.info(f"\nOnce ready, I will put the TS report for the status {status} into: {output_report_dir}.")
+
+    # Directory where to save all the reports of a given analysis
+    date_dir = fz.dir_format(f"{start_datetime}__{end_datetime}")
+    # Creating the correct path for the report dir: adding the date_dir
+    output_report_dir = f"{output_report_dir}/{date_dir}"
+    # Check if the dir exists. If not, it will be created.
+    Path(output_report_dir).mkdir(parents=True, exist_ok=True)
+
+    report_data = {
+        "path_file": path_file,
+        "analysis_date": str(f"{start_datetime} - {end_datetime}"),
+        "output_plot_dir": output_plot_dir,
+        "output_report_dir": output_report_dir,
+        "command_line": command_line,
+        "th_tab": th_table,
+        "status": status
+        # Waiting for Warnings
+        # "t_warnings": 0,
+        # "corr_warnings": corr_warner,
+    }
+
+    # root: location of the file.txt with the information to build the report
+    root = "../striptease/templates"
+    templates_dir = Path(root)
+
+    # Creating the Jinja2 environment
+    env = Environment(loader=FileSystemLoader(templates_dir))
+    # Getting instructions to create the head of the report
+    template_ts = env.get_template('report_thermals.txt')
+
+    # Report generation
+    filename = Path(f"{output_report_dir}/report_ts_status_{status}.md")
+    with open(filename, 'w') as outf:
+        outf.write(template_ts.render(report_data))
     return

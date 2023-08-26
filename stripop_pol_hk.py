@@ -8,6 +8,8 @@
 # Libraries & Modules
 import logging
 
+from jinja2 import Environment, FileSystemLoader
+from pathlib import Path
 from rich.logging import RichHandler
 
 # MyLibraries & MyModules
@@ -53,7 +55,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
 
         # Preparing html table for the report
         logging.info('Producing HK table for the report.')
-        hk_table_html = p.HK_table(results=hk_results)
+        hk_table = p.HK_table(results=hk_results)
 
         # Plots of the Bias HK: Tensions and Currents
         logging.info('Plotting Bias HK.')
@@ -65,7 +67,9 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
 
         # Add some correlations (?)
 
-        # Print the report
-        logging.info(f"Once ready, I will put the report into: {output_report_dir}.")
+        # --------------------------------------------------------------------------------------------------------------
+        # REPORT
+        # --------------------------------------------------------------------------------------------------------------
+        logging.info(f"\nOnce ready, I will put the report into: {output_report_dir}.")
 
     return

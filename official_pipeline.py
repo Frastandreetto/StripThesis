@@ -200,7 +200,7 @@ def main():
     ####################################################################################################################
     # Option for all the modalities
     # Output directory of the plots
-    parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot/',
+    parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
                         help='Path of the dir that will contain the plots of the analysis.')
     # Output directory of the reports
     parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
@@ -312,6 +312,14 @@ def main():
     # --------------------------------------------------------------------------------------------------------------
     logging.info(f"\nI am putting the header report into: {args.output_report_dir}.")
 
+    # Directory where to save all the reports of a given analysis
+    date_dir = fz.dir_format(f"{args.start_datetime}__{args.end_datetime}")
+    # Creating the correct path for the report dir: adding the date_dir
+    args.output_report_dir = f"{args.output_report_dir}/{date_dir}"
+    # Check if the dir exists. If not, it will be created.
+    Path(args.output_report_dir).mkdir(parents=True, exist_ok=True)
+
+    # Dictionary with the data used to create the report
     header_report_data = {
         "path_file": args.path_file,
         "analysis_date": str(f"{args.start_datetime} - {args.end_datetime}"),
@@ -331,8 +339,9 @@ def main():
 
     # Check if the dir exists. If not, it will be created.
     Path(args.output_report_dir).mkdir(parents=True, exist_ok=True)
-    # Report generation
-    filename = Path(f"{args.output_report_dir}/report_head_{args.subcommand}.md")
+
+    # Report generation: header
+    filename = Path(f"{args.output_report_dir}/report_{args.subcommand}_head.md")
     with open(filename, 'w') as outf:
         outf.write(header_template.render(header_report_data))
 

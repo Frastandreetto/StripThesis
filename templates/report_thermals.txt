@@ -1,0 +1,11 @@
+<font size="3"><b>Analysis of the Thermal Sensors in the status {{status}}.<b/></font><br />
+
+<font size="2"><b>Output of the Thermal Sensors<b/></font><br />
+
+![LSPE-Strip Official img]({{output_plot_dir}}/Thermal_Output/Thermal_status_{{status}}.png)
+
+<font size="2"><b>FFT of the Output of the Thermal Sensors<b/></font><br />
+
+![LSPE-Strip Official img]({{output_plot_dir}}/Thermal_Output/FFT/FFT_Thermal_status_{{status}}.png)
+
+Waiting for the warnings...

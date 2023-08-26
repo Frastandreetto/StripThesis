@@ -62,11 +62,20 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             - **command_line** (`str`): Command line used to start the pipeline.
     """
     logging.info('\nReady to analyze Strip.')
+
+    # Directory where to save all the reports of a given analysis
+    date_dir = fz.dir_format(f"{start_datetime}__{end_datetime}")
+    # Creating the correct path for the report dir: adding the date_dir
+    output_report_dir = f"{output_report_dir}/{date_dir}"
+    # Check if the dir exists. If not, it will be created.
+    Path(output_report_dir).mkdir(parents=True, exist_ok=True)
+
     # ------------------------------------------------------------------------------------------------------------------
     # Thermal Sensors Analysis
     # ------------------------------------------------------------------------------------------------------------------
     if not thermal_sensors:
         th_table = ""
+        status = -1
     else:
         logging.info('\nReady to analyze the Thermal Sensors.')
         for status in [0, 1]:
@@ -117,6 +126,38 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                         end_datetime=end_datetime,
                                         corr_t=corr_t
                                         )
+            # ----------------------------------------------------------------------------------------------------------
+            # REPORT TS
+            # ----------------------------------------------------------------------------------------------------------
+            logging.info(f"\nOnce ready, I will put the TS report for the status {status} into: {output_report_dir}.")
+
+            report_data = {
+                "path_file": path_file,
+                "analysis_date": str(f"{start_datetime} - {end_datetime}"),
+                "output_plot_dir": output_plot_dir,
+                "output_report_dir": output_report_dir,
+                "command_line": command_line,
+                "th_tab": th_table,
+                "status": status
+                # Waiting for Warnings
+                # "t_warnings": 0,
+                # "corr_warnings": corr_warner,
+            }
+
+            # root: location of the file.txt with the information to build the report
+            root = "../striptease/templates"
+            templates_dir = Path(root)
+
+            # Creating the Jinja2 environment
+            env = Environment(loader=FileSystemLoader(templates_dir))
+            # Getting instructions to create the head of the report
+            template_ts = env.get_template('report_thermals.txt')
+
+            # Report TS generation
+            filename = Path(f"{output_report_dir}/report_ts_status_{status}.md")
+            with open(filename, 'w') as outf:
+                outf.write(template_ts.render(report_data))
+
     # ------------------------------------------------------------------------------------------------------------------
     # Polarimeters Analysis
     # ------------------------------------------------------------------------------------------------------------------
@@ -291,39 +332,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # --------------------------------------------------------------------------------------------------------------
         # REPORT
         # --------------------------------------------------------------------------------------------------------------
-        """
+
         logging.info(f"\nOnce ready, I will put the report into: {output_report_dir}.")
 
-        report_data = {
-            "name_polarimeter": name_pol,
-            "path_file": path_file,
-            "analysis_date": str(f"{start_datetime} - {end_datetime}"),
-            "output_plot_dir": output_plot_dir,
-            "output_report_dir": output_report_dir,
-            "command_line": command_line,
-            "th_tab": th_table,
-            "hk_tab": hk_table,
-            # Waiting for Warnings
-            # "t_warnings": 0,
-            # "corr_warnings": corr_warner,
-            # "eo_warnings": eo_warner,
-            # "spike_warnings": spike_warner,
-        }
-
-        # root: location of the file.txt with the information to build the report
-        root = "../striptease/templates"
-        templates_dir = Path(root)
-
-        # Creating the Jinja2 environment
-        env = Environment(loader=FileSystemLoader(templates_dir))
-        # Getting instructions to create the head of the report
-        template = env.get_template('report_header.txt')
-
-        # Check if the dir exists. If not, it will be created.
-        Path(output_report_dir).mkdir(parents=True, exist_ok=True)
-        # Report generation
-        filename = Path(f"{output_report_dir}/report_name.md")
-        with open(filename, 'w') as outf:
-            outf.write(template.render(report_data))
-        """
     return
