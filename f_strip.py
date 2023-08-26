@@ -755,7 +755,7 @@ def data_plot(pol_name: str,
 
 def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: [], time2: [],
                      data_name1: str, data_name2: str, start_datetime: str, end_datetime: str, show=False,
-                     corr_t=0.4):
+                     corr_t=0.4, plot_dir='../plot'):
     """
         Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
         Parameters:\n
@@ -769,7 +769,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
         - **corr_t** (``int``): if it is overcome by the correlation value of a plot, a warning is produced.\n
-
+        - **plot_dir** (``str``): path where the plots are organized in directories and saved.
     """
     # Data comprehension -----------------------------------------------------------------------------------------------
     # Type check
@@ -930,7 +930,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     gdate = [Time(start_datetime), Time(end_datetime)]
     # Directory where to save all the plots of a given analysis
     date_dir = dir_format(f"{gdate[0]}__{gdate[1]}")
-    path = f'../plot/{date_dir}/Correlation_Plot/'
+    path = f'{plot_dir}/{date_dir}/Correlation_Plot/'
     # Check if the dir exists. If not, it will be created.
     Path(path).mkdir(parents=True, exist_ok=True)
     fig.savefig(f'{path}{data_name}_CorrPlot.png')
@@ -942,7 +942,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
 
 
 def correlation_mat(dict1: {}, dict2: {}, data_name: str,
-                    start_datetime: str, end_datetime: str, show=False, corr_t=0.4) -> {}:
+                    start_datetime: str, end_datetime: str, show=False, corr_t=0.4, plot_dir='../plot') -> {}:
     """
        Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
 
@@ -954,7 +954,8 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
        - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
-       - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced.\n
+       - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced\n
+       - **plot_dir** (``str``): path where the plots are organized in directories and saved.
     """
     self_correlation = False
     # If the second dictionary is not provided we are in a Self correlation case
@@ -1002,7 +1003,7 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
     gdate = [Time(start_datetime), Time(end_datetime)]
     # Directory where to save all the plots of a given analysis
     date_dir = dir_format(f"{gdate[0]}__{gdate[1]}")
-    path = f'../plot/{date_dir}/Correlation_Matrix/'
+    path = f'{plot_dir}/{date_dir}/Correlation_Matrix/'
     # Check if the dir exists. If not, it will be created.
     Path(path).mkdir(parents=True, exist_ok=True)
     fig.savefig(f'{path}{data_name}_CorrMat.png')
