@@ -21,7 +21,8 @@ logging.basicConfig(level="INFO", format='%(message)s',
 
 def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                status: str, fft: bool, nperseg_thermal: int, corr_t: float,
-               output_dir: str, command_line: str):
+               output_plot_dir: str, output_report_dir: str,
+               command_line: str):
     """
     Performs the analysis of one or more polarimeters producing a complete report.
     The analysis can include plots of: Even-Odd Output, Scientific Data, FFT and correlation Matrices.
@@ -73,7 +74,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     # Printing the plots with no repetitions
     logging.info(f'Plotting Correlation plots of the TS with each other.')
     for i, n1 in enumerate(all_names):
-        for n2 in all_names[i+1:]:
+        for n2 in all_names[i + 1:]:
             fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
                                 array2=TS.ts["thermal_data"]["calibrated"][n2],
                                 dict1={},
@@ -87,6 +88,6 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                                 corr_t=corr_t
                                 )
     # Print the report
-    logging.info(f"Once ready, I will put the report into: {output_dir}.")
+    logging.info(f"Once ready, I will put the report into: {output_report_dir}.")
 
     return

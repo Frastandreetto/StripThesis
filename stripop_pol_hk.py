@@ -18,7 +18,9 @@ logging.basicConfig(level="INFO", format='%(message)s',
                     datefmt="[%X]", handlers=[RichHandler()])
 
 
-def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str, output_dir: str, command_line: str):
+def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
+           output_plot_dir: str, output_report_dir: str,
+           command_line: str):
     """
     Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
         Parameters:
@@ -64,6 +66,6 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         # Add some correlations (?)
 
         # Print the report
-        logging.info(f"Once ready, I will put the report into: {output_dir}.")
+        logging.info(f"Once ready, I will put the report into: {output_report_dir}.")
 
     return
