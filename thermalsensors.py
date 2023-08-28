@@ -247,24 +247,31 @@ class Thermal_Sensors:
     ####################################################################################################################
     def Thermal_table(self, results) -> str:
         """
-        Create a string with the html code for a table of thermal results.
-        In the table there are the following info: the status of acquisition (0 or 1), the sensor name,
-        the max value, the min value, the mean, the standard deviation
+        Create a string with the md code for a table of thermal results.
+        In the table there are the following info:  the sensor name, the status of acquisition (0 or 1),
+        the group of the sensor, the max value, the min value, the mean, the standard deviation
         and the NaN percentage found for both RAW and calibrated (CAL) Temperatures.
         """
-        html_table = ""
-        for group in self.ts_names.keys():
-            for sensor_name in self.ts_names[group]:
-                html_table += f"<tr><td align=center>{self.status}</td><td align=center>{sensor_name}</td>"
-                for calib in ['raw', 'calibrated']:
-                    html_table += f"<td align=center>{round(results[calib]['max'][sensor_name], 4)}</td>" \
-                                  f"<td align=center>{round(results[calib]['min'][sensor_name], 4)}</td>" \
-                                  f"<td align=center>{round(results[calib]['mean'][sensor_name], 4)}</td>" \
-                                  f"<td align=center>{round(results[calib]['dev_std'][sensor_name], 4)}</td>" \
-                                  f"<td align=center>{round(results[calib]['nan_percent'][sensor_name], 4)}</td>"
-            html_table += f"</tr>"
-
-        return html_table
+        md_table = " "
+        for calib in ['raw', 'calibrated']:
+            md_table += (f"\n\n"
+                         f"{calib} data"
+                         f"\n\n"
+                         "| TS Name | Status | Group | Max value [K] | Min value [K] | Mean [K] | Std_Dev [K] | NaN % |"
+                         "\n"
+                         "|:-------:|:------:|:-----:|:-------------:|:-------------:|:--------:|:-----------:|:-----:|"
+                         "\n"
+                         )
+            for group in self.ts_names.keys():
+                for sensor_name in self.ts_names[group]:
+                    md_table += (f"|{sensor_name}|{self.status}|{group}|"
+                                 f"{round(results[calib]['max'][sensor_name], 4)}|"
+                                 f"{round(results[calib]['min'][sensor_name], 4)}|"
+                                 f"{round(results[calib]['mean'][sensor_name], 4)}|"
+                                 f"{round(results[calib]['dev_std'][sensor_name], 4)}|"
+                                 f"{round(results[calib]['nan_percent'][sensor_name], 4)}"
+                                 f"\n")
+        return md_table
 
     def Plot_TS(self, show=False):
         """
