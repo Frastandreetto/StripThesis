@@ -319,13 +319,17 @@ def main():
     # Check if the dir exists. If not, it will be created.
     Path(args.output_report_dir).mkdir(parents=True, exist_ok=True)
 
+    # Convert the Namespace object to a dictionary
+    args_dict = vars(args)
+
     # Dictionary with the data used to create the report
     header_report_data = {
+        "command_line": command_line,
         "path_file": args.path_file,
         "analysis_date": str(f"{args.start_datetime} - {args.end_datetime}"),
         "output_plot_dir": args.output_plot_dir,
         "output_report_dir": args.output_report_dir,
-        "command_line": command_line
+        "args_dict": args_dict
     }
 
     # root: location of the file.txt with the information to build the report

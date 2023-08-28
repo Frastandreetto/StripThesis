@@ -91,7 +91,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                                 )
 
     # --------------------------------------------------------------------------------------------------------------
-    # REPORT
+    # REPORT TS
     # --------------------------------------------------------------------------------------------------------------
     logging.info(f"\nOnce ready, I will put the TS report for the status {status} into: {output_report_dir}.")
 
@@ -108,7 +108,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         "output_plot_dir": output_plot_dir,
         "output_report_dir": output_report_dir,
         "command_line": command_line,
-        "th_tab": th_table,
+        "th_table": th_table,
         "status": status
         # Waiting for Warnings
         # "t_warnings": 0,
