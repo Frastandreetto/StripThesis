@@ -298,13 +298,13 @@ def main():
                 strip_c.thermal_hk(path_file=args.path_file,
                                    start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                    status=status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
-                                   corr_t=args.corr_t, command_line=command_line,
+                                   corr_t=args.corr_t,
                                    output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
         else:
             strip_c.thermal_hk(path_file=args.path_file,
                                start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
-                               corr_t=args.corr_t, command_line=command_line,
+                               corr_t=args.corr_t,
                                output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
     # --------------------------------------------------------------------------------------------------------------

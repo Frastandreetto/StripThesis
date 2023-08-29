@@ -23,8 +23,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 
 def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                status: str, fft: bool, nperseg_thermal: int, corr_t: float,
-               output_plot_dir: str, output_report_dir: str,
-               command_line: str):
+               output_plot_dir: str, output_report_dir: str):
     """
     Performs the analysis of one or more polarimeters producing a complete report.
     The analysis can include plots of: Even-Odd Output, Scientific Data, FFT and correlation Matrices.
@@ -102,12 +101,8 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     # Check if the dir exists. If not, it will be created.
     Path(output_report_dir).mkdir(parents=True, exist_ok=True)
 
-    report_data = {
-        "path_file": path_file,
-        "analysis_date": str(f"{start_datetime} - {end_datetime}"),
+    ts_report_data = {
         "output_plot_dir": output_plot_dir,
-        "output_report_dir": output_report_dir,
-        "command_line": command_line,
         "th_table": th_table,
         "status": status
         # Waiting for Warnings
@@ -127,5 +122,5 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     # Report generation
     filename = Path(f"{output_report_dir}/report_ts_status_{status}.md")
     with open(filename, 'w') as outf:
-        outf.write(template_ts.render(report_data))
+        outf.write(template_ts.render(ts_report_data))
     return
