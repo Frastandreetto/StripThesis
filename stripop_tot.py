@@ -28,8 +28,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         fft: bool, nperseg: int, nperseg_thermal: int,
         spike_data: bool, spike_fft: bool,
         corr_mat: bool, corr_t: float,
-        output_plot_dir: str, output_report_dir: str,
-        command_line: str):
+        output_plot_dir: str, output_report_dir: str):
     """
     Performs the analysis of one or more polarimeters producing a complete report.
     The analysis can include plots of: Even-Odd Output, Scientific Data, FFT, correlation and  Matrices.
@@ -203,7 +202,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
             report_data = {
                 "output_plot_dir": output_plot_dir,
-                "command_line": command_line,
                 "hk_table": hk_table,
                 # Waiting for Warnings
                 # "t_warnings": 0,
@@ -253,7 +251,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         # Plotting Even Odd All Outputs
                         logging.info(f'\nEven = {combo[0]}, Odd = {combo[1]}, All = {combo[2]}.')
                         logging.info(f'Plotting Even Odd All Outputs. Type {type}.')
-                        fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                        fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                                      start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
                                      type=type, even=combo[0], odd=combo[1], all=combo[2],
                                      demodulated=False, rms=False, fft=False,
@@ -262,7 +260,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                         # Plotting Even Odd All Outputs RMS
                         logging.info(f'Plotting Even Odd All Outputs RMS. Type {type}.')
-                        fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                        fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                                      start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
                                      type=type, even=combo[0], odd=combo[1], all=combo[2],
                                      demodulated=False, rms=True, fft=False,
@@ -274,7 +272,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                             "Spectral Analysis Even-Odd-All")
                             # Plotting Even Odd All FFT
                             logging.info(f'Plotting Even Odd All FFT. Type {type}.')
-                            fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                            fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                                          start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
                                          type=type, even=combo[0], odd=combo[1], all=combo[2],
                                          demodulated=False, rms=False, fft=True,
@@ -283,7 +281,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                             # Plotting Even Odd All FFT of the RMS
                             logging.info(f'Plotting Even Odd All FFT of the RMS. Type {type}.')
-                            fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                            fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                                          start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
                                          type=type, even=combo[0], odd=combo[1], all=combo[2],
                                          demodulated=False, rms=True, fft=True,
@@ -299,7 +297,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 logging.warning("--------------------------------------------------------------------------------------"
                                 "\nScientific Data Analysis.")
                 logging.info(f'\nPlot of Scientific Data. Type {type}.')
-                fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                              start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
                              type=type, even=1, odd=1, all=1,
                              demodulated=True, rms=False, fft=False,
@@ -307,7 +305,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                              show=False)
                 # Plot of RMS of Scientific Data
                 logging.info(f'Plot of RMS of Scientific Data. Type {type}.')
-                fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                              start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
                              type=type, even=1, odd=1, all=1,
                              demodulated=True, rms=True, fft=False,
@@ -319,7 +317,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     logging.warning("----------------------------------------------------------------------------------"
                                     "\nSpectral Analysis Scientific Data.")
                     logging.info(f'Plot of FFT of Scientific Data. Type {type}.')
-                    fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                    fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                                  start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
                                  type=type, even=1, odd=1, all=1,
                                  demodulated=True, rms=False, fft=True,
@@ -327,7 +325,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  show=False)
                     # Plot of FFT of the RMS of Scientific Data
                     logging.info(f'Plot of FFT of the RMS of Scientific Data. Type {type}.')
-                    fz.data_plot(pol_name=name_pol, dataset=p.data, timestamps=p.times,
+                    fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                                  start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
                                  type=type, even=1, odd=1, all=1,
                                  demodulated=True, rms=True, fft=True,
