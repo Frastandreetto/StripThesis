@@ -21,8 +21,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 
 
 def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
-           output_plot_dir: str, output_report_dir: str,
-           command_line: str):
+           output_plot_dir: str, output_report_dir: str):
     """
     Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
         Parameters:
@@ -74,7 +73,6 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
 
         report_data = {
             "output_plot_dir": output_plot_dir,
-            "command_line": command_line,
             "hk_table": hk_table,
             # Waiting for Warnings
             # "t_warnings": 0,

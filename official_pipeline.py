@@ -303,7 +303,7 @@ def main():
         logging.info('The housekeeping analysis is beginning...')
         # Housekeeping Analysis Operation
         strip_b.pol_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
-                       name_pol=args.name_pol, command_line=command_line,
+                       name_pol=args.name_pol,
                        output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
     elif args.subcommand == "thermal_hk":
