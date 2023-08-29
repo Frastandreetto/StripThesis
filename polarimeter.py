@@ -364,32 +364,34 @@ class Polarimeter:
         the standard deviation and the NaN percentage.
         The HouseKeeping parameters included are: I Drain, I Gate, V Drain, V Gate, Offset.
         """
-        html_table = ""
+        md_table = ""
         for item in self.hk_list.keys():
             if item == "V":
                 unit = "[&mu;V]"
+                title = f"Tension {unit}"
             elif item == "I":
-                unit = "[&mu;A]"
+                unit = "[mA]"
+                title = f"Current {unit}"
             else:
                 unit = "[ADU]"
+                title = f"Offset {unit}"
 
-            html_table += "<tr>" \
-                          "<th>Parameter</th>" \
-                          f"<th>Max Value {unit}</th>" \
-                          f"<th>Min Value {unit}</th>" \
-                          f"<th>Mean {unit}</th>" \
-                          f"<th>Std_Dev {unit}</th>" \
-                          "<th>NaN %</th></tr> "
+            md_table += (f"\n"
+                         f"- {title}\n\n"
+                         f"| Parameter | Max Value {unit} | Min Value {unit} | Mean {unit} | Std_Dev {unit} | NaN % |"
+                         "\n"
+                         " |:---------:|:-----------:|:-----------:|:------:|:---------:|:-----:|"
+                         "\n"
+                         )
             for hk_name in self.hk_list[item]:
-                html_table += f"<tr>" \
-                              f"<td align=center>{hk_name}</td>" \
-                              f"<td align=center>{round(results['max'][item][hk_name], 4)}</td>" \
-                              f"<td align=center>{round(results['min'][item][hk_name], 4)}</td>" \
-                              f"<td align=center>{round(results['mean'][item][hk_name], 4)}</td>" \
-                              f"<td align=center>{round(results['dev_std'][item][hk_name], 4)}</td>" \
-                              f"<td align=center>{round(results['nan_percent'][item][hk_name], 4)}</td>" \
-                              f"</tr>"
-        return html_table
+                md_table += (f"|{hk_name}|{round(results['max'][item][hk_name], 4)}|"
+                             f"{round(results['min'][item][hk_name], 4)}|"
+                             f"{round(results['mean'][item][hk_name], 4)}|"
+                             f"{round(results['dev_std'][item][hk_name], 4)}|"
+                             f"{round(results['nan_percent'][item][hk_name], 4)}|"
+                             f"\n"
+                             )
+        return md_table
 
     def Plot_Housekeeping(self, hk_kind: str, show=False):
         """
