@@ -502,7 +502,7 @@ class Polarimeter:
             ax.set_ylabel(f"Output {type} [ADU]", size=15)
         plt.tight_layout()
 
-        path = f"../plot/{self.date_dir}/Output/"
+        path = f"../plot/{self.date_dir}/OUTPUT/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}.png', dpi=400)
         if show:
