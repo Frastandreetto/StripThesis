@@ -94,19 +94,6 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     # --------------------------------------------------------------------------------------------------------------
     logging.info(f"\nOnce ready, I will put the TS report for the status {status} into: {output_report_dir}.")
 
-    # Directory where to save all the plots & reports of a given analysis
-    date_dir = fz.dir_format(f"{start_datetime}__{end_datetime}")
-
-    # Creating the correct path for the PLOT dir: adding the date_dir
-    output_plot_dir = f"{output_plot_dir}/{date_dir}"
-    # Check if the dir exists. If not, it will be created.
-    Path(output_plot_dir).mkdir(parents=True, exist_ok=True)
-
-    # Creating the correct path for the REPORT dir: adding the date_dir
-    output_report_dir = f"{output_report_dir}/{date_dir}"
-    # Check if the dir exists. If not, it will be created.
-    Path(output_report_dir).mkdir(parents=True, exist_ok=True)
-
     report_data = {
         "output_plot_dir": output_plot_dir,
         "th_table": th_table,

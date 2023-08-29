@@ -63,19 +63,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     """
     logging.info('\nLoading dir and templates information...')
 
-    # Directory where to save all the reports of a given analysis
-    date_dir = fz.dir_format(f"{start_datetime}__{end_datetime}")
-
-    # Creating the correct path for the PLOT dir: adding the date_dir
-    output_plot_dir = f"{output_plot_dir}/{date_dir}"
-    # Check if the dir exists. If not, it will be created.
-    Path(output_plot_dir).mkdir(parents=True, exist_ok=True)
-
-    # Creating the correct path for the REPORT dir: adding the date_dir
-    output_report_dir = f"{output_report_dir}/{date_dir}"
-    # Check if the dir exists. If not, it will be created.
-    Path(output_report_dir).mkdir(parents=True, exist_ok=True)
-
     # root: location of the file.txt with the information to build the report
     root = "../striptease/templates"
     templates_dir = Path(root)

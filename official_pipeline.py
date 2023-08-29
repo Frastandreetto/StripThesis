@@ -268,6 +268,24 @@ def main():
             raise SystemExit(1)
 
     ####################################################################################################################
+    # Reports Requirements
+
+    logging.info('\nLoading dir and templates information...')
+
+    # Directory where to save all the reports of a given analysis
+    date_dir = fz.dir_format(f"{args.start_datetime}__{args.end_datetime}")
+
+    # Creating the correct path for the PLOT dir: adding the date_dir
+    args.output_plot_dir = f"{args.output_plot_dir}/{date_dir}"
+    # Check if the dir exists. If not, it will be created.
+    Path(args.output_plot_dir).mkdir(parents=True, exist_ok=True)
+
+    # Creating the correct path for the REPORT dir: adding the date_dir
+    args.output_report_dir = f"{args.output_report_dir}/{date_dir}"
+    # Check if the dir exists. If not, it will be created.
+    Path(args.output_report_dir).mkdir(parents=True, exist_ok=True)
+
+    ####################################################################################################################
     # Operations: A-B-C
     if args.subcommand == "tot":
         logging.info('The total analysis is beginning... Take a seat!')
@@ -307,17 +325,10 @@ def main():
                                corr_t=args.corr_t,
                                output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
-    # --------------------------------------------------------------------------------------------------------------
-    # REPORT
-    # --------------------------------------------------------------------------------------------------------------
+    ####################################################################################################################
+    # REPORT Production
+    ####################################################################################################################
     logging.info(f"\nI am putting the header report into: {args.output_report_dir}.")
-
-    # Directory where to save all the reports of a given analysis
-    date_dir = fz.dir_format(f"{args.start_datetime}__{args.end_datetime}")
-    # Creating the correct path for the report dir: adding the date_dir
-    args.output_report_dir = f"{args.output_report_dir}/{date_dir}"
-    # Check if the dir exists. If not, it will be created.
-    Path(args.output_report_dir).mkdir(parents=True, exist_ok=True)
 
     # Convert the Namespace object to a dictionary
     args_dict = vars(args)
@@ -340,9 +351,6 @@ def main():
     env = Environment(loader=FileSystemLoader(templates_dir))
     # Getting instructions to create the head of the report
     header_template = env.get_template('report_header.txt')
-
-    # Check if the dir exists. If not, it will be created.
-    Path(args.output_report_dir).mkdir(parents=True, exist_ok=True)
 
     # Report generation: header
     filename = Path(f"{args.output_report_dir}/report_{args.subcommand}_head.md")
