@@ -100,9 +100,9 @@ def main():
     parser_A.add_argument('--housekeeping', '-hk', action="store_true", default=False,
                           help='If true, the code will analyze the Housekeeping parameters of the Polarimeters.')
     # Even Odd All
-    parser_A.add_argument('--even_odd_all', '-eoa', type=str, default='eoa',
+    parser_A.add_argument('--even_odd_all', '-eoa', type=str, default='EOA',
                           help='Choose which data analyze by adding a letter in the string: '
-                               'even samples (e), odd samples (o) or all samples (a).')
+                               'even samples (E), odd samples (O) or all samples (A).')
     # Scientific Data
     parser_A.add_argument('--scientific', '-sci', action="store_true", default=False,
                           help='If true, compute the double demodulation and analyze the scientific data.')
@@ -255,8 +255,8 @@ def main():
 
     # MODE A: check on EOA string
     if args.subcommand == "tot":
-        if args.even_odd_all not in [' ', 'e', 'o', 'a', 'eo', 'ea', 'oa', 'eoa']:
-            logging.error('Wrong data name:. Please choose between the options: e, o, a, eo, ea, oa, eoa')
+        if args.even_odd_all not in [' ', 'E', 'O', 'A', 'EO', 'EA', 'OA', 'EOA']:
+            logging.error('Wrong data name:. Please choose between the options: E, O, A, EO, EA, OA, EOA')
             raise SystemExit(1)
 
     # MODE A and B: Check on the names of the polarimeters

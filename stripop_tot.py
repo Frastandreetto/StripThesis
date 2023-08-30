@@ -295,11 +295,13 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 if type == "PWR":
                     logging.info(f"\nOnce ready, I will put the EOA report into: {output_report_dir}.")
 
+                    eoa_letters = fz.letter_combo(eoa)
                     report_data = {
                         "output_plot_dir": output_plot_dir,
                         "name_pol": np,
                         "fft": fft,
                         "rms": rms,
+                        "eoa_letters": eoa_letters,
                         # Waiting for Warnings
                         # "t_warnings": 0,
                         # "corr_warnings": corr_warner,

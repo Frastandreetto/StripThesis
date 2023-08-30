@@ -3,7 +3,7 @@
 
 
 {% for type in ["DEM", "PWR"] %}
-{% for eoa in ["A", "E", "O", "EA", "OA", "EO", "EOA"] %}
+{% for eoa in eoa_letters %}
 
 <font size="3"><b>Output of the {{ type }} Output {{ eoa }} <b/></font><br />
 ![LSPE-Strip Official img]({{ output_plot_dir }}/OUTPUT/{{ type }}/{{ name_pol}}__{{ type }}_{{ eoa }}.png)

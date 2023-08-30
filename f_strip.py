@@ -189,11 +189,12 @@ def eoa_values(eoa_str: str) -> []:
     """
     Parameters:\n
     - **eoa_str** (``str``): string of 0,1,2 or 3 letters from a combination of the letters e, o and a
-    Return a string of combinations of 3 values (e, o, a) taken from a dictionary that contains 3 keys
-    and the values 0 or 0 and 1 for each keys
+    Return a list in which each element is a tuple of 3 values.
+    Those values can be 0 or 1 depending on the letters (e, o, a) provided.
+    Note that if a letter is present in the eoa_str, then that letter will assume both value 0 and 1. Only 0 otherwise.
     """
     # Initialize a dictionary with 0 values for e,o,a keys
-    eoa_dict = {"e": [0], "o": [0], "a": [0]}
+    eoa_dict = {"E": [0], "O": [0], "A": [0]}
     eoa_list = [char for char in eoa_str]
 
     # If a letter appears also the value 1 is included in the dictionary
@@ -203,11 +204,26 @@ def eoa_values(eoa_str: str) -> []:
 
     # Store the combinations of 0 and 1 depending on which letters were provided
     eoa_combinations = [(val1, val2, val3)
-                        for val1 in eoa_dict["e"]
-                        for val2 in eoa_dict["o"]
-                        for val3 in eoa_dict["a"]]
+                        for val1 in eoa_dict["E"]
+                        for val2 in eoa_dict["O"]
+                        for val3 in eoa_dict["A"]]
 
     return eoa_combinations
+
+
+def letter_combo(in_str: str) -> []:
+    """
+    Parameters:\n
+    - **in_str** (``str``): generic string of max 3 letters
+    Return a list in which each element is a combination of E,O,A letters.
+    """
+    result = []
+
+    for length in range(1, 4):
+        for i in range(len(in_str) - length + 1):
+            result.append(in_str[i:i + length])
+
+    return result
 
 
 def find_spike(v, threshold=8.5, n_chunk=5) -> []:
