@@ -287,6 +287,28 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                          demodulated=False, rms=True, fft=True,
                                          window=window, smooth_len=smooth, nperseg=nperseg,
                                          show=False)
+                # ------------------------------------------------------------------------------------------------------
+                # REPORT EOA OUTPUT
+                # ------------------------------------------------------------------------------------------------------
+                logging.info(f"\nOnce ready, I will put the EOA report into: {output_report_dir}.")
+
+                report_data = {
+                    "output_plot_dir": output_plot_dir,
+                    "name_pol": np,
+                    "fft": fft,
+                    # Waiting for Warnings
+                    # "t_warnings": 0,
+                    # "corr_warnings": corr_warner,
+                    # "spikes_warnings": spikes_warner
+                }
+                # Getting instructions to create the HK report
+                template_hk = env.get_template('report_eoa.txt')
+
+                # Report HK generation
+                filename = Path(f"{output_report_dir}/report_eoa.md")
+                with open(filename, 'w') as outf:
+                    outf.write(template_hk.render(report_data))
+
             # ----------------------------------------------------------------------------------------------------------
             # Scientific Data Analysis
             # ----------------------------------------------------------------------------------------------------------
@@ -331,7 +353,29 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  demodulated=True, rms=True, fft=True,
                                  window=window, smooth_len=smooth, nperseg=nperseg,
                                  show=False)
+                # ------------------------------------------------------------------------------------------------------
+                # REPORT SCIENTIFIC DATA
+                # ------------------------------------------------------------------------------------------------------
+                logging.info(f"\nOnce ready, I will put the SCIENTIFIC DATA report into: {output_report_dir}.")
 
+                report_data = {
+                    "output_plot_dir": output_plot_dir,
+                    "name_pol": np,
+                    "fft": fft,
+                    # Waiting for Warnings
+                    # "t_warnings": 0,
+                    # "corr_warnings": corr_warner,
+                    # "spikes_warnings": spikes_warner
+                }
+                # Getting instructions to create the HK report
+                template_hk = env.get_template('report_sci.txt')
+
+                # Report HK generation
+                filename = Path(f"{output_report_dir}/report_sci.md")
+                with open(filename, 'w') as outf:
+                    outf.write(template_hk.render(report_data))
+
+                # ------------------------------------------------------------------------------------------------------
                 # Correlation plots (?)
                 logging.warning(f'-------------------------------------------------------------------------------------'
                                 f'\nCorrelation plots (?). Type {type}.')
@@ -339,11 +383,5 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     # Correlation matrices (?)
                     logging.warning(f'---------------------------------------------------------------------------------'
                                     f'Correlation matrices with threshold {corr_t}(?). Type {type}.')
-
-        # --------------------------------------------------------------------------------------------------------------
-        # REPORT
-        # --------------------------------------------------------------------------------------------------------------
-
-        logging.info(f"\nOnce ready, I will put the report into: {output_report_dir}.")
 
     return

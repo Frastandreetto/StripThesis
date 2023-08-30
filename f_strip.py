@@ -541,7 +541,7 @@ def data_plot(pol_name: str,
         path_dir += "/DEMODULATED" if demodulated else f"/{type}"
     elif type == "PWR":
         # Update the name of the plot
-        name_plot += " TOTPOWER" if demodulated else f"{type} {EOA(even, odd, all)}"
+        name_plot += " TOTPOWER" if demodulated else f" {type} {EOA(even, odd, all)}"
         # Update the name of the plot directory
         path_dir += "/TOTPOWER" if demodulated else f"/{type}"
     else:
