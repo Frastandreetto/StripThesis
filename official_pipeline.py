@@ -105,7 +105,10 @@ def main():
                                'even samples (e), odd samples (o) or all samples (a).')
     # Scientific Data
     parser_A.add_argument('--scientific', '-sci', action="store_true", default=False,
-                          help='If true, the code will compute the double demodulation analyze the scientific data.')
+                          help='If true, compute the double demodulation and analyze the scientific data.')
+    # Rms
+    parser_A.add_argument('--rms', '-rms', action="store_true", default=False,
+                          help='If true, compute the rms on the scientific output and data.')
     # Smoothing length
     parser_A.add_argument('--smooth', '-sm', type=int, default=1,
                           help='Smoothing length used to flatter the data. smooth=1 equals no smooth.')
@@ -297,7 +300,7 @@ def main():
         # Total Analysis Operation
         strip_a.tot(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                     thermal_sensors=args.thermal_sensors, housekeeping=args.housekeeping,
-                    name_pol=args.name_pol, eoa=args.even_odd_all, scientific=args.scientific,
+                    name_pol=args.name_pol, eoa=args.even_odd_all, scientific=args.scientific, rms=args.rms,
                     smooth=args.smooth, window=args.window,
                     fft=args.fourier, nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
                     spike_data=args.spike_data, spike_fft=args.spike_fft,

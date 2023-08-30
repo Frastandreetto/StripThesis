@@ -8,16 +8,20 @@
 <font size="3"><b>Output of the {{ type }} Output {{ eoa }} <b/></font><br />
 ![LSPE-Strip Official img]({{ output_plot_dir }}/OUTPUT/{{ type }}/{{ name_pol}}__{{ type }}_{{ eoa }}.png)
 
+{% if rms %}
 <font size="3"><b>RMS of the {{ type }} Output {{ eoa }}<b/></font><br />
 ![LSPE-Strip Official img]({{ output_plot_dir }}/RMS/{{ type }}/{{ name_pol}}__RMS_{{ type }}_{{ eoa }}.png)
+{% endif %}
 
 {% if fft %}
 
 <font size="3"><b>FFT of {{ type }} Output {{ eoa }}<b/></font><br />
 ![LSPE-Strip Official img]({{ output_plot_dir }}/FFT/{{ type }}/{{ name_pol}}__FFT_{{ type }}_{{ eoa }}.png)
 
+{% if rms %}
 <font size="3"><b>FFT of RMS of {{ type }} Output {{ eoa }}<b/></font><br />
 ![LSPE-Strip Official img]({{ output_plot_dir }}/FFT/RMS/{{ type }}/{{ name_pol}}__FFT_RMS_{{ type }}_{{ eoa }}.png)
+{% endif %}
 
 {% endif %}
 <hr style="width:100%;text-align:left;margin-left:0">

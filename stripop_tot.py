@@ -25,7 +25,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 
 def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         thermal_sensors: bool, housekeeping: bool, scientific: bool,
-        eoa: str, smooth: int, window: int,
+        eoa: str, rms: bool, smooth: int, window: int,
         fft: bool, nperseg: int, nperseg_thermal: int,
         spike_data: bool, spike_fft: bool,
         corr_plot: bool, corr_mat: bool, corr_t: float,
@@ -45,7 +45,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             - **window** (``int``): Integer number used to convert the array of the data into a matrix
             with a number "window" of elements per row and then calculate the RMS on every row.
             window=1 equals no conversion.
-            - **scientific** (``bool``): If true, the code computes the double demodulation analyze the scientific data.
+            - **scientific** (``bool``): If true, compute the double demodulation and analyze the scientific data.
+            - **rms** (``bool``): If true, compute the rms on the scientific output and data.
             - **thermal_sensors** (``bool``): If true, the code analyzes the Thermal Sensors of Strip.
             - **housekeeping** (``bool``): If true, the code analyzes the Housekeeping parameters of the Polarimeters.
             - **fft** (``bool``): If true, the code computes the power spectra of the scientific data.
@@ -257,15 +258,15 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                      demodulated=False, rms=False, fft=False,
                                      window=window, smooth_len=smooth, nperseg=nperseg,
                                      show=False)
-
-                        # Plotting Even Odd All Outputs RMS
-                        logging.info(f'Plotting Even Odd All Outputs RMS. Type {type}.')
-                        fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                     start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
-                                     type=type, even=combo[0], odd=combo[1], all=combo[2],
-                                     demodulated=False, rms=True, fft=False,
-                                     window=window, smooth_len=smooth, nperseg=nperseg,
-                                     show=False)
+                        if rms:
+                            # Plotting Even Odd All Outputs RMS
+                            logging.info(f'Plotting Even Odd All Outputs RMS. Type {type}.')
+                            fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
+                                         start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                         type=type, even=combo[0], odd=combo[1], all=combo[2],
+                                         demodulated=False, rms=True, fft=False,
+                                         window=window, smooth_len=smooth, nperseg=nperseg,
+                                         show=False)
 
                         if fft:
                             logging.warning("--------------------------------------------------------------------------"
@@ -278,36 +279,39 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                          demodulated=False, rms=False, fft=True,
                                          window=window, smooth_len=smooth, nperseg=nperseg,
                                          show=False)
-
-                            # Plotting Even Odd All FFT of the RMS
-                            logging.info(f'Plotting Even Odd All FFT of the RMS. Type {type}.')
-                            fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                         start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
-                                         type=type, even=combo[0], odd=combo[1], all=combo[2],
-                                         demodulated=False, rms=True, fft=True,
-                                         window=window, smooth_len=smooth, nperseg=nperseg,
-                                         show=False)
+                            if rms:
+                                # Plotting Even Odd All FFT of the RMS
+                                logging.info(f'Plotting Even Odd All FFT of the RMS. Type {type}.')
+                                fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
+                                             start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                             type=type, even=combo[0], odd=combo[1], all=combo[2],
+                                             demodulated=False, rms=True, fft=True,
+                                             window=window, smooth_len=smooth, nperseg=nperseg,
+                                             show=False)
                 # ------------------------------------------------------------------------------------------------------
                 # REPORT EOA OUTPUT
                 # ------------------------------------------------------------------------------------------------------
-                logging.info(f"\nOnce ready, I will put the EOA report into: {output_report_dir}.")
+                # Produce the report only the second time: when all the plots are ready
+                if type == "PWR":
+                    logging.info(f"\nOnce ready, I will put the EOA report into: {output_report_dir}.")
 
-                report_data = {
-                    "output_plot_dir": output_plot_dir,
-                    "name_pol": np,
-                    "fft": fft,
-                    # Waiting for Warnings
-                    # "t_warnings": 0,
-                    # "corr_warnings": corr_warner,
-                    # "spikes_warnings": spikes_warner
-                }
-                # Getting instructions to create the HK report
-                template_hk = env.get_template('report_eoa.txt')
+                    report_data = {
+                        "output_plot_dir": output_plot_dir,
+                        "name_pol": np,
+                        "fft": fft,
+                        "rms": rms,
+                        # Waiting for Warnings
+                        # "t_warnings": 0,
+                        # "corr_warnings": corr_warner,
+                        # "spikes_warnings": spikes_warner
+                    }
+                    # Getting instructions to create the HK report
+                    template_hk = env.get_template('report_eoa.txt')
 
-                # Report HK generation
-                filename = Path(f"{output_report_dir}/report_eoa.md")
-                with open(filename, 'w') as outf:
-                    outf.write(template_hk.render(report_data))
+                    # Report HK generation
+                    filename = Path(f"{output_report_dir}/report_eoa.md")
+                    with open(filename, 'w') as outf:
+                        outf.write(template_hk.render(report_data))
 
             # ----------------------------------------------------------------------------------------------------------
             # Scientific Data Analysis
@@ -325,14 +329,15 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                              demodulated=True, rms=False, fft=False,
                              window=window, smooth_len=smooth, nperseg=nperseg,
                              show=False)
-                # Plot of RMS of Scientific Data
-                logging.info(f'Plot of RMS of Scientific Data. Type {type}.')
-                fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                             start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
-                             type=type, even=1, odd=1, all=1,
-                             demodulated=True, rms=True, fft=False,
-                             window=window, smooth_len=smooth, nperseg=nperseg,
-                             show=False)
+                if rms:
+                    # Plot of RMS of Scientific Data
+                    logging.info(f'Plot of RMS of Scientific Data. Type {type}.')
+                    fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
+                                 start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                 type=type, even=1, odd=1, all=1,
+                                 demodulated=True, rms=True, fft=False,
+                                 window=window, smooth_len=smooth, nperseg=nperseg,
+                                 show=False)
 
                 # Plot of FFT of Scientific Data
                 if fft:
@@ -345,35 +350,39 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  demodulated=True, rms=False, fft=True,
                                  window=window, smooth_len=smooth, nperseg=nperseg,
                                  show=False)
-                    # Plot of FFT of the RMS of Scientific Data
-                    logging.info(f'Plot of FFT of the RMS of Scientific Data. Type {type}.')
-                    fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                 start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
-                                 type=type, even=1, odd=1, all=1,
-                                 demodulated=True, rms=True, fft=True,
-                                 window=window, smooth_len=smooth, nperseg=nperseg,
-                                 show=False)
+                    if rms:
+                        # Plot of FFT of the RMS of Scientific Data
+                        logging.info(f'Plot of FFT of the RMS of Scientific Data. Type {type}.')
+                        fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
+                                     start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                     type=type, even=1, odd=1, all=1,
+                                     demodulated=True, rms=True, fft=True,
+                                     window=window, smooth_len=smooth, nperseg=nperseg,
+                                     show=False)
+
                 # ------------------------------------------------------------------------------------------------------
                 # REPORT SCIENTIFIC DATA
                 # ------------------------------------------------------------------------------------------------------
-                logging.info(f"\nOnce ready, I will put the SCIENTIFIC DATA report into: {output_report_dir}.")
+                # Produce the report only the second time: when all the plots are ready
+                if type == "PWR":
+                    logging.info(f"\nOnce ready, I will put the SCIENTIFIC DATA report into: {output_report_dir}.")
 
-                report_data = {
-                    "output_plot_dir": output_plot_dir,
-                    "name_pol": np,
-                    "fft": fft,
-                    # Waiting for Warnings
-                    # "t_warnings": 0,
-                    # "corr_warnings": corr_warner,
-                    # "spikes_warnings": spikes_warner
-                }
-                # Getting instructions to create the SCIDATA report
-                template_hk = env.get_template('report_sci.txt')
+                    report_data = {
+                        "output_plot_dir": output_plot_dir,
+                        "name_pol": np,
+                        "fft": fft,
+                        # Waiting for Warnings
+                        # "t_warnings": 0,
+                        # "corr_warnings": corr_warner,
+                        # "spikes_warnings": spikes_warner
+                    }
+                    # Getting instructions to create the SCIDATA report
+                    template_hk = env.get_template('report_sci.txt')
 
-                # Report SCIDATA generation
-                filename = Path(f"{output_report_dir}/report_sci.md")
-                with open(filename, 'w') as outf:
-                    outf.write(template_hk.render(report_data))
+                    # Report SCIDATA generation
+                    filename = Path(f"{output_report_dir}/report_sci.md")
+                    with open(filename, 'w') as outf:
+                        outf.write(template_hk.render(report_data))
 
             # ----------------------------------------------------------------------------------------------------------
             # Correlation plots (?)
@@ -389,31 +398,31 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # ------------------------------------------------------------------------------------------------------
                 # REPORT CORRELATION PLOT
                 # ------------------------------------------------------------------------------------------------------
-                logging.info(f"\nOnce ready, I will put the CORR PLOT report into: {output_report_dir}.")
+                # Produce the report only the second time: when all the plots are ready
+                if type == "PWR":
+                    logging.info(f"\nOnce ready, I will put the CORR PLOT report into: {output_report_dir}.")
 
-                # Get a list of PNG files in the directory
-                # Excluding TS correlation plots
-                excluded_prefixes = ['0', '1']
-                png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Plot/")
-                             if file.lower().endswith('.png')
-                             and not any(file.startswith(prefix) for prefix in excluded_prefixes)]
+                    # Get a list of PNG files in the directory
+                    # Excluding TS correlation plots
+                    excluded_prefixes = ['0', '1']
+                    png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Plot/")
+                                 if file.lower().endswith('.png')
+                                 and not any(file.startswith(prefix) for prefix in excluded_prefixes)]
 
-                logging.info(png_files)
+                    report_data = {
+                        "output_plot_dir": output_plot_dir,
+                        "name_pol": np,
+                        "png_files": png_files
+                        # Waiting for Warnings
+                        # "corr_warnings": corr_warner
+                    }
+                    # Getting instructions to create the CORR MAT report
+                    template_hk = env.get_template('report_corr_plot.txt')
 
-                report_data = {
-                    "output_plot_dir": output_plot_dir,
-                    "name_pol": np,
-                    "png_files": png_files
-                    # Waiting for Warnings
-                    # "corr_warnings": corr_warner
-                }
-                # Getting instructions to create the CORR MAT report
-                template_hk = env.get_template('report_corr_plot.txt')
-
-                # Report CORR MAT generation
-                filename = Path(f"{output_report_dir}/report_corr_plot.md")
-                with open(filename, 'w') as outf:
-                    outf.write(template_hk.render(report_data))
+                    # Report CORR MAT generation
+                    filename = Path(f"{output_report_dir}/report_corr_plot.md")
+                    with open(filename, 'w') as outf:
+                        outf.write(template_hk.render(report_data))
 
             # ----------------------------------------------------------------------------------------------------------
             # Correlation matrices (?)
@@ -428,27 +437,27 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # ------------------------------------------------------------------------------------------------------
                 # REPORT CORRELATION MATRIX
                 # ------------------------------------------------------------------------------------------------------
-                logging.info(f"\nOnce ready, I will put the CORR MATRIX report into: {output_report_dir}.")
+                # Produce the report only the second time: when all the plots are ready
+                if type == "PWR":
+                    logging.info(f"\nOnce ready, I will put the CORR MATRIX report into: {output_report_dir}.")
 
-                # Get a list of PNG files in the directory
-                png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Matrix/")
-                             if file.lower().endswith('.png')]
+                    # Get a list of PNG files in the directory
+                    png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Matrix/")
+                                 if file.lower().endswith('.png')]
 
-                logging.info(png_files)
+                    report_data = {
+                        "output_plot_dir": output_plot_dir,
+                        "name_pol": np,
+                        "png_files": png_files
+                        # Waiting for Warnings
+                        # "corr_warnings": corr_warner
+                    }
+                    # Getting instructions to create the CORR MAT report
+                    template_hk = env.get_template('report_corr_mat.txt')
 
-                report_data = {
-                    "output_plot_dir": output_plot_dir,
-                    "name_pol": np,
-                    "png_files": png_files
-                    # Waiting for Warnings
-                    # "corr_warnings": corr_warner
-                }
-                # Getting instructions to create the CORR MAT report
-                template_hk = env.get_template('report_corr_mat.txt')
-
-                # Report CORR MAT generation
-                filename = Path(f"{output_report_dir}/report_corr_mat.md")
-                with open(filename, 'w') as outf:
-                    outf.write(template_hk.render(report_data))
+                    # Report CORR MAT generation
+                    filename = Path(f"{output_report_dir}/report_corr_mat.md")
+                    with open(filename, 'w') as outf:
+                        outf.write(template_hk.render(report_data))
 
     return
