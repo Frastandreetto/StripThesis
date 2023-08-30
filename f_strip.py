@@ -754,7 +754,7 @@ def data_plot(pol_name: str,
 
 
 def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: [], time2: [],
-                     data_name1: str, data_name2: str, start_datetime: str, end_datetime: str, show=False,
+                     data_name1: str, data_name2: str, start_datetime: str, show=False,
                      corr_t=0.4, plot_dir='../plot'):
     """
         Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
@@ -926,11 +926,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         return
 
     # Procedure to save the png of the plot in the correct dir
-    # Gregorian Date [in string format]
-    gdate = [Time(start_datetime), Time(end_datetime)]
-    # Directory where to save all the plots of a given analysis
-    date_dir = dir_format(f"{gdate[0]}__{gdate[1]}")
-    path = f'{plot_dir}/{date_dir}/Correlation_Plot/'
+    path = f'{plot_dir}/Correlation_Plot/'
     # Check if the dir exists. If not, it will be created.
     Path(path).mkdir(parents=True, exist_ok=True)
     fig.savefig(f'{path}{data_name}_CorrPlot.png')
@@ -942,7 +938,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
 
 
 def correlation_mat(dict1: {}, dict2: {}, data_name: str,
-                    start_datetime: str, end_datetime: str, show=False, corr_t=0.4, plot_dir='../plot') -> {}:
+                    start_datetime: str, show=False, corr_t=0.4, plot_dir='../plot') -> {}:
     """
        Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
 
@@ -950,7 +946,6 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
        - **dict1**, **dict2** (``array``): dataset
        - **data_name** (``str``): name of the dataset. Used for the title of the figure and to save the png.
        - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
-       - **end_datetime** (``str``): end date of dataset. Used for the title of the figure and to save the png.
        - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
@@ -999,11 +994,7 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
     pl_m2.set_title(f"Correlation {data_name} - Fixed Scale", fontsize=14)
 
     # Procedure to save the png of the plot in the correct dir
-    # Gregorian Date [in string format]
-    gdate = [Time(start_datetime), Time(end_datetime)]
-    # Directory where to save all the plots of a given analysis
-    date_dir = dir_format(f"{gdate[0]}__{gdate[1]}")
-    path = f'{plot_dir}/{date_dir}/Correlation_Matrix/'
+    path = f'{plot_dir}/Correlation_Matrix/'
     # Check if the dir exists. If not, it will be created.
     Path(path).mkdir(parents=True, exist_ok=True)
     fig.savefig(f'{path}{data_name}_CorrMat.png')

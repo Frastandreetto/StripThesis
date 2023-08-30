@@ -7,6 +7,7 @@
 
 # Libraries & Modules
 import logging
+import os
 
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
@@ -123,7 +124,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                         data_name1=f"{status}_{n1}",
                                         data_name2=f"{n2}",
                                         start_datetime=start_datetime,
-                                        end_datetime=end_datetime,
                                         corr_t=corr_t
                                         )
             # ----------------------------------------------------------------------------------------------------------
@@ -269,7 +269,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                         if fft:
                             logging.warning("--------------------------------------------------------------------------"
-                                            "Spectral Analysis Even-Odd-All")
+                                            "\nSpectral Analysis Even-Odd-All")
                             # Plotting Even Odd All FFT
                             logging.info(f'Plotting Even Odd All FFT. Type {type}.')
                             fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
@@ -367,10 +367,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     # "corr_warnings": corr_warner,
                     # "spikes_warnings": spikes_warner
                 }
-                # Getting instructions to create the HK report
+                # Getting instructions to create the SCIDATA report
                 template_hk = env.get_template('report_sci.txt')
 
-                # Report HK generation
+                # Report SCIDATA generation
                 filename = Path(f"{output_report_dir}/report_sci.md")
                 with open(filename, 'w') as outf:
                     outf.write(template_hk.render(report_data))
@@ -379,9 +379,42 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # Correlation plots (?)
                 logging.warning(f'-------------------------------------------------------------------------------------'
                                 f'\nCorrelation plots (?). Type {type}.')
-                if corr_mat:
-                    # Correlation matrices (?)
-                    logging.warning(f'---------------------------------------------------------------------------------'
-                                    f'Correlation matrices with threshold {corr_t}(?). Type {type}.')
+
+            if corr_mat:
+                # Correlation matrices (?)
+                logging.warning(f'---------------------------------------------------------------------------------'
+                                f'\nCorrelation matrices with threshold {corr_t}(?). Type {type}.')
+
+                # Correlation Example
+                fz.correlation_mat(dict1=p.data["DEM"], dict2=p.data["DEM"], data_name=f"{np}_DEM_PWR",
+                                   start_datetime=start_datetime, show=False, corr_t=0.4,
+                                   plot_dir=output_plot_dir)
+                # ------------------------------------------------------------------------------------------------------
+                # REPORT CORRELATION MATRIX
+                # ------------------------------------------------------------------------------------------------------
+                logging.info(f"\nOnce ready, I will put the CORR MATRIX report into: {output_report_dir}.")
+
+                # Get a list of PNG files in the directory
+                png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Matrix/")
+                             if file.lower().endswith('.png')]
+
+                logging.info(png_files)
+
+                report_data = {
+                    "output_plot_dir": output_plot_dir,
+                    "name_pol": np,
+                    "png_files": png_files
+                    # Waiting for Warnings
+                    # "t_warnings": 0,
+                    # "corr_warnings": corr_warner,
+                    # "spikes_warnings": spikes_warner
+                }
+                # Getting instructions to create the CORR MAT report
+                template_hk = env.get_template('report_corr_mat.txt')
+
+                # Report CORR MAT generation
+                filename = Path(f"{output_report_dir}/report_corr_mat.md")
+                with open(filename, 'w') as outf:
+                    outf.write(template_hk.render(report_data))
 
     return
