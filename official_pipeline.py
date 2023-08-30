@@ -131,6 +131,11 @@ def main():
     parser_A.add_argument('--spike_fft', '-sf', action="store_true",
                           help='If true, the code will look for spikes in FFT')
 
+    # Correlation Plot
+    parser_A.add_argument('--corr_plot', '-cp', action="store_true",
+                          help='If true, the code will compute the correlation plots '
+                               'of the even-odd and scientific data.')
+
     # Correlation Matrices
     parser_A.add_argument('--corr_mat', '-cm', action="store_true",
                           help='If true, the code will compute the correlation matrices '
@@ -295,8 +300,8 @@ def main():
                     name_pol=args.name_pol, eoa=args.even_odd_all, scientific=args.scientific,
                     smooth=args.smooth, window=args.window,
                     fft=args.fourier, nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
-                    spike_data=args.spike_data, spike_fft=args.spike_fft, corr_mat=args.corr_mat, corr_t=args.corr_t,
-                    command_line=command_line,
+                    spike_data=args.spike_data, spike_fft=args.spike_fft,
+                    corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t,
                     output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
     elif args.subcommand == "pol_hk":
