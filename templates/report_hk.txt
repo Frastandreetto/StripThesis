@@ -1,4 +1,4 @@
-<font size="4"><b>Analysis of the Bias Housekeeping parameters.<b/></font><br />
+<font size="4"><b>Analysis of the Bias Housekeeping parameters<b/></font><br />
 
 <font size="3"><b>Info about the HK<b/></font><br />
 

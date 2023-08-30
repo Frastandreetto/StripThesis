@@ -1,4 +1,4 @@
-<font size="5"><b>Test report for the functional verification test campaign of Strip.<b/></font><br />
+<font size="5"><b>Test report for the functional verification test campaign of Strip<b/></font><br />
 
 <hr style="width:100%;text-align:left;margin-left:0">
 

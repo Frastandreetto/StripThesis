@@ -1,4 +1,4 @@
-<font size="4"><b>Analysis of the Scientific Data.<b/></font><br />
+<font size="4"><b>Analysis of the Scientific Data<b/></font><br />
 <hr style="width:100%;text-align:left;margin-left:0">
 
 
