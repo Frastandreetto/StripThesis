@@ -98,10 +98,10 @@ class Thermal_Sensors:
         # Warnings
         # Which warnings are we expecting?
         time_warning = []
-        # corr_warning = []
+        corr_warning = []
         # spike_warning = []
         self.warnings = {"time_warning": time_warning,
-                         # "corr_warning": corr_warning,
+                         "corr_warning": corr_warning,
                          # "spike_warning": spike_warning
                          }
 

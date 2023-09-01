@@ -41,6 +41,18 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
              - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
              - **command_line** (`str`): Command line used to start the pipeline.
     """
+    logging.info('\nLoading dir and templates information...')
+
+    # Initializing the data-dict for the report
+    report_data = {"output_plot_dir": output_plot_dir}
+
+    # root: location of the file.txt with the information to build the report
+    root = "../striptease/templates"
+    templates_dir = Path(root)
+
+    # Creating the Jinja2 environment
+    env = Environment(loader=FileSystemLoader(templates_dir))
+    # ------------------------------------------------------------------------------------------------------------------
     logging.info('Ready to analyze the Thermal Sensors.')
     TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime, end_datetime=end_datetime,
                             status=status, nperseg_thermal=nperseg_thermal)
@@ -56,7 +68,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     logging.info('Analyzing TS.')
     ts_results = TS.Analyse_TS()
 
-    # Preparing html table for the report
+    # Preparing table in markdown for the report
     logging.info('Producing TS table for the report.')
     th_table = TS.Thermal_table(results=ts_results)
 
@@ -76,39 +88,26 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     logging.info(f'Plotting Correlation plots of the TS with each other.')
     for i, n1 in enumerate(all_names):
         for n2 in all_names[i + 1:]:
-            fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
-                                array2=TS.ts["thermal_data"]["calibrated"][n2],
-                                dict1={},
-                                dict2={},
-                                time1=TS.ts["thermal_times"],
-                                time2=TS.ts["thermal_times"],
-                                data_name1=f"{status}_{n1}",
-                                data_name2=f"{n2}",
-                                start_datetime=start_datetime,
-                                end_datetime=end_datetime,
-                                corr_t=corr_t
-                                )
+            TS.warnings["corr_warning"].extend(fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
+                                                                   array2=TS.ts["thermal_data"]["calibrated"][n2],
+                                                                   dict1={},
+                                                                   dict2={},
+                                                                   time1=TS.ts["thermal_times"],
+                                                                   time2=TS.ts["thermal_times"],
+                                                                   data_name1=f"{status}_{n1}",
+                                                                   data_name2=f"{n2}",
+                                                                   start_datetime=start_datetime,
+                                                                   corr_t=corr_t,
+                                                                   plot_dir=output_plot_dir))
 
     # --------------------------------------------------------------------------------------------------------------
     # REPORT TS
     # --------------------------------------------------------------------------------------------------------------
     logging.info(f"\nOnce ready, I will put the TS report for the status {status} into: {output_report_dir}.")
 
-    report_data = {
-        "output_plot_dir": output_plot_dir,
-        "th_table": th_table,
-        "status": status
-        # Waiting for Warnings
-        # "t_warnings": 0,
-        # "corr_warnings": corr_warner,
-    }
+    # Updating the report_data dict
+    report_data.update({"th_table": th_table, "status": status})
 
-    # root: location of the file.txt with the information to build the report
-    root = "../striptease/templates"
-    templates_dir = Path(root)
-
-    # Creating the Jinja2 environment
-    env = Environment(loader=FileSystemLoader(templates_dir))
     # Getting instructions to create the head of the report
     template_ts = env.get_template('report_thermals.txt')
 
@@ -116,4 +115,21 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     filename = Path(f"{output_report_dir}/report_ts_status_{status}.md")
     with open(filename, 'w') as outf:
         outf.write(template_ts.render(report_data))
+
+    # --------------------------------------------------------------------------------------------------------------
+    # REPORT WARNINGS
+    # --------------------------------------------------------------------------------------------------------------
+    # Updating the report_data dict for the warning report
+    report_data.update({"t_warn": TS.warnings["time_warning"],
+                        "corr_warn": TS.warnings["corr_warning"],
+                        })
+
+    # Getting instructions to create the head of the report
+    template_ts = env.get_template('report_warnings.txt')
+
+    # Report generation
+    filename = Path(f"{output_report_dir}/report_ts_warnings_{status}.md")
+    with open(filename, 'w') as outf:
+        outf.write(template_ts.render(report_data))
+
     return
