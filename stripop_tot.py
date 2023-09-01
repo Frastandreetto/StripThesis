@@ -448,4 +448,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     with open(filename, 'w') as outf:
                         outf.write(template_hk.render(report_data))
 
+    # ------------------------------------------------------------------------------------------------------
+    # REPORT WARNINGS
+    # ------------------------------------------------------------------------------------------------------
+
     return
