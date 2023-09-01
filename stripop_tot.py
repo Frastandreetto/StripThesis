@@ -64,6 +64,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     """
     logging.info('\nLoading dir and templates information...')
 
+    # Initializing the data-dict for the report
+    report_data = {"output_plot_dir": output_plot_dir}
+
     # root: location of the file.txt with the information to build the report
     root = "../striptease/templates"
     templates_dir = Path(root)
@@ -132,14 +135,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # ----------------------------------------------------------------------------------------------------------
             logging.info(f"\nOnce ready, I will put the TS report for the status {status} into: {output_report_dir}.")
 
-            report_data = {
-                "output_plot_dir": output_plot_dir,
-                "th_tab": th_table,
-                "status": status
-                # Waiting for Warnings
-                # "t_warnings": 0,
-                # "corr_warnings": corr_warner,
-            }
+            # Updating the report_data dict
+            report_data.update({'th_tab': th_table, 'status': status})
+            # Waiting for Warnings
+            # "t_warnings": 0,
+            # "corr_warnings": corr_warner,
 
             # Getting instructions to create the TS report
             template_ts = env.get_template('report_thermals.txt')
@@ -201,13 +201,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # ----------------------------------------------------------------------------------------------------------
             logging.info(f"\nOnce ready, I will put the HK report into: {output_report_dir}.")
 
-            report_data = {
-                "output_plot_dir": output_plot_dir,
-                "hk_table": hk_table,
-                # Waiting for Warnings
-                # "t_warnings": 0,
-                # "corr_warnings": corr_warner,
-            }
+            # Updating the report_data dict
+            report_data.update({"hk_table": hk_table})
+            # Waiting for Warnings
+            # "t_warnings": 0,
+            # "corr_warnings": corr_warner,
 
             # Getting instructions to create the HK report
             template_hk = env.get_template('report_hk.txt')
@@ -296,17 +294,14 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     logging.info(f"\nOnce ready, I will put the EOA report into: {output_report_dir}.")
 
                     eoa_letters = fz.letter_combo(eoa)
-                    report_data = {
-                        "output_plot_dir": output_plot_dir,
-                        "name_pol": np,
-                        "fft": fft,
-                        "rms": rms,
-                        "eoa_letters": eoa_letters,
-                        # Waiting for Warnings
-                        # "t_warnings": 0,
-                        # "corr_warnings": corr_warner,
-                        # "spikes_warnings": spikes_warner
-                    }
+
+                    # Updating the report_data dict
+                    report_data.update({"name_pol": np, "fft": fft, "rms": rms, "eoa_letters": eoa_letters})
+                    # Waiting for Warnings
+                    # "t_warnings": 0,
+                    # "corr_warnings": corr_warner,
+                    # "spikes_warnings": spikes_warner
+
                     # Getting instructions to create the HK report
                     template_hk = env.get_template('report_eoa.txt')
 
@@ -369,15 +364,12 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 if type == "PWR":
                     logging.info(f"\nOnce ready, I will put the SCIENTIFIC DATA report into: {output_report_dir}.")
 
-                    report_data = {
-                        "output_plot_dir": output_plot_dir,
-                        "name_pol": np,
-                        "fft": fft,
-                        # Waiting for Warnings
-                        # "t_warnings": 0,
-                        # "corr_warnings": corr_warner,
-                        # "spikes_warnings": spikes_warner
-                    }
+                    report_data.update({"name_pol": np, "fft": fft})
+                    # Waiting for Warnings
+                    # "t_warnings": 0,
+                    # "corr_warnings": corr_warner,
+                    # "spikes_warnings": spikes_warner
+
                     # Getting instructions to create the SCIDATA report
                     template_hk = env.get_template('report_sci.txt')
 
@@ -411,13 +403,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  if file.lower().endswith('.png')
                                  and not any(file.startswith(prefix) for prefix in excluded_prefixes)]
 
-                    report_data = {
-                        "output_plot_dir": output_plot_dir,
-                        "name_pol": np,
-                        "png_files": png_files
-                        # Waiting for Warnings
-                        # "corr_warnings": corr_warner
-                    }
+                    report_data.update({"name_pol": np, "png_files": png_files})
+                    # Waiting for Warnings
+                    # "corr_warnings": corr_warner
+
                     # Getting instructions to create the CORR MAT report
                     template_hk = env.get_template('report_corr_plot.txt')
 
@@ -447,13 +436,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Matrix/")
                                  if file.lower().endswith('.png')]
 
-                    report_data = {
-                        "output_plot_dir": output_plot_dir,
-                        "name_pol": np,
-                        "png_files": png_files
-                        # Waiting for Warnings
-                        # "corr_warnings": corr_warner
-                    }
+                    report_data.update({"name_pol": np, "png_files": png_files})
+                    # Waiting for Warnings
+                    # "corr_warnings": corr_warner
+
                     # Getting instructions to create the CORR MAT report
                     template_hk = env.get_template('report_corr_mat.txt')
 
