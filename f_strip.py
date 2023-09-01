@@ -771,7 +771,7 @@ def data_plot(pol_name: str,
 
 def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: [], time2: [],
                      data_name1: str, data_name2: str, start_datetime: str, show=False,
-                     corr_t=0.4, plot_dir='../plot'):
+                     corr_t=0.4, plot_dir='../plot') -> []:
     """
         Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
         Parameters:\n
@@ -786,7 +786,11 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
             *False* -> save the figure only
         - **corr_t** (``int``): if it is overcome by the correlation value of a plot, a warning is produced.\n
         - **plot_dir** (``str``): path where the plots are organized in directories and saved.
+        Return a list of warnings that highlight which data are highly correlated.
     """
+    # Creating a list to collect the warnings
+    warnings = []
+
     # Data comprehension -----------------------------------------------------------------------------------------------
     # Type check
     # array and timestamps array must be list
@@ -833,8 +837,11 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     # ------------------------------------------------------------------------------------------------------------------
 
     logging.debug(f"Number of col:{n_col}, of row:{n_rows}, fig size: {fig_size}")
+    # Creating the name of the data: used for the fig title and to save the png
     data_name = f"{data_name1}-{data_name2}"
+    # Creating the figure with the subplots
     fig, axs = plt.subplots(nrows=n_rows, ncols=n_col, constrained_layout=True, figsize=fig_size)
+    # Set the title
     fig.suptitle(f'Correlation {data_name} \n Date: {start_datetime}', fontsize=10)
 
     # array1 vs array2 -------------------------------------------------------------------------------------------------
@@ -876,10 +883,11 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         correlation_matrix = np.corrcoef(x, y)
         # Extract the correlation coefficient between the two datasets from the matrix
         correlation_value = correlation_matrix[0, 1]
-        # Print a warning if the correlation value overcomes the threshold
+        # Print a warning if the correlation value overcomes the threshold, then store it for the report
         if correlation_value > corr_t:
-            logging.warning(f"Found high correlation value: {correlation_value} between {data_name1} and {data_name2}.")
-
+            warn_msg = f"Found high correlation value: {correlation_value} between {data_name1} and {data_name2}."
+            logging.warning(warn_msg)
+            warnings.append(f"|{data_name1}|{data_name2}|{correlation_value}|\n")
     # ------------------------------------------------------------------------------------------------------------------
 
     elif n_col > 1:
@@ -907,10 +915,12 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                     correlation_matrix = np.corrcoef(x, y)
                     # Extract the correlation coefficient between the two datasets x-y from the matrix
                     correlation_value = correlation_matrix[0, 1]
-                    # Print a warning if the correlation value overcomes the threshold
+                    # Print a warning if the correlation value overcomes the threshold, then store it for the report
                     if correlation_value > corr_t:
-                        logging.warning(f'Found high correlation value between '
-                                        f'{data_name1} {r_exit} and {data_name2} {c_exit}: {correlation_value}.')
+                        warn_msg = (f'Found high correlation value between '
+                                    f'{data_name1} {r_exit} and {data_name2} {c_exit}: {correlation_value}.')
+                        logging.warning(warn_msg)
+                        warnings.append(f"|{data_name1}{r_exit} |{data_name2}{c_exit}|{correlation_value}|\n")
 
         # array1 vs dict1 ----------------------------------------------------------------------------------------------
         else:
@@ -934,12 +944,14 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                 correlation_matrix = np.corrcoef(x, y)
                 # Extract the correlation coefficient between the two datasets from the matrix
                 correlation_value = correlation_matrix[0, 1]
-                # Print a warning if the correlation value overcomes the threshold
+                # Print a warning if the correlation value overcomes the threshold, then store it for the report
                 if correlation_value > corr_t:
-                    logging.warning(f"Found high correlation value between {data_name1} and {data_name2} "
-                                    f"in exit {exit}: {correlation_value}.")
+                    warn_msg = (f"Found high correlation value between {data_name1} and {data_name2} "
+                                f"in exit {exit}: {correlation_value}.")
+                    logging.warning(warn_msg)
+                    warnings.append(f"|{data_name1} |{data_name2} {exit}|{correlation_value}|\n")
     else:
-        return
+        return warnings
 
     # Procedure to save the png of the plot in the correct dir
     path = f'{plot_dir}/Correlation_Plot/'
@@ -952,9 +964,11 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         plt.show()
     plt.close(fig)
 
+    return warnings
+
 
 def correlation_mat(dict1: {}, dict2: {}, data_name: str,
-                    start_datetime: str, show=False, corr_t=0.4, plot_dir='../plot') -> {}:
+                    start_datetime: str, show=False, corr_t=0.4, plot_dir='../plot') -> []:
     """
        Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
 
@@ -967,7 +981,12 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
             *False* -> save the figure only
        - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced\n
        - **plot_dir** (``str``): path where the plots are organized in directories and saved.
+       Return a list of warnings that highlight which data are highly correlated.
     """
+    # Creating a list to collect the warnings
+    warnings = []
+
+    # Initialize a boolean variable for the self correlation of a dataset
     self_correlation = False
     # If the second dictionary is not provided we are in a Self correlation case
     if dict2 == {}:
@@ -985,10 +1004,12 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
         for key2 in df2.columns:
             correlation_matrix.loc[key1, key2] = df1[key1].corr(df2[key2])
 
-            # Check correlation values
+            # Print a warning if the correlation value overcomes the threshold, then store it for the report
             if correlation_matrix.loc[key1, key2] > corr_t:
-                logging.warning(f"Found high correlation value between {key1} and {key2}: "
-                                f"{correlation_matrix.loc[key1, key2]}.")
+                warn_msg = (f"Found high correlation value between {key1} and {key2}: "
+                            f"{correlation_matrix.loc[key1, key2]}.")
+                logging.warning(warn_msg)
+                warnings.append(f"|{key1}|{key2}|{correlation_matrix.loc[key1, key2]}|\n")
 
     # Self correlation case
     if self_correlation:
@@ -1020,4 +1041,4 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
         plt.show()
     plt.close(fig)
 
-    return {"There will be a dict of anomalies"}
+    return warnings
