@@ -67,6 +67,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     # Initializing the data-dict for the report
     report_data = {"output_plot_dir": output_plot_dir}
 
+    # Initializing warning lists
+    t_warn = []
+    corr_warn = []
+    spike_warn = []
+
     # root: location of the file.txt with the information to build the report
     root = "../striptease/templates"
     templates_dir = Path(root)
@@ -95,6 +100,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # Saving a list of sampling problematic TS
             problematic_TS = TS.Norm_TS()
 
+            # Storing the timestamps sampling warnings
+            t_warn.extend(TS.warnings["time_warning"])
+
             # Analyzing TS and collecting the results
             logging.info(f'Analyzing TS. Status {status}')
             ts_results = TS.Analyse_TS()
@@ -119,17 +127,17 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             logging.info(f'Plotting Correlation plots of the TS with each other.')
             for i, n1 in enumerate(all_names):
                 for n2 in all_names[i + 1:]:
-                    fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
-                                        array2=TS.ts["thermal_data"]["calibrated"][n2],
-                                        dict1={},
-                                        dict2={},
-                                        time1=TS.ts["thermal_times"],
-                                        time2=TS.ts["thermal_times"],
-                                        data_name1=f"{status}_{n1}",
-                                        data_name2=f"{n2}",
-                                        start_datetime=start_datetime,
-                                        corr_t=corr_t
-                                        )
+                    corr_warn.extend(fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
+                                                         array2=TS.ts["thermal_data"]["calibrated"][n2],
+                                                         dict1={},
+                                                         dict2={},
+                                                         time1=TS.ts["thermal_times"],
+                                                         time2=TS.ts["thermal_times"],
+                                                         data_name1=f"{status}_{n1}",
+                                                         data_name2=f"{n2}",
+                                                         start_datetime=start_datetime,
+                                                         corr_t=corr_t
+                                                         ))
             # ----------------------------------------------------------------------------------------------------------
             # REPORT TS
             # ----------------------------------------------------------------------------------------------------------
@@ -137,9 +145,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
             # Updating the report_data dict
             report_data.update({'th_tab': th_table, 'status': status})
-            # Waiting for Warnings
-            # "t_warnings": 0,
-            # "corr_warnings": corr_warner,
 
             # Getting instructions to create the TS report
             template_ts = env.get_template('report_thermals.txt')
@@ -194,7 +199,40 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             logging.info('Plotting Offset.')
             p.Plot_Housekeeping(hk_kind="O", show=False)
 
-            # Add some correlations (?)
+            # Correlation plots between all HK parameters
+            if not corr_plot:
+                pass
+            else:
+                logging.info("Starting correlation plot.")
+                # Get all HK names
+                all_names = p.hk_list["I"] + p.hk_list["V"] + p.hk_list["O"]
+                # Plot correlation plots
+                for idx, hk_name1 in enumerate(all_names):
+                    logging.info(hk_name1)
+                    for hk_name2 in all_names[idx + 1:]:
+                        logging.info(hk_name2)
+                        # Setting the names of the items: I, V, O
+                        item1 = hk_name1[0] if hk_name1[0] != "D" else "O"
+                        item2 = hk_name2[0] if hk_name2[0] != "D" else "O"
+                        logging.info(item1)
+                        corr_warn.extend(
+                            fz.correlation_plot(array1=list(p.hk[item1][hk_name1]),
+                                                array2=list(p.hk[item2][hk_name2]),
+                                                dict1={},
+                                                dict2={},
+                                                time1=list(p.hk_t[item1][hk_name1]),
+                                                time2=list(p.hk_t[item2][hk_name2]),
+                                                data_name1=f"{hk_name1}",
+                                                data_name2=f"{hk_name2}",
+                                                start_datetime=start_datetime,
+                                                corr_t=corr_t,
+                                                plot_dir=output_plot_dir))
+            # Add some other correlations (?)
+            if not corr_mat:
+                pass
+            else:
+                logging.info("I'll plot correlation matrices.\n")
+                # Add Plot correlation mat - which ones (?)
 
             # ----------------------------------------------------------------------------------------------------------
             # REPORT HK
@@ -203,9 +241,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
             # Updating the report_data dict
             report_data.update({"hk_table": hk_table})
-            # Waiting for Warnings
-            # "t_warnings": 0,
-            # "corr_warnings": corr_warner,
 
             # Getting instructions to create the HK report
             template_hk = env.get_template('report_hk.txt')
@@ -297,10 +332,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                     # Updating the report_data dict
                     report_data.update({"name_pol": np, "fft": fft, "rms": rms, "eoa_letters": eoa_letters})
-                    # Waiting for Warnings
-                    # "t_warnings": 0,
-                    # "corr_warnings": corr_warner,
-                    # "spikes_warnings": spikes_warner
 
                     # Getting instructions to create the HK report
                     template_hk = env.get_template('report_eoa.txt')
@@ -385,10 +416,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 logging.warning(f'-------------------------------------------------------------------------------------'
                                 f'\nCorrelation plots (?). Type {type}.')
                 # Correlation Plot Example
-                fz.correlation_plot(array1=[], array2=[], dict1=p.data["DEM"], dict2=p.data["DEM"],
-                                    time1=p.times, time2=p.times,
-                                    data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
-                                    start_datetime=start_datetime, show=False, corr_t=0.4, plot_dir=output_plot_dir)
+                corr_warn.extend(fz.correlation_plot(array1=[], array2=[], dict1=p.data["DEM"], dict2=p.data["DEM"],
+                                                     time1=p.times, time2=p.times,
+                                                     data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
+                                                     start_datetime=start_datetime, show=False, corr_t=0.4,
+                                                     plot_dir=output_plot_dir))
                 # ------------------------------------------------------------------------------------------------------
                 # REPORT CORRELATION PLOT
                 # ------------------------------------------------------------------------------------------------------
@@ -422,9 +454,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 logging.warning(f'---------------------------------------------------------------------------------'
                                 f'\nCorrelation matrices with threshold {corr_t}(?). Type {type}.')
                 # Correlation Mat Example
-                fz.correlation_mat(dict1=p.data["DEM"], dict2=p.data["DEM"], data_name=f"{np}_DEM_PWR",
-                                   start_datetime=start_datetime, show=False, corr_t=0.4,
-                                   plot_dir=output_plot_dir)
+                corr_warn.extend(fz.correlation_mat(dict1=p.data["DEM"], dict2=p.data["DEM"],
+                                                    data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
+                                                    start_datetime=start_datetime, show=False, corr_t=0.4,
+                                                    plot_dir=output_plot_dir))
                 # ------------------------------------------------------------------------------------------------------
                 # REPORT CORRELATION MATRIX
                 # ------------------------------------------------------------------------------------------------------
@@ -448,8 +481,20 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     with open(filename, 'w') as outf:
                         outf.write(template_hk.render(report_data))
 
-    # ------------------------------------------------------------------------------------------------------
-    # REPORT WARNINGS
-    # ------------------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------------------
+        # REPORT WARNINGS
+        # ------------------------------------------------------------------------------------------------------
+        # Updating the report_data dict for the warning report
+        report_data.update({"t_warn": t_warn,
+                            "corr_warn": corr_warn,
+                            "spike_warn": spike_warn
+                            })
 
+        # Getting instructions to create the head of the report
+        template_ts = env.get_template('report_warnings.txt')
+
+        # Report generation
+        filename = Path(f"{output_report_dir}/report_tot_warnings.md")
+        with open(filename, 'w') as outf:
+            outf.write(template_ts.render(report_data))
     return
