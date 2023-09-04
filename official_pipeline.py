@@ -68,7 +68,40 @@ def main():
                                                                  "of the LSPE-Strip instrument.\n"
                                                                  "Please choose one of the modalities A, B or C. "
                                                                  "Remember to provide all the positional arguments.")
-    # Create a subparser
+
+    ####################################################################################################################
+    # Create a COMMON ARGUMENT parser for shared arguments
+    common_parser = argparse.ArgumentParser(add_help=False)
+    # path_file
+    common_parser.add_argument("path_file", action='store', type=str,
+                               help='- Location of the hdf5 file index (database)')
+    # start_datetime
+    common_parser.add_argument("start_datetime", action='store', type=str,
+                               help='- Starting datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
+    # end_datetime
+    common_parser.add_argument("end_datetime", action='store', type=str,
+                               help='- Ending datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
+    # Correlation Plot
+    common_parser.add_argument('--corr_plot', '-cp', action="store_true",
+                               help='If true, the code will compute the correlation plots '
+                                    'of the even-odd and scientific data.')
+    # Correlation Matrices
+    common_parser.add_argument('--corr_mat', '-cm', action="store_true",
+                               help='If true, the code will compute the correlation matrices '
+                                    'of the even-odd and scientific data.')
+    # Correlation Threshold
+    common_parser.add_argument('--corr_t', '-ct', type=float, default=0.4,
+                               help='Floating point number used as lim sup for the corr value between two dataset: '
+                                    'if the value computed is higher than the threshold, a warning is produced.')
+    # Output directory of the plots
+    parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
+                        help='Path of the dir that will contain the plots of the analysis.')
+    # Output directory of the reports
+    parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
+                        help='Path of the dir that will contain the reports with the results of the analysis.')
+
+    ####################################################################################################################
+    # Create subparsers
     subparsers = parser.add_subparsers(help='Operation modalities of the pipeline.', dest="subcommand")
 
     ####################################################################################################################
@@ -77,18 +110,9 @@ def main():
     ####################################################################################################################
 
     # Create the parser for the command A: "tot"
-    parser_A = subparsers.add_parser("tot", help="A) Analyzes all the polarimeters provided.")
+    parser_A = subparsers.add_parser("tot", parents=[common_parser], help="A) Analyzes all the polarimeters provided.")
 
     # Positional Argument (mandatory)
-    # path_file
-    parser_A.add_argument("path_file", action='store', type=str,
-                          help='- Location of the hdf5 file index (database)')
-    # start_datetime
-    parser_A.add_argument("start_datetime", action='store', type=str,
-                          help='- Starting datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
-    # end_datetime
-    parser_A.add_argument("end_datetime", action='store', type=str,
-                          help='- Ending datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
     # name_pol
     parser_A.add_argument('name_pol', type=str, help="str containing the name(s) of the polarimeter(s).")
 
@@ -134,41 +158,18 @@ def main():
     parser_A.add_argument('--spike_fft', '-sf', action="store_true",
                           help='If true, the code will look for spikes in FFT')
 
-    # Correlation Plot
-    parser_A.add_argument('--corr_plot', '-cp', action="store_true",
-                          help='If true, the code will compute the correlation plots '
-                               'of the even-odd and scientific data.')
-
-    # Correlation Matrices
-    parser_A.add_argument('--corr_mat', '-cm', action="store_true",
-                          help='If true, the code will compute the correlation matrices '
-                               'of the even-odd and scientific data.')
-    # Correlation Threshold
-    parser_A.add_argument('--corr_t', '-ct', type=float, default=0.4,
-                          help='Floating point number used as lim sup for the correlation value between two dataset: '
-                               'if the value computed is higher than the threshold, a warning is produced.')
-
     ####################################################################################################################
     # MODALITY B: POL_HK
     # Analyzes the housekeeping parameters of the polarimeters provided by the user.
     ####################################################################################################################
 
     # Create the parser for the command B: "pol_hk"
-    parser_B = subparsers.add_parser('pol_hk',
+    parser_B = subparsers.add_parser('pol_hk', parents=[common_parser],
                                      help="B) Analyzes the housekeeping parameters of the polarimeters provided.")
 
     # Positional Argument (mandatory)
-    # path_file
-    parser_B.add_argument("path_file", action='store', type=str,
-                          help='- Location of the hdf5 file index (database)')
-    # start_datetime
-    parser_B.add_argument("start_datetime", action='store', type=str,
-                          help='- Starting datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
-    # end_datetime
-    parser_B.add_argument("end_datetime", action='store', type=str,
-                          help='- Ending datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
     # name_pol
-    parser_B.add_argument('name_pol', type=str, help="str containing the name(s) of the polarimeter(s).")
+    parser_B.add_argument('name_pol', type=str, help="- str containing the name(s) of the polarimeter(s).")
 
     ####################################################################################################################
     # MODALITY C: THERMAL_HK
@@ -176,18 +177,9 @@ def main():
     ####################################################################################################################
 
     # Create the parser for the command C: "thermal_hk"
-    parser_C = subparsers.add_parser('thermal_hk', help="C) Analyzes the thermal sensors of LSPE-Strip.")
+    parser_C = subparsers.add_parser('thermal_hk', parents=[common_parser],
+                                     help="C) Analyzes the thermal sensors of LSPE-Strip.")
 
-    # Positional Argument (mandatory)
-    # path_file
-    parser_C.add_argument("path_file", action='store', type=str,
-                          help='- Location of the hdf5 file index (database)')
-    # start_datetime
-    parser_C.add_argument("start_datetime", action='store', type=str,
-                          help='- Starting datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
-    # end_datetime
-    parser_C.add_argument("end_datetime", action='store', type=str,
-                          help='- Ending datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
     # Flags (optional)
     # FFT
     parser_C.add_argument('--fourier', '-fft', action="store_true",
@@ -200,19 +192,6 @@ def main():
     parser_C.add_argument('--status', '-stat', type=int, default=2, choices=[0, 1, 2],
                           help='int value that defines the status of the multiplexer of the TS to analyze: 0 or 1. '
                                'If it is set on 2, both states will be analyzed.')
-    # Correlation Threshold
-    parser_C.add_argument('--corr_t', '-ct', type=float, default=0.4,
-                          help='Floating point number used as lim sup for the correlation value between two dataset: '
-                               'if the value computed is higher than the threshold, a warning is produced.')
-
-    ####################################################################################################################
-    # Option for all the modalities
-    # Output directory of the plots
-    parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
-                        help='Path of the dir that will contain the plots of the analysis.')
-    # Output directory of the reports
-    parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
-                        help='Path of the dir that will contain the reports with the results of the analysis.')
 
     ####################################################################################################################
     # Call .parse_args() on the parser to get the Namespace object that contains all the user’s arguments.
@@ -312,7 +291,8 @@ def main():
         # Housekeeping Analysis Operation
         strip_b.pol_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                        name_pol=args.name_pol,
-                       output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
+                       output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir,
+                       corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t)
 
     elif args.subcommand == "thermal_hk":
         # Thermal Sensors Analysis Operation
@@ -324,13 +304,13 @@ def main():
                 strip_c.thermal_hk(path_file=args.path_file,
                                    start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                    status=status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
-                                   corr_t=args.corr_t,
+                                   corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
                                    output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
         else:
             strip_c.thermal_hk(path_file=args.path_file,
                                start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
-                               corr_t=args.corr_t,
+                               corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
                                output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
     ####################################################################################################################
