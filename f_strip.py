@@ -968,7 +968,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     return warnings
 
 
-def correlation_mat(dict1: {}, dict2: {}, data_name: str,
+def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
                     start_datetime: str, show=False, corr_t=0.4, plot_dir='../plot') -> []:
     """
        Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
@@ -984,6 +984,9 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
        - **plot_dir** (``str``): path where the plots are organized in directories and saved.
        Return a list of warnings that highlight which data are highly correlated.
     """
+    # Creating the name of the data: used for the fig title and to save the png
+    data_name = f"{data_name1}-{data_name2}"
+
     # Creating a list to collect the warnings
     warnings = []
 
@@ -1010,7 +1013,7 @@ def correlation_mat(dict1: {}, dict2: {}, data_name: str,
                 warn_msg = (f"Found high correlation value between {key1} and {key2}: "
                             f"{correlation_matrix.loc[key1, key2]}.")
                 logging.warning(warn_msg)
-                warnings.append(f"|{key1}|{key2}|{correlation_matrix.loc[key1, key2]}|\n")
+                warnings.append(f"|{data_name1} {key1}|{data_name2} {key2}|{correlation_matrix.loc[key1, key2]}|\n")
 
     # Self correlation case
     if self_correlation:
