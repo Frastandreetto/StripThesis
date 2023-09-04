@@ -821,8 +821,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
             n_col = len(dict1.keys())
             fig_size = (4 * n_col, 4 * n_rows)
 
-    # Case 3: two dictionaries with N keys
-    # Plot NxN: scatter correlation between each dictionary exit
+    # Case 3: two dictionaries with N and M keys
+    # Plot NxM: scatter correlation between each dictionary exit
     elif array1 == [] and array2 == [] and dict1 != {} and dict2 != {}:
         n_rows = len(dict1.keys())
         n_col = len(dict2.keys())
@@ -906,6 +906,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                     # Subplot title
                     axs[r, c].set_title(f'Corr {c_exit} - {r_exit}')
                     # XY-axis
+                    # Note: the label here is specific for ADU Output: can be easily generalized if needed...
                     axs[r, c].set_xlabel(f"{data_name1} {r_exit} Output [ADU]")
                     axs[r, c].set_ylabel(f"{data_name2} {c_exit} Output [ADU]")
                     # Legend
