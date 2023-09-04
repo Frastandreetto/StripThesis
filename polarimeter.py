@@ -70,8 +70,7 @@ class Polarimeter:
         # Dictionary for Housekeeping Analysis
         self.hk_list = {"V": ["VG0_HK", "VD0_HK", "VG1_HK", "VD1_HK", "VG2_HK", "VD2_HK", "VG3_HK", "VD3_HK",
                               "VG4_HK", "VD4_HK", "VD5_HK", "VG5_HK"],
-                        "I": ["IG0_HK",
-                              "ID0_HK", "IG1_HK", "ID1_HK", "IG2_HK", "ID2_HK", "IG3_HK", "ID3_HK",
+                        "I": ["IG0_HK", "ID0_HK", "IG1_HK", "ID1_HK", "IG2_HK", "ID2_HK", "IG3_HK", "ID3_HK",
                               "IG4_HK", "ID4_HK", "IG5_HK", "ID5_HK"],
                         "O": ["DET0_OFFS", "DET1_OFFS", "DET2_OFFS", "DET3_OFFS"]
                         }

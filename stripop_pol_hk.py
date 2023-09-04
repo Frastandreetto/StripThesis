@@ -14,6 +14,7 @@ from rich.logging import RichHandler
 
 # MyLibraries & MyModules
 import polarimeter as pol
+import f_strip as fz
 
 # Use the module logging to produce nice messages on the shell
 logging.basicConfig(level="INFO", format='%(message)s',
@@ -21,6 +22,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 
 
 def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
+           corr_plot: bool, corr_mat: bool, corr_t: float,
            output_plot_dir: str, output_report_dir: str):
     """
     Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
@@ -32,6 +34,19 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
             - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
             - **command_line** (`str`): Command line used to start the pipeline.
     """
+    logging.info('\nLoading dir and templates information...')
+
+    # Initializing the data-dict for the report
+    report_data = {"output_plot_dir": output_plot_dir}
+
+    # root: location of the file.txt with the information to build the report
+    root = "../striptease/templates"
+    templates_dir = Path(root)
+
+    # Creating the Jinja2 environment
+    env = Environment(loader=FileSystemLoader(templates_dir))
+    # ------------------------------------------------------------------------------------------------------------------
+
     logging.info('Ready to analyze the HouseKeeping Parameters.')
     # Converting the string of polarimeters into a list
     name_pol = name_pol.split()
@@ -64,27 +79,49 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         logging.info('Plotting Offset.')
         p.Plot_Housekeeping(hk_kind="O", show=False)
 
-        # Add some correlations (?)
+        # Correlation plots between all HK parameters
+        if not corr_plot:
+            pass
+        else:
+            logging.info("Starting correlation plot.")
+            # Get all HK names
+            all_names = p.hk_list["I"] + p.hk_list["V"] + p.hk_list["O"]
+            # Plot correlation plots
+            for idx, hk_name1 in enumerate(all_names):
+                logging.info(hk_name1)
+                for hk_name2 in all_names[idx+1:]:
+                    logging.info(hk_name2)
+                    # Setting the names of the items: I, V, O
+                    item1 = hk_name1[0] if hk_name1[0] != "D" else "O"
+                    item2 = hk_name2[0] if hk_name2[0] != "D" else "O"
+                    logging.info(item1)
+                    p.warnings["corr_warning"].extend(
+                        fz.correlation_plot(array1=list(p.hk[item1][hk_name1]),
+                                            array2=list(p.hk[item2][hk_name2]),
+                                            dict1={},
+                                            dict2={},
+                                            time1=list(p.hk_t[item1][hk_name1]),
+                                            time2=list(p.hk_t[item2][hk_name2]),
+                                            data_name1=f"{hk_name1}",
+                                            data_name2=f"{hk_name2}",
+                                            start_datetime=start_datetime,
+                                            corr_t=corr_t,
+                                            plot_dir=output_plot_dir))
+        # Add some other correlations (?)
+        if not corr_mat:
+            pass
+        else:
+            logging.info("I'll plot correlation matrices.\n")
+            # Add Plot correlation mat - which ones (?)
 
         # --------------------------------------------------------------------------------------------------------------
         # REPORT HK
         # --------------------------------------------------------------------------------------------------------------
         logging.info(f"\nOnce ready, I will put the HK report into: {output_report_dir}.")
 
-        report_data = {
-            "output_plot_dir": output_plot_dir,
-            "hk_table": hk_table,
-            # Waiting for Warnings
-            # "t_warnings": 0,
-            # "corr_warnings": corr_warner,
-        }
+        # Updating the report_data dict
+        report_data.update({"hk_table": hk_table})
 
-        # root: location of the file.txt with the information to build the report
-        root = "../striptease/templates"
-        templates_dir = Path(root)
-
-        # Creating the Jinja2 environment
-        env = Environment(loader=FileSystemLoader(templates_dir))
         # Getting instructions to create the HK report
         template_hk = env.get_template('report_hk.txt')
 
@@ -92,4 +129,21 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         filename = Path(f"{output_report_dir}/report_hk.md")
         with open(filename, 'w') as outf:
             outf.write(template_hk.render(report_data))
+
+        # --------------------------------------------------------------------------------------------------------------
+        # REPORT WARNINGS
+        # --------------------------------------------------------------------------------------------------------------
+        # Updating the report_data dict for the warning report
+        report_data.update({"t_warn": p.warnings["time_warning"],
+                            "corr_warn": p.warnings["corr_warning"],
+                            })
+
+        # Getting instructions to create the head of the report
+        template_ts = env.get_template('report_warnings.txt')
+
+        # Report generation
+        filename = Path(f"{output_report_dir}/report_hk_warnings.md")
+        with open(filename, 'w') as outf:
+            outf.write(template_ts.render(report_data))
+
         return
