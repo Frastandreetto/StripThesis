@@ -22,7 +22,8 @@ logging.basicConfig(level="INFO", format='%(message)s',
 
 
 def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
-               status: str, fft: bool, nperseg_thermal: int, corr_t: float,
+               status: str, fft: bool, nperseg_thermal: int,
+               corr_t: float, corr_plot: bool, corr_mat: bool,
                output_plot_dir: str, output_report_dir: str):
     """
     Performs the analysis of one or more polarimeters producing a complete report.
@@ -53,6 +54,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     # Creating the Jinja2 environment
     env = Environment(loader=FileSystemLoader(templates_dir))
     # ------------------------------------------------------------------------------------------------------------------
+
     logging.info('Ready to analyze the Thermal Sensors.')
     TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime, end_datetime=end_datetime,
                             status=status, nperseg_thermal=nperseg_thermal)
@@ -82,23 +84,32 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         TS.Plot_FFT_TS()
 
     # TS Correlation plots
-    # Collecting all names
-    all_names = [name for groups in TS.ts_names.values() for name in groups if name not in problematic_TS]
-    # Printing the plots with no repetitions
-    logging.info(f'Plotting Correlation plots of the TS with each other.')
-    for i, n1 in enumerate(all_names):
-        for n2 in all_names[i + 1:]:
-            TS.warnings["corr_warning"].extend(fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
-                                                                   array2=TS.ts["thermal_data"]["calibrated"][n2],
-                                                                   dict1={},
-                                                                   dict2={},
-                                                                   time1=TS.ts["thermal_times"],
-                                                                   time2=TS.ts["thermal_times"],
-                                                                   data_name1=f"{status}_{n1}",
-                                                                   data_name2=f"{n2}",
-                                                                   start_datetime=start_datetime,
-                                                                   corr_t=corr_t,
-                                                                   plot_dir=output_plot_dir))
+    if not corr_plot:
+        pass
+    else:
+        # Collecting all names
+        all_names = [name for groups in TS.ts_names.values() for name in groups if name not in problematic_TS]
+        # Printing the plots with no repetitions
+        logging.info(f'Plotting Correlation plots of the TS with each other.')
+        for i, n1 in enumerate(all_names):
+            for n2 in all_names[i + 1:]:
+                TS.warnings["corr_warning"].extend(fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
+                                                                       array2=TS.ts["thermal_data"]["calibrated"][n2],
+                                                                       dict1={},
+                                                                       dict2={},
+                                                                       time1=TS.ts["thermal_times"],
+                                                                       time2=TS.ts["thermal_times"],
+                                                                       data_name1=f"{status}_{n1}",
+                                                                       data_name2=f"{n2}",
+                                                                       start_datetime=start_datetime,
+                                                                       corr_t=corr_t,
+                                                                       plot_dir=output_plot_dir))
+    # Add some other correlations (?)
+    if not corr_mat:
+        pass
+    else:
+        logging.info("I'll plot correlation matrices.\n")
+        # Add Plot correlation mat - which ones (?)
 
     # --------------------------------------------------------------------------------------------------------------
     # REPORT TS
@@ -111,7 +122,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     # Getting instructions to create the head of the report
     template_ts = env.get_template('report_thermals.txt')
 
-    # Report generation
+    # Report TS generation
     filename = Path(f"{output_report_dir}/report_ts_status_{status}.md")
     with open(filename, 'w') as outf:
         outf.write(template_ts.render(report_data))
