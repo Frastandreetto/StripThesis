@@ -28,6 +28,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         eoa: str, rms: bool, smooth: int, window: int,
         fft: bool, nperseg: int, nperseg_thermal: int,
         spike_data: bool, spike_fft: bool,
+        sam_exp_med: dict, sam_tolerance: dict,
         corr_plot: bool, corr_mat: bool, corr_t: float,
         output_plot_dir: str, output_report_dir: str):
     """
@@ -55,6 +56,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             on which the fft is calculated.
             - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
             - **spike_fft** (``bool``): If true, the code will look for spikes in FFT.
+            - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of the hk
+            - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
             - **corr_plot** (``bool``): If true, compute the correlation plot of the even-odd and scientific data.
             - **corr_mat** (``bool``): If true, compute the correlation matrices of the even-odd and scientific data.
             - **corr_t** (``float``): Floating point number used as lim sup for the correlation value
@@ -69,6 +72,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
     # Initializing warning lists
     t_warn = []
+    sampling_warn = []
     corr_warn = []
     spike_warn = []
 
@@ -179,6 +183,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             '\nHousekeeping Analysis.\nLoading HK.')
             # Loading the HK
             p.Load_HouseKeeping()
+
+            # Analyzing HK Sampling ------------------------------------------------------------------------------------
+            sampling_warn = p.HK_Sampling_Table(sam_exp_med=sam_exp_med, sam_tolerance=sam_tolerance)
+            # ----------------------------------------------------------------------------------------------------------
+
             # Normalizing the HK measures
             logging.info('Normalizing HK.')
             p.Norm_HouseKeeping()
@@ -454,6 +463,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 logging.warning(f'---------------------------------------------------------------------------------'
                                 f'\nCorrelation matrices with threshold {corr_t}(?). Type {type}.')
                 # Correlation Mat Example
+                # Note: if there are the same data in the corr plot there will be repetitions in the warnings report
                 corr_warn.extend(fz.correlation_mat(dict1=p.data["DEM"], dict2=p.data["DEM"],
                                                     data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
                                                     start_datetime=start_datetime, show=False, corr_t=0.4,
@@ -470,8 +480,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  if file.lower().endswith('.png')]
 
                     report_data.update({"name_pol": np, "png_files": png_files})
-                    # Waiting for Warnings
-                    # "corr_warnings": corr_warner
 
                     # Getting instructions to create the CORR MAT report
                     template_hk = env.get_template('report_corr_mat.txt')
@@ -486,6 +494,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # ------------------------------------------------------------------------------------------------------
         # Updating the report_data dict for the warning report
         report_data.update({"t_warn": t_warn,
+                            "sampling_warn": sampling_warn,
                             "corr_warn": corr_warn,
                             "spike_warn": spike_warn
                             })

@@ -23,6 +23,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 
 def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
            corr_plot: bool, corr_mat: bool, corr_t: float,
+           sam_exp_med: dict, sam_tolerance: dict,
            output_plot_dir: str, output_report_dir: str):
     """
     Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
@@ -31,6 +32,8 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
             - **start_datetime** (``str``): start time
             - **end_datetime** (``str``): end time
             - **name_pol** (``str``): name of the polarimeter. If more than one, write them into ' ' separated by space.
+            - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of the hk
+            - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
             - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
             - **command_line** (`str`): Command line used to start the pipeline.
     """
@@ -59,6 +62,11 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         # Loading the HK
         logging.info('Loading HK.')
         p.Load_HouseKeeping()
+
+        # Analyzing HK Sampling ----------------------------------------------------------------------------------------
+        sampling_warn = p.HK_Sampling_Table(sam_exp_med=sam_exp_med, sam_tolerance=sam_tolerance)
+        # --------------------------------------------------------------------------------------------------------------
+
         # Normalizing the HK measures
         logging.info('Normalizing HK.')
         p.Norm_HouseKeeping()
@@ -135,6 +143,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         # --------------------------------------------------------------------------------------------------------------
         # Updating the report_data dict for the warning report
         report_data.update({"t_warn": p.warnings["time_warning"],
+                            "sampling_warn": sampling_warn,
                             "corr_warn": p.warnings["corr_warning"],
                             })
 

@@ -280,15 +280,21 @@ class Polarimeter:
         """
         Normalize all House-Keeping's timestamps putting one every 1.4 seconds from the beginning of the dataset.
         """
+        # Initialize a boolean variable to True meaning there is no sampling problems
+        good_sampling = True
         for item in self.hk_list.keys():
             for hk_name in self.hk_list[item]:
+                # Checking the length of the data array and the timestamps array
                 l1 = len(self.hk_t[item][hk_name])
                 l2 = len(self.hk[item][hk_name])
+                # If the lengths are different print and store a warning
                 if l1 != l2:
+                    good_sampling = False
                     msg = f"The House-Keeping: {hk_name} has a sampling problem.\n"
                     logging.error(msg)
-                    self.warnings["time_warning"].append(msg + "<br />")
+                    self.warnings["time_warning"].append(msg + "\n")
 
+                # Normalization Operations
                 if item == "O":
                     self.hk_t[item][hk_name] = np.arange(0, len(self.hk[item][hk_name]) * 30, 30)
                     l1 = len(self.hk_t[item][hk_name])
@@ -297,6 +303,12 @@ class Polarimeter:
                     self.hk_t[item][hk_name] = np.arange(0, len(self.hk[item][hk_name]) * 1.4, 1.4)
                     l1 = len(self.hk_t[item][hk_name])
                     self.hk_t[item][hk_name] = self.hk_t[item][hk_name][:min(l1, l2)]
+
+        # In the end if there are no sampling problems a message is printed and stored
+        if good_sampling:
+            msg = f"\nThe sampling of the House-Keeping parameters is good.\n"
+            logging.info(msg)
+            self.warnings["time_warning"].append(msg)
 
     def Analyse_HouseKeeping(self) -> {}:
         """
@@ -356,12 +368,15 @@ class Polarimeter:
 
         return results
 
-    def HK_table(self, results) -> str:
+    def HK_table(self, results: dict) -> str:
         """
-        Create a string with the html code for a table of thermal results.
+        Create a string with the md code for a table of Housekeeping results.
         Now are listed in the table: the HK-Parameter name, the max value, the min value, the mean,
         the standard deviation and the NaN percentage.
         The HouseKeeping parameters included are: I Drain, I Gate, V Drain, V Gate, Offset.
+
+        Parameters:\n
+        **results** (``dict``): contains the info about hk analysis obtained with Analyze_Housekeeping
         """
         md_table = ""
         for item in self.hk_list.keys():
@@ -391,6 +406,38 @@ class Polarimeter:
                              f"\n"
                              )
         return md_table
+
+    def HK_Sampling_Table(self, sam_exp_med: dict, sam_tolerance: dict) -> []:
+        """
+        Create a list with the info of the housekeeping parameter sampling.
+        Now are listed in the table: the HK-Parameter name, the number of sampling jumps, the median jump,
+        the expected median jump, the 5th percentile and the 95th percentile.
+        The HouseKeeping parameters included are: I Drain, I Gate, V Drain, V Gate, Offset.
+
+        Parameters:\n
+        - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of the hk
+        - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
+        """
+        # Initialize a warning dict and a jump list to collect info about the samplings
+        sampling_info = {}
+        # Initialize a result list for the report
+        sampling_results = []
+        for item in self.hk_list.keys():
+            for hk_name in self.hk_list[item]:
+                # Find info about the jumps in the timestamps
+                jumps = fz.find_jump(self.hk_t[item][hk_name],
+                                     exp_med=sam_exp_med[item], tolerance=sam_tolerance[item])
+
+                # Store the dict if there are jumps
+                if jumps["n"] > 0:
+                    sampling_info.update({f"{hk_name}": jumps})
+
+        for name in sampling_info.keys():
+            sampling_results.append(
+                f"|{name}|{sampling_info[name]['n']}|{sampling_info[name]['median']}|{sampling_info[name]['exp_med']}|"
+                f"{sampling_info[name]['tolerance']}|{sampling_info[name]['5per']}|{sampling_info[name]['95per']}|\n")
+
+        return sampling_results
 
     def Plot_Housekeeping(self, hk_kind: str, show=False):
         """

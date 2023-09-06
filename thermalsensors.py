@@ -133,11 +133,14 @@ class Thermal_Sensors:
             for sensor_name in self.ts_names[group]:
                 len_times = len(self.ts["thermal_times"])
                 len_data = len(self.ts["thermal_data"]["calibrated"][sensor_name])
+                # If timestamps and data don't have the same length
                 if len_times != len_data:
+                    # If they differ by 1 unit it means that a data in that status of the multiplexer
+                    # hasn't been stored yet in the time interval given, hence the time array is reduced by one unit
                     if len_times == len_data + 1 and self.status == 1:
                         self.ts["thermal_times"] = self.ts["thermal_times"][1:]
                     else:
-                        # Save a warning message that will be print on video and on the report
+                        # Save a warning message that will be printed on video and on the report
                         msg = f"The Thermal sensor: {sensor_name} has a sampling problem.\n"
                         logging.error(msg)
                         self.warnings["time_warning"].append(msg + "<br />")
@@ -242,9 +245,6 @@ class Thermal_Sensors:
 
         return results
 
-    ####################################################################################################################
-    # Check this to fill properly in the Report
-    ####################################################################################################################
     def Thermal_table(self, results) -> str:
         """
         Create a string with the md code for a table of thermal results.

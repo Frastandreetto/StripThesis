@@ -23,6 +23,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 
 def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                status: str, fft: bool, nperseg_thermal: int,
+               sam_exp_med: dict, sam_tolerance: dict,
                corr_t: float, corr_plot: bool, corr_mat: bool,
                output_plot_dir: str, output_report_dir: str):
     """
@@ -37,6 +38,8 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             - **status** (``int``): status of the multiplexer of the TS to analyze: 0, 1 or 2 (which stands for both).
             - **fft** (``bool``): If true, the code will compute the power spectra of the TS.
             - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
+            - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of the hk
+            - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
             - **corr_t** (``float``): lim sup for the correlation value between two dataset:
              if the value computed is higher than the threshold, a warning is produced.
              - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.

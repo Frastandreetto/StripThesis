@@ -1,6 +1,16 @@
 <font size="4"><b>Warnings!<b/></font><br />
 <hr style="width:100%;text-align:left;margin-left:0">
 
+{% if sampling_warn %}
+<font size="3"><b>Sampling Warnings<b/></font><br />
+<hr style="width:100%;text-align:left;margin-left:0">
+
+| Data Name | # Jumps | &Delta;t Median [s] | Exp &Delta;t Median [s] | Tolerance | 5th percentile | 95th percentile |
+|:---------:|:-------:|:-------------------:|:-----------------------:|:---------:|:--------------:|:---------------:|
+{% for msg in sampling_warn%}{{ msg }}{% endfor %}
+
+{% endif %}
+
 {% if t_warn %}
 <font size="3"><b>Time Warnings<b/></font><br />
 <hr style="width:100%;text-align:left;margin-left:0">
