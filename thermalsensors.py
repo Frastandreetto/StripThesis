@@ -82,7 +82,7 @@ class Thermal_Sensors:
         # TS-SP2-SpareCx
 
         # Thermal Measures
-        # List of the timestamps of every measure
+        # List of the timestamps of every measure (the timestamps are the same for every TS of a specific status)
         thermal_times = []
         # Dictionary for the raw/calibrated dataset
         raw = {}
@@ -143,7 +143,7 @@ class Thermal_Sensors:
                         # Save a warning message that will be printed on video and on the report
                         msg = f"The Thermal sensor: {sensor_name} has a sampling problem.\n"
                         logging.error(msg)
-                        self.warnings["time_warning"].append(msg + "<br />")
+                        self.warnings["time_warning"].append(msg + "\n")
                         problematic_ts.append(sensor_name)
 
         # Set the starting point for the new timestamps: 0s for status 0 and 10s for status 1
@@ -162,6 +162,36 @@ class Thermal_Sensors:
         self.ts["thermal_times"] = list(self.ts["thermal_times"])
 
         return problematic_ts
+
+    def TS_Sampling_Table(self, sam_exp_med: float, sam_tolerance: float) -> []:
+        """
+        Create a list with the info of the Thermal Sensors sampling.
+        Now are listed in the table: the TS name, the number of sampling jumps, the median jump,
+        the expected median jump, the 5th percentile and the 95th percentile.
+        The HouseKeeping parameters included are: I Drain, I Gate, V Drain, V Gate, Offset.
+
+        Parameters:\n
+        - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of the hk
+        - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
+        """
+        sampling_results = []
+        problematic_TS = ""
+        # Find jumps in the timestamps
+        jumps = fz.find_jump(self.ts["thermal_times"], exp_med=sam_exp_med, tolerance=sam_tolerance)
+        # Store the dict if there are jumps
+        if jumps["n"] > 0:
+            # Collect all TS names into a str
+            for group in self.ts_names.keys():
+                for sensor_name in self.ts_names[group]:
+                    problematic_TS += f"{sensor_name} "
+
+            # Storing TS sampling information
+            sampling_results.append(
+                f"|TS status {self.status}: {problematic_TS}"
+                f"|{jumps['n']}|{jumps['median']}|{jumps['exp_med']}|{jumps['tolerance']}"
+                f"|{jumps['5per']}|{jumps['95per']}|\n")
+
+        return sampling_results
 
     def Analyse_TS(self) -> {}:
         """
