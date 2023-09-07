@@ -28,7 +28,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         eoa: str, rms: bool, smooth: int, window: int,
         fft: bool, nperseg: int, nperseg_thermal: int,
         spike_data: bool, spike_fft: bool,
-        sam_exp_med: dict, sam_tolerance: dict,
+        hk_sam_exp_med: float, hk_sam_tolerance: float,
+        ts_sam_exp_med: float, ts_sam_tolerance: float,
         corr_plot: bool, corr_mat: bool, corr_t: float,
         output_plot_dir: str, output_report_dir: str):
     """
@@ -56,8 +57,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             on which the fft is calculated.
             - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
             - **spike_fft** (``bool``): If true, the code will look for spikes in FFT.
-            - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of the hk
-            - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
+            - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS
+            - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS
+            - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of hk
+            - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
             - **corr_plot** (``bool``): If true, compute the correlation plot of the even-odd and scientific data.
             - **corr_mat** (``bool``): If true, compute the correlation matrices of the even-odd and scientific data.
             - **corr_t** (``float``): Floating point number used as lim sup for the correlation value
@@ -185,7 +188,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             p.Load_HouseKeeping()
 
             # Analyzing HK Sampling ------------------------------------------------------------------------------------
-            sampling_warn = p.HK_Sampling_Table(sam_exp_med=sam_exp_med, sam_tolerance=sam_tolerance)
+            sampling_warn = p.HK_Sampling_Table(sam_exp_med=hk_sam_exp_med, sam_tolerance=hk_sam_tolerance)
             # ----------------------------------------------------------------------------------------------------------
 
             # Normalizing the HK measures
