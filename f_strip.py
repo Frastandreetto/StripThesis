@@ -358,19 +358,18 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
     """
     # Create a TimeDelta object from the Time object given in input
     dt = (v[1:] - v[:-1]).sec  # type: TimeDelta
-    # NO ---- Conversion in days
-    exp_med = exp_med   # / 86400
+
     # Calculate the median of the TimeDelta
-    # If ".value" is not used the time needed for this operation is 1.40min vs 340ms with the same results
-    med_dt = np.median(dt)   # .value)
+    med_dt = np.median(dt)
     median_ok = True
+
     # If the tolerance is overcome a warning message is produced
-    if np.abs(np.abs(med_dt) - np.abs(exp_med)) > tolerance:    # / 86400:
+    if np.abs(np.abs(med_dt) - np.abs(exp_med)) > tolerance:
         msg = f"Median is out of range: {med_dt}, expected {exp_med}."
         logging.warning(msg)
         median_ok = False
 
-    # err_t = dt.value - med_dt
+    # Discrepancy between dt and their median
     err_t = dt - med_dt
 
     # Initializing the lists with the information about time jumps
@@ -382,13 +381,14 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
     jumps = {"n": n, "idx": idx, "value": value, "s_value": s_value,
              "median": med_dt, "exp_med": exp_med, "tolerance": tolerance, "median_ok": median_ok,
              "5per": np.percentile(dt, 5), "95per": np.percentile(dt, 95)}
+
     # Store the info
     for i, item in enumerate(err_t):
-        if np.abs(item) > tolerance:   # / 86400:
+        if np.abs(item) > tolerance:
             jumps["n"] += 1
             jumps["idx"].append(i)
-            jumps["value"].append(dt[i]/86400)   # .value[i])
-            jumps["s_value"].append(dt[i])  # .value[i].sec)
+            jumps["value"].append(dt[i]/86400)
+            jumps["s_value"].append(dt[i])
 
     return jumps
 
