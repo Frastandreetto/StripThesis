@@ -81,6 +81,24 @@ def main():
     # end_datetime
     common_parser.add_argument("end_datetime", action='store', type=str,
                                help='- Ending datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
+
+    # Sampling Parameters ----------------------------------------------------------------------------------------------
+    # Housekeeping Sampling Expected Median
+    common_parser.add_argument('--hk_sam_exp_med', '-hk_sem',
+                               type=lambda x: [float(val) for val in x.split(',')], default=[1.4, 1.4, 10.],
+                               help='Contains the exp sampling delta between two consecutive timestamps of the hk')
+    # Housekeeping Sampling Tolerance
+    common_parser.add_argument('--hk_sam_tolerance', '-hk_st',
+                               type=lambda x: [float(val) for val in x.split(',')], default=[0.1, 0.1, 0.5],
+                               help='Contains the acceptance sampling tolerances of the hk parameters: I,V,O')
+    # Thermal Sensors Sampling Expected Median
+    common_parser.add_argument('--ts_sam_exp_med', '-ts_sem', type=float, default=10.,
+                               help='the exp sampling delta between two consecutive timestamps of the Thermal Sensors')
+    # Thermal Sensors Sampling Tolerance
+    common_parser.add_argument('--ts_sam_tolerance', '-ts_st', type=float, default=1.,
+                               help='the acceptance sampling tolerances of the Thermal Sensors')
+
+    # Correlation Parameters -------------------------------------------------------------------------------------------
     # Correlation Plot
     common_parser.add_argument('--corr_plot', '-cp', action="store_true",
                                help='If true, the code will compute the correlation plots '
@@ -93,6 +111,8 @@ def main():
     common_parser.add_argument('--corr_t', '-ct', type=float, default=0.4,
                                help='Floating point number used as lim sup for the corr value between two dataset: '
                                     'if the value computed is higher than the threshold, a warning is produced.')
+
+    # Output parameters ------------------------------------------------------------------------------------------------
     # Output directory of the plots
     parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
                         help='Path of the dir that will contain the plots of the analysis.')
@@ -254,6 +274,20 @@ def main():
                           'Choose the value 2 to have both.')
             raise SystemExit(1)
 
+    # Common Mode: Check if hk_sam_exp_med and hk_sam_tolerance are float
+    for item in args.hk_sam_exp_med:
+        if not isinstance(item, (int, float)):
+            logging.error(f'Invalid Sampling Median Value: {item}. Please choose a number (float or int).')
+            raise SystemExit(1)
+    for item in args.hk_sam_tolerance:
+        if not isinstance(item, (int, float)):
+            logging.error(f'Invalid Sampling Tolerance Value: {item}. Please choose a number (float or int).')
+            raise SystemExit(1)
+
+    # Store the values into a dict
+    hk_sam_exp_med = {"I": args.hk_sam_exp_med[0], "V": args.hk_sam_exp_med[1], "O": args.hk_sam_exp_med[2]}
+    hk_sam_tolerance = {"I": args.hk_sam_tolerance[0], "V": args.hk_sam_tolerance[1], "O": args.hk_sam_tolerance[2]}
+
     ####################################################################################################################
     # Reports Requirements
 
@@ -279,6 +313,8 @@ def main():
         # Total Analysis Operation
         strip_a.tot(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                     thermal_sensors=args.thermal_sensors, housekeeping=args.housekeeping,
+                    hk_sam_exp_med=hk_sam_exp_med, hk_sam_tolerance=hk_sam_tolerance,
+                    ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
                     name_pol=args.name_pol, eoa=args.even_odd_all, scientific=args.scientific, rms=args.rms,
                     smooth=args.smooth, window=args.window,
                     fft=args.fourier, nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
@@ -291,6 +327,7 @@ def main():
         # Housekeeping Analysis Operation
         strip_b.pol_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                        name_pol=args.name_pol,
+                       hk_sam_exp_med=hk_sam_exp_med, hk_sam_tolerance=hk_sam_tolerance,
                        output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir,
                        corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t)
 
@@ -304,12 +341,14 @@ def main():
                 strip_c.thermal_hk(path_file=args.path_file,
                                    start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                    status=status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
+                                   ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
                                    corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
                                    output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
         else:
             strip_c.thermal_hk(path_file=args.path_file,
                                start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
+                               ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
                                corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
                                output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
