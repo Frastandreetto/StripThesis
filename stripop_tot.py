@@ -28,6 +28,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         eoa: str, rms: bool, smooth: int, window: int,
         fft: bool, nperseg: int, nperseg_thermal: int,
         spike_data: bool, spike_fft: bool,
+        sam_tolerance: float,
         hk_sam_exp_med: float, hk_sam_tolerance: float,
         ts_sam_exp_med: float, ts_sam_tolerance: float,
         corr_plot: bool, corr_mat: bool, corr_t: float,
@@ -57,15 +58,16 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             on which the fft is calculated.
             - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
             - **spike_fft** (``bool``): If true, the code will look for spikes in FFT.
-            - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS
-            - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS
-            - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of hk
-            - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
+            - **sam_tolerance** (``float``): the acceptance sampling tolerances of the Scientific Output.
+            - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS.
+            - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS.
+            - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of hk.
+            - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O.
             - **corr_plot** (``bool``): If true, compute the correlation plot of the even-odd and scientific data.
             - **corr_mat** (``bool``): If true, compute the correlation matrices of the even-odd and scientific data.
-            - **corr_t** (``float``): Floating point number used as lim sup for the correlation value
+            - **corr_t** (``float``): Floating point number used as lim sup for the correlation value.
              between two dataset: if the value computed is higher than the threshold, a warning is produced.
-            - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis
+            - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
             - **command_line** (`str`): Command line used to start the pipeline.
     """
     logging.info('\nLoading dir and templates information...')
@@ -102,13 +104,19 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # Loading the TS
             logging.info(f'Loading TS. Status {status}')
             TS.Load_TS()
-            # Normalizing TS measures: flag to specify the sampling frequency? Now 30s
+
+            # TS Sampling warnings -------------------------------------------------------------------------------------
+            sampling_warn.extend(TS.TS_Sampling_Table(sam_exp_med=ts_sam_exp_med, sam_tolerance=ts_sam_tolerance))
+            # ----------------------------------------------------------------------------------------------------------
+
+            # Normalizing TS measures
             logging.info(f'Normalizing TS. Status {status}')
             # Saving a list of sampling problematic TS
             problematic_TS = TS.Norm_TS()
 
-            # Storing the timestamps sampling warnings
+            # TS Time warnings ----------------------------------------------------------------------------------------
             t_warn.extend(TS.warnings["time_warning"])
+            # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing TS and collecting the results
             logging.info(f'Analyzing TS. Status {status}')
@@ -128,12 +136,13 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 TS.Plot_FFT_TS()
 
             # TS Correlation plots
-            # Collecting all names
+            # Collecting all names, excluding the problematic TS
             all_names = [name for groups in TS.ts_names.values() for name in groups if name not in problematic_TS]
             # Printing the plots with no repetitions
             logging.info(f'Plotting Correlation plots of the TS with each other.')
             for i, n1 in enumerate(all_names):
                 for n2 in all_names[i + 1:]:
+                    # Correlation warnings -----------------------------------------------------------------------------
                     corr_warn.extend(fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
                                                          array2=TS.ts["thermal_data"]["calibrated"][n2],
                                                          dict1={},
@@ -187,13 +196,17 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # Loading the HK
             p.Load_HouseKeeping()
 
-            # Analyzing HK Sampling ------------------------------------------------------------------------------------
-            sampling_warn = p.HK_Sampling_Table(sam_exp_med=hk_sam_exp_med, sam_tolerance=hk_sam_tolerance)
+            # HK Sampling warnings -------------------------------------------------------------------------------------
+            sampling_warn.extend(p.HK_Sampling_Table(sam_exp_med=hk_sam_exp_med, sam_tolerance=hk_sam_tolerance))
             # ----------------------------------------------------------------------------------------------------------
 
             # Normalizing the HK measures
             logging.info('Normalizing HK.')
             p.Norm_HouseKeeping()
+
+            # HK Time warnings -----------------------------------------------------------------------------------------
+            t_warn.extend(p.warnings["time_warning"])
+            # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing HK and collecting the results
             logging.info('Analyzing HK.')
@@ -269,6 +282,12 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         logging.warning('--------------------------------------------------------------------------------------'
                         '\nScientific Analysis. \nLoading Scientific Outputs.')
         p.Load_Pol()
+
+        # Analyzing Polarimeter Sampling -------------------------------------------------------------------------------
+        _ = p.Write_Jump(start_datetime=start_datetime, sam_tolerance=sam_tolerance)
+        sampling_warn.extend(p.warnings["sampling_warning"])
+        # --------------------------------------------------------------------------------------------------------------
+
         # Preparing the Polarimeter for the analysis: normalization and data cleanse
         logging.info('Preparing the Polarimeter.')
         # Dataset in function of time [s]
@@ -409,7 +428,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                     report_data.update({"name_pol": np, "fft": fft})
                     # Waiting for Warnings
-                    # "t_warnings": 0,
                     # "corr_warnings": corr_warner,
                     # "spikes_warnings": spikes_warner
 

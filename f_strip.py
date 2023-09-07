@@ -29,7 +29,7 @@ from typing import Dict, Any
 
 def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
     """
-    Create a new file .txt and write the caption of a tabular\n
+    Create a new file .csv and write the caption of a tabular\n
     Parameters:\n
     - **pol_name** (``str``): Name of the polarimeter
     - **file_name** (``str``): Name of the file to create and in which insert the caption\n
@@ -37,7 +37,7 @@ def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
     This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
     new_file_name = f"JT_{pol_name}_{file_name}.csv"
-    cap = [["# Jump", "tDelta_t [JHD]", "Delta_t [s]", "Gregorian Date", "JHD Date"]]
+    cap = [["# Jump", "Jump value [JHD]", "Jump value [s]", "Gregorian Date", "JHD Date"]]
 
     path = f'../plot/{output_dir}/Time_Jump/'
     Path(path).mkdir(parents=True, exist_ok=True)
@@ -897,9 +897,10 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         correlation_value = correlation_matrix[0, 1]
         # Print a warning if the correlation value overcomes the threshold, then store it for the report
         if correlation_value > corr_t:
-            warn_msg = f"Found high correlation value: {correlation_value} between {data_name1} and {data_name2}."
+            warn_msg = (f"Found high correlation value: {round(correlation_value,4)}"
+                        f" between {data_name1} and {data_name2}.")
             logging.warning(warn_msg)
-            warnings.append(f"|{data_name1}|{data_name2}|{correlation_value}|\n")
+            warnings.append(f"|{data_name1}|{data_name2}|{round(correlation_value, 4)}|\n")
     # ------------------------------------------------------------------------------------------------------------------
 
     elif n_col > 1:
@@ -931,9 +932,9 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                     # Print a warning if the correlation value overcomes the threshold, then store it for the report
                     if correlation_value > corr_t:
                         warn_msg = (f'Found high correlation value between '
-                                    f'{data_name1} {r_exit} and {data_name2} {c_exit}: {correlation_value}.')
+                                    f'{data_name1} {r_exit} and {data_name2} {c_exit}: {round(correlation_value, 4)}.')
                         logging.warning(warn_msg)
-                        warnings.append(f"|{data_name1}{r_exit} |{data_name2}{c_exit}|{correlation_value}|\n")
+                        warnings.append(f"|{data_name1}{r_exit} |{data_name2}{c_exit}|{round(correlation_value, 4)}|\n")
 
         # array1 vs dict1 ----------------------------------------------------------------------------------------------
         else:
@@ -960,9 +961,9 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                 # Print a warning if the correlation value overcomes the threshold, then store it for the report
                 if correlation_value > corr_t:
                     warn_msg = (f"Found high correlation value between {data_name1} and {data_name2} "
-                                f"in exit {exit}: {correlation_value}.")
+                                f"in exit {exit}: {round(correlation_value, 4)}.")
                     logging.warning(warn_msg)
-                    warnings.append(f"|{data_name1}|{data_name2} {exit}|{correlation_value}|\n")
+                    warnings.append(f"|{data_name1}|{data_name2} {exit}|{round(correlation_value, 4)}|\n")
     else:
         return warnings
 
@@ -1023,7 +1024,7 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
             # Print a warning if the correlation value overcomes the threshold, then store it for the report
             if correlation_matrix.loc[key1, key2] > corr_t:
                 warn_msg = (f"Found high correlation value between {key1} and {key2}: "
-                            f"{correlation_matrix.loc[key1, key2]}.")
+                            f"{round(correlation_matrix.loc[key1, key2], 4)}.")
                 logging.warning(warn_msg)
                 warnings.append(f"|{data_name1} {key1}|{data_name2} {key2}|{correlation_matrix.loc[key1, key2]}|\n")
 
