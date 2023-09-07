@@ -129,6 +129,9 @@ class Thermal_Sensors:
         # Check if the TIME array and the CALIBRATED DATA array have the same length
         # Return a list of problematic TS
         problematic_ts = []
+        # Initialize a boolean variable to True meaning there is no sampling problems
+        good_sampling = True
+
         for group in self.ts_names.keys():
             for sensor_name in self.ts_names[group]:
                 len_times = len(self.ts["thermal_times"])
@@ -140,11 +143,21 @@ class Thermal_Sensors:
                     if len_times == len_data + 1 and self.status == 1:
                         self.ts["thermal_times"] = self.ts["thermal_times"][1:]
                     else:
-                        # Save a warning message that will be printed on video and on the report
-                        msg = f"The Thermal sensor: {sensor_name} has a sampling problem.\n"
+                        good_sampling = False
+                        # Print & store a warning message
+                        msg = (f"The Thermal sensor: {sensor_name} has a sampling problem.\n"
+                               f"The array of Timestamps has a wrong length\n")
                         logging.error(msg)
-                        self.warnings["time_warning"].append(msg + "\n")
+                        self.warnings["time_warning"].append(msg)
                         problematic_ts.append(sensor_name)
+
+        if not good_sampling:
+            pass
+        else:
+            # Print & store a warning message
+            msg = f"\nThe assignment of the Timestamps of the Thermal Sensors in the status {self.status} is good.\n\n"
+            logging.info(msg)
+            self.warnings["time_warning"].append(msg)
 
         # Set the starting point for the new timestamps: 0s for status 0 and 10s for status 1
         if self.status == 0:
@@ -174,12 +187,27 @@ class Thermal_Sensors:
         - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of the hk
         - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
         """
+        # Initialize a result list for the report
         sampling_results = []
+        # Initialize a string to collect the names of the TS with problems
         problematic_TS = ""
+
         # Find jumps in the timestamps
         jumps = fz.find_jump(self.ts["thermal_times"], exp_med=sam_exp_med, tolerance=sam_tolerance)
-        # Store the dict if there are jumps
-        if jumps["n"] > 0:
+
+        # Check if there are jumps
+        if jumps["n"] == 0:
+            sampling_results = [f"\nThe sampling of the Thermal Sensors in status {self.status} is good: "
+                                f"no jumps in the TS Timestamps.\n"]
+        else:
+
+            # Preparing Table caption
+            sampling_results.append(
+                "| Data Name | # Jumps | &Delta;t Median [s] | Exp &Delta;t Median [s] | Tolerance "
+                "| 5th percentile | 95th percentile |\n"
+                "|:---------:|:-------:|:-------------------:|:-----------------------:|:---------:"
+                "|:--------------:|:---------------:|\n")
+
             # Collect all TS names into a str
             for group in self.ts_names.keys():
                 for sensor_name in self.ts_names[group]:
