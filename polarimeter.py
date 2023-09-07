@@ -8,7 +8,7 @@
 # Creation: November 1st 2022, Brescia (Italy)
 
 # Libraries & Modules
-import csv
+# import csv
 import logging
 
 import numpy as np
@@ -85,10 +85,12 @@ class Polarimeter:
 
         # Warnings
         time_warning = []
+        sampling_warning = []
         corr_warning = []
         eo_warning = []
         spike_warning = []
         self.warnings = {"time_warning": time_warning,
+                         "sampling_warning": sampling_warning,
                          "corr_warning": corr_warning,
                          "eo_warning": eo_warning,
                          "spike_warning": spike_warning}
@@ -209,8 +211,6 @@ class Polarimeter:
             self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ  # Seconds
         if norm_mode == 2:
             self.times = self.times.value  # JHD
-        # Conversion to list to better handle the data array in correlation plots
-        # self.times = list(self.times)
 
     def Prepare(self, norm_mode: int):
         """
@@ -290,7 +290,8 @@ class Polarimeter:
                 # If the lengths are different print and store a warning
                 if l1 != l2:
                     good_sampling = False
-                    msg = f"The House-Keeping: {hk_name} has a sampling problem.\n"
+                    msg = (f"The House-Keeping: {hk_name} has a sampling problem. "
+                           f"The array of Timestamps has a wrong length\n")
                     logging.error(msg)
                     self.warnings["time_warning"].append(msg + "\n")
 
@@ -306,7 +307,7 @@ class Polarimeter:
 
         # In the end if there are no sampling problems a message is printed and stored
         if good_sampling:
-            msg = f"\nThe sampling of the House-Keeping parameters is good.\n"
+            msg = "\nThe assignment of the Timestamps of the House-Keeping parameters is good.\n"
             logging.info(msg)
             self.warnings["time_warning"].append(msg)
 
@@ -422,20 +423,37 @@ class Polarimeter:
         sampling_info = {}
         # Initialize a result list for the report
         sampling_results = []
+        # Initialize a boolean variable: if true, no jumps occurred
+        good_sampling = True
+
+        # Find jumps in the timestamps of the HK parameters
         for item in self.hk_list.keys():
             for hk_name in self.hk_list[item]:
-                # Find info about the jumps in the timestamps
                 jumps = fz.find_jump(self.hk_t[item][hk_name],
                                      exp_med=sam_exp_med[item], tolerance=sam_tolerance[item])
 
                 # Store the dict if there are jumps
                 if jumps["n"] > 0:
+                    good_sampling = False
                     sampling_info.update({f"{hk_name}": jumps})
 
-        for name in sampling_info.keys():
+        if good_sampling:
+            sampling_results = ["\nThe sampling of the House-Keeping parameters is good: "
+                                "no jumps in the HK Timestamps\n"]
+        else:
             sampling_results.append(
-                f"|{name}|{sampling_info[name]['n']}|{sampling_info[name]['median']}|{sampling_info[name]['exp_med']}|"
-                f"{sampling_info[name]['tolerance']}|{sampling_info[name]['5per']}|{sampling_info[name]['95per']}|\n")
+                "| HK Name | # Jumps | &Delta;t Median [s] | Exp &Delta;t Median [s] | Tolerance "
+                "| 5th percentile | 95th percentile |\n"
+                "|:---------:|:-------:|:-------------------:|:-----------------------:|:---------:"
+                "|:--------------:|:---------------:|\n")
+
+            # Saving table info about the jumps
+            for name in sampling_info.keys():
+                sampling_results.append(
+                    f"|{name}|{sampling_info[name]['n']}"
+                    f"|{sampling_info[name]['median']}|{sampling_info[name]['exp_med']}"
+                    f"|{sampling_info[name]['tolerance']}"
+                    f"|{sampling_info[name]['5per']}|{sampling_info[name]['95per']}|\n")
 
         return sampling_results
 
@@ -591,64 +609,72 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Write_Jump(self, start_datetime: str) -> {}:
+    def Write_Jump(self, start_datetime: str, sam_tolerance: float) -> {}:
         """
         Find the 'jumps' in the timestamps of a given dataset and produce a file .txt with a description for every jump,
         including: Name_Polarimeter - Jump_Index - Delta_t before - tDelta_t after - Gregorian Date - JHD.\n
         Parameters:\n
         - **start_datetime** (``str``): start time, format: "%Y-%m-%d %H:%M:%S". That must be the start_time used
         to define the polarimeter for which the jumps dictionary has been created with the function "find_jump" above.\n
+        - **sam_tolerance** (``float``): the acceptance sampling tolerances of the scientific output
         """
         logging.basicConfig(level="INFO", format='%(message)s',
                             datefmt="[%X]", handlers=[RichHandler()])  # <3
 
         logging.info("Looking for jumps...\n")
-        jumps = fz.find_jump(v=self.times, exp_med=0.01, tolerance=0.1)
+        jumps = fz.find_jump(v=self.times, exp_med=0.01, tolerance=sam_tolerance)
         logging.info("Done.\n")
 
         if jumps["n"] == 0:
-            t_warn = "No Time Jumps found in the dataset."
-            logging.info(t_warn)
-            self.warnings["time_warning"].append(t_warn + "<p></p>")
+            sam_warn = ("\nThe sampling of the Scientific Output is good: "
+                        "no jumps found in the Timestamps.\n")
+            logging.info(sam_warn)
+            # Saving the warning message
+            self.warnings["sampling_warning"].append(sam_warn + "\n")
         else:
             t_warn = f"In the dataset there are {jumps['n']} Time Jumps."
             logging.info(t_warn + "\n\n")
+            # Saving the warning message
+            self.warnings["sampling_warning"].append(t_warn + "\n")
 
-            # .csv file with all time jumps.
-            logging.info("I'm going to produce the caption for the csv file.")
+            # .csv file with all time jumps. ---------------------------------------------------------------------------
+            # logging.info("I'm going to produce the caption for the csv file.")
 
-            fz.tab_cap_time(pol_name=self.name, file_name=start_datetime, output_dir=self.date_dir)
-            new_file_name = f"JT_{self.name}_{start_datetime}.csv"
+            # Caption for the csv table
+            # fz.tab_cap_time(pol_name=self.name, file_name=start_datetime, output_dir=self.date_dir)
+            # new_file_name = f"JT_{self.name}_{start_datetime}.csv"
 
-            html_tab_content = "<p></p><style>table, th, td {border:1px solid black;}</style><body>" \
-                               f"<h2>Time Jumps Pol {self.name}</h2>" \
-                               "<p></p><table style='width:100%' align=center>" \
-                               "<tr><th># Jump</th><th>Jump value [JHD]</th><th>Jump value [s]</th>" \
-                               "<th>Gregorian Date</th><th>Julian Date [JHD]</th>" \
-                               "</tr>"
+            md_tab_content = (f"Time Jumps Pol {self.name}\n"
+                              f"| # Jump | Jump value [JHD] | Jump value [s] | Gregorian Date | Julian Date [JHD]|\n"
+                              f"|:------:|:----------------:|:--------------:|:--------------:|:----------------:|\n")
+
+            # Initializing the jump number
             i = 1
 
             for idx, j_value, j_val_s in zip(jumps["idx"], jumps["value"], jumps["s_value"]):
+
+                # Saving the Julian Date at which the Jump happened
                 jump_instant = self.times.value[idx]
+                # Saving the Gregorian Date at which the Jump happened
                 greg_jump_instant = Time(jump_instant, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
-                html_tab_content += f"<td align=center>{i}</td>" \
-                                    f"<td align=center>{j_value}</td>" \
-                                    f"<td align=center>{j_val_s}</td>" \
-                                    f"<td align=center>{greg_jump_instant}</td>" \
-                                    f"<td align=center>{jump_instant}</td>" \
-                                    f"</tr>"
-                # CSV file: writing the table row by row
-                tab_content = [[f"{i}", f"{j_value}", f"{j_val_s}", f"{greg_jump_instant}", f"{jump_instant}"]]
+                # Updating the row of the md_table with the info of a new jump
+                md_tab_content += f"|{i}|{j_value}|{j_val_s}|{greg_jump_instant}|{jump_instant}|\n"
 
-                with open(f'../plot/{self.date_dir}/Time_Jump/{new_file_name}', 'a', newline='') as file:
-                    writer = csv.writer(file)
-                    writer.writerows(tab_content)
+                # CSV file: writing the table row by row ---------------------------------------------------------------
+                # tab_content = [[f"{i}", f"{j_value}", f"{j_val_s}", f"{greg_jump_instant}", f"{jump_instant}"]]
+
+                # with open(f'../plot/{self.date_dir}/Time_Jump/{new_file_name}', 'a', newline='') as file:
+                #    writer = csv.writer(file)
+                #    writer.writerows(tab_content)
+                # ------------------------------------------------------------------------------------------------------
+
+                # Increasing the jump number
                 i += 1
 
-            # Report: writing the table
-            html_tab_content += "</table></body><p></p><p>"
-            self.warnings["time_warning"].append(html_tab_content)
+            # Report: storing the table
+            md_tab_content += "\n"
+            self.warnings["sampling_warning"].append(md_tab_content)
         return jumps
 
     def Inversion_EO_Time(self, jumps_pos: list, threshold=3.):
