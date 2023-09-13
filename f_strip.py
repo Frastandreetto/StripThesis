@@ -226,56 +226,76 @@ def letter_combo(in_str: str) -> []:
     return result
 
 
-def find_spike(v, threshold=8.5, n_chunk=5) -> []:
+def find_spike(v, data_type: str, threshold=4.4, n_chunk=10) -> []:
     """
         Look up for 'spikes' in a given array.\n
         Calculate the median and the mad and uses those to discern spikes.
         Parameters:\n
         - **v** is an array-like object
+        - **type** (str): if "DEM" look for spikes in two sub arrays (even and odd output) if "FFT" select only spike up
         - **threshold** (int): value used to discern what a spike is
         - **n_chunk** (int): n of blocks in which v is divided. On every block the median is computed to find spikes.
         """
-    l = len(v)
-    n_chunk = n_chunk
-    len_chunk = l // n_chunk
+    # Initialize a spike list to collect the indexes of the problematic samples
     spike_idx = []
+    # Number of steps of the algorithm
+    steps = 1
+    # If DEM output look for spike on even and odd: two steps needed
+    if data_type == "DEM":
+        steps = 2
 
-    for n_rip in range(5):
-        _v_ = v[n_rip * len_chunk:(n_rip + 1) * len_chunk - 1]
-        med_v = scn.median(_v_)  # type:float
-        mad_v = scs.median_abs_deviation(_v_)
+    # Start spike algorithm
+    for i in range(steps):
+        logging.info(f"Step: {i+1}/{steps}.")
+        new_v = v[i:-1-i:steps]
+        # Length of the new vector
+        l = len(new_v)
+        # Calculate the length of a chunk used to divide the array
+        len_chunk = l // n_chunk
+        # Repeat the research of the spikes on every chunk of data
+        for n_rip in range(n_chunk):
+            # Creating a sub array dividing the new_v in n_chunk
+            _v_ = new_v[n_rip * len_chunk:(n_rip + 1) * len_chunk - 1]
+            # Calculate the Median
+            med_v = scn.median(_v_)  # type:float
+            # Calculate the Mean Absolute Deviation
+            mad_v = scs.median_abs_deviation(_v_)
 
-        dif = diff_cons(_v_)
-        med_dif = scn.median(dif)
-        mad_dif = scs.median_abs_deviation(dif)
+            for idx, item in enumerate(_v_):
+                if item > med_v + threshold * mad_v or item < med_v - threshold * mad_v:
+                    s_idx = n_rip * len_chunk + idx
+                    if data_type == "DEM":
+                        s_idx = s_idx*2 + i
+                    spike_idx.append(s_idx)
 
-        v_threshold = (threshold / 2.7) * mad_v
-
-        logging.basicConfig(level="WARNING", format='%(message)s',
-                            datefmt="[%X]", handlers=[RichHandler()])  # <3
-
-        for idx, item in enumerate(dif):
-            # spike up in differences
-            if item > med_dif + threshold * mad_dif:
-                if _v_[idx * 2] > med_v + v_threshold:
-                    # logging.info(f"found spike up: {idx}")
-                    spike_idx.append(n_rip * len_chunk + idx * 2)
-                if _v_[idx * 2 + 1] < med_v - v_threshold:
-                    # logging.info(f"found spike down: {idx}")
-                    spike_idx.append(n_rip * len_chunk + idx * 2 + 1)
-            # spike down in differences
-            if item < med_dif - threshold * mad_dif:
-                if _v_[idx * 2] < med_v - v_threshold:
-                    # logging.info(f"found spike down: {idx}")
-                    spike_idx.append(n_rip * len_chunk + idx * 2)
-                if _v_[idx * 2 + 1] > med_v + v_threshold:
-                    # logging.info(f"found spike up: {idx}")
-                    spike_idx.append(n_rip * len_chunk + idx * 2 + 1)
+            # If the data_type is an FFT
+            if data_type == "FFT":
+                # Selecting local spikes UP: avoiding contour spikes
+                spike_idx = [i for i in spike_idx if v[i] > v[i - 1] and v[i] > v[i + 1]]
 
     if len(spike_idx) > 0:
         logging.warning("Found Spike!\n")
 
     return spike_idx
+
+
+def select_spike(spike_idx: list, s: list, freq: list) -> []:
+    """
+    Select the most relevant spikes in an array of FFT data
+    Parameters\n
+    - **spike_idx** (``list``): is an array-like object containing the indexes of the spikes present in the s array\n
+    - **s** (``list``): is an array-like object that contains spikes\n
+    - **freq** (``list``): is an array-like object that contains the frequency corresponding to the s values\n
+    """
+    # Select only the most significant spikes
+    idx_sel = []
+    # Divide the array in sub-arrays on the base of the frequency
+    for a in range(-24, 12):
+        s_spike = [s[i] for i in spike_idx if (10 ** (a / 6) < freq[i] < 10 ** ((a + 1) / 6))]
+        # Keep only the idx of the maxes
+        idx_sel += [i for i in spike_idx if
+                    (10 ** (a / 6) < freq[i] < 10 ** ((a + 1) / 6)) and s[i] == max(s_spike)]
+    return idx_sel
 
 
 def replace_spike(v, N=10, threshold=8.5, gauss=True):
@@ -387,7 +407,7 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
         if np.abs(item) > tolerance:
             jumps["n"] += 1
             jumps["idx"].append(i)
-            jumps["value"].append(dt[i]/86400)
+            jumps["value"].append(dt[i] / 86400)
             jumps["s_value"].append(dt[i])
 
     return jumps
@@ -463,14 +483,15 @@ def datetime_check(date_str: str) -> bool:
         return False
 
 
-def date_update(start_datetime: str, n_samples: int, sampling_frequency: int) -> Time:
+def date_update(start_datetime: str, n_samples: int, sampling_frequency: int, ms=False) -> Time:
     """
     Calculates and returns the new Gregorian date in which the analysis begins, given a number of samples that
     must be skipped from the beginning of the dataset.
     Parameters:\n
     - **start_datetime** (``str``): start time of the dataset
     - **n_samples** (``int``) number of samples that must be skipped\n
-    - **sampling_freq** (``int``): sampling frequency of the dataset
+    - **sampling_freq** (``int``): number of data collected per second
+    -**ms** (``bool``): if True the new Gregorian date has also milliseconds
     """
     # Convert the str in a Time object: Julian Date MJD
     jdate = Time(start_datetime).mjd
@@ -479,7 +500,11 @@ def date_update(start_datetime: str, n_samples: int, sampling_frequency: int) ->
     # Julian Date increased
     jdate += s * (n_samples / sampling_frequency)
     # New Gregorian Date
-    new_date = Time(jdate, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+    if not ms:
+        new_date = Time(jdate, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        new_date = Time(jdate, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
     return new_date
 
 
@@ -897,7 +922,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         correlation_value = correlation_matrix[0, 1]
         # Print a warning if the correlation value overcomes the threshold, then store it for the report
         if correlation_value > corr_t:
-            warn_msg = (f"Found high correlation value: {round(correlation_value,4)}"
+            warn_msg = (f"Found high correlation value: {round(correlation_value, 4)}"
                         f" between {data_name1} and {data_name2}.")
             logging.warning(warn_msg)
             warnings.append(f"|{data_name1}|{data_name2}|{round(correlation_value, 4)}|\n")
