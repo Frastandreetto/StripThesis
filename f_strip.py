@@ -298,67 +298,6 @@ def select_spike(spike_idx: list, s: list, freq: list) -> []:
     return idx_sel
 
 
-def replace_spike(v, N=10, threshold=8.5, gauss=True):
-    """
-    Find the 'spikes' in a given array and replace them as follows.
-    Parameters:\n
-    - **v** (``list``): is an array-like object\n
-    - **N** (int): number of elements used to calculate the mean and the std_dev to substitute the spike (see below).
-    - **threshold** (int): value used to discern what a spike is (see find_spike above).
-    - **gauss** (bool):\n
-
-        *True* -> The element of the array is substituted with a number extracted with a Gaussian distribution
-        around the mean of some elements of the array chosen as follows:\n
-        \t i)   The 2N following elements if the spike is in position 0;\n
-        \t ii)  An equal number of elements taken before and after the spike if the spike itself is in a position i<N
-        \t iii) An equal number of elements N taken before and after the spike if the spike itself is in a position i>N
-        \t iv)  The 2N previous elements if the spike is in a position i bigger than the length of the array minus N\n
-
-        *False* -> The element of the array is substituted with the median of the array.
-    """
-    logging.basicConfig(level="INFO", format='%(message)s',
-                        datefmt="[%X]", handlers=[RichHandler()])  # <3
-
-    s = find_spike(v=v, threshold=threshold)
-    a, b, c, d = 0, 0, 0, 0
-    if len(s) == 0:
-        return "No spikes detected in the dataset.\n"
-    for i in s:
-        logging.info("\nStarting new removal run")
-        if gauss:
-            """
-            Gaussian substitution
-            """
-            if i == 0 or 0 < i < N:
-                logging.info(f"Spike in low position ({i}): using the following {2 * N} samples")
-                a = 0
-                c = 1
-                d = 1 + 2 * i
-            if N < i < (len(v) - N):
-                logging.info(f"Spike in position {i}: using {2 * N} samples, {N} before e {N} after")
-                a = -N
-                c = 1
-                d = 1 + N
-            if i > (len(v) - N - 1):
-                logging.info(f"Spike in high position ({i}): using the previous {2 * N} samples")
-                a = -2 * N
-
-            new_d = np.concatenate((v[i + a:i + b], v[i + c: i + d]))
-            new_m = scn.median(new_d)
-            new_s = scs.median_abs_deviation(new_d)
-            new_a = np.random.normal(new_m, new_s)
-
-        else:
-            """
-            Non-Gaussian substitution
-            """
-            new_a = scn.median(v)
-
-        v[i] = new_a
-
-        # s = find_spike(v=v, threshold=threshold)
-
-
 def find_jump(v, exp_med: float, tolerance: float) -> {}:
     """
         Find the 'jumps' in a given Time astropy object: the samples should be consequential with a fixed growth rate.
