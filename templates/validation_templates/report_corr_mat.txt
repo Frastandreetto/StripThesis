@@ -1,0 +1,10 @@
+<font size="4"><b>Correlation Matrices<b/></font><br />
+<hr style="width:100%;text-align:left;margin-left:0">
+
+
+{% for file in png_files %}
+
+Correlation Matrix of {{ file[:-12]}}
+
+![LSPE-Strip Official img]({{ output_plot_dir }}/Correlation_Matrix/{{ file }})
+{% endfor %}

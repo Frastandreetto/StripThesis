@@ -385,7 +385,7 @@ def main():
     }
 
     # root: location of the file.txt with the information to build the report
-    root = "../striptease/templates"
+    root = "../striptease/templates/validation_templates"
     templates_dir = Path(root)
 
     # Creating the Jinja2 environment

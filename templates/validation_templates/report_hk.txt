@@ -1,0 +1,16 @@
+<font size="4"><b>Analysis of the Bias Housekeeping parameters<b/></font><br />
+
+<font size="3"><b>Info about the HK<b/></font><br />
+
+{{ hk_table }}
+
+<hr style="width:100%;text-align:left;margin-left:0">
+
+
+{% for item in ["V", "I", "O"] %}
+
+<font size="3"><b>Output of the HK Parameters {{ item }} <b/></font><br />
+
+![LSPE-Strip Official img]({{ output_plot_dir }}/HK/HK_{{ item }}.png)
+
+{% endfor %}

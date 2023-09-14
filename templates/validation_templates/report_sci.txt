@@ -1,0 +1,23 @@
+<font size="4"><b>Analysis of the Scientific Data<b/></font><br />
+<hr style="width:100%;text-align:left;margin-left:0">
+
+
+{% for type in ["DEMODULATED", "TOTPOWER"] %}
+
+<font size="3"><b>Output of the {{ type }} Scientific Data <b/></font><br />
+![LSPE-Strip Official img]({{ output_plot_dir }}/SCIDATA/{{ type }}/{{ name_pol}}__{{ type }}.png)
+
+<font size="3"><b>RMS of the {{ type }} Scientific Data <b/></font><br />
+![LSPE-Strip Official img]({{ output_plot_dir }}/RMS/{{ type }}/{{ name_pol}}__RMS_{{ type }}.png)
+
+{% if fft %}
+
+<font size="3"><b>FFT of {{ type }} Scientific Data <b/></font><br />
+![LSPE-Strip Official img]({{ output_plot_dir }}/FFT/{{ type }}/{{ name_pol}}__FFT_{{ type }}.png)
+
+<font size="3"><b>FFT of RMS of {{ type }} Scientific Data <b/></font><br />
+![LSPE-Strip Official img]({{ output_plot_dir }}/FFT/RMS/{{ type }}/{{ name_pol}}__FFT_RMS_{{ type }}.png)
+
+{% endif %}
+<hr style="width:100%;text-align:left;margin-left:0">
+{% endfor %}
