@@ -10,9 +10,11 @@
 # Libraries & Modules
 # import csv
 import logging
+from datetime import datetime
 
 import numpy as np
 import scipy.stats as scs
+import scipy.signal
 
 from astropy.time import Time
 from matplotlib import pyplot as plt
@@ -609,7 +611,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Write_Jump(self, start_datetime: str, sam_tolerance: float) -> {}:
+    def Write_Jump(self, sam_tolerance: float) -> {}:
         """
         Find the 'jumps' in the timestamps of a given dataset and produce a file .txt with a description for every jump,
         including: Name_Polarimeter - Jump_Index - Delta_t before - tDelta_t after - Gregorian Date - JHD.\n
@@ -632,27 +634,18 @@ class Polarimeter:
             # Saving the warning message
             self.warnings["sampling_warning"].append(sam_warn + "\n")
         else:
-            t_warn = f"In the dataset there are {jumps['n']} Time Jumps."
+            t_warn = f"In the dataset there are {jumps['n']} Time Jumps.\n"
             logging.info(t_warn + "\n\n")
             # Saving the warning message
             self.warnings["sampling_warning"].append(t_warn + "\n")
 
-            # .csv file with all time jumps. ---------------------------------------------------------------------------
-            # logging.info("I'm going to produce the caption for the csv file.")
-
-            # Caption for the csv table
-            # fz.tab_cap_time(pol_name=self.name, file_name=start_datetime, output_dir=self.date_dir)
-            # new_file_name = f"JT_{self.name}_{start_datetime}.csv"
-
             md_tab_content = (f"Time Jumps Pol {self.name}\n"
                               f"| # Jump | Jump value [JHD] | Jump value [s] | Gregorian Date | Julian Date [JHD]|\n"
                               f"|:------:|:----------------:|:--------------:|:--------------:|:----------------:|\n")
-
             # Initializing the jump number
             i = 1
 
             for idx, j_value, j_val_s in zip(jumps["idx"], jumps["value"], jumps["s_value"]):
-
                 # Saving the Julian Date at which the Jump happened
                 jump_instant = self.times.value[idx]
                 # Saving the Gregorian Date at which the Jump happened
@@ -661,14 +654,6 @@ class Polarimeter:
                 # Updating the row of the md_table with the info of a new jump
                 md_tab_content += f"|{i}|{j_value}|{j_val_s}|{greg_jump_instant}|{jump_instant}|\n"
 
-                # CSV file: writing the table row by row ---------------------------------------------------------------
-                # tab_content = [[f"{i}", f"{j_value}", f"{j_val_s}", f"{greg_jump_instant}", f"{jump_instant}"]]
-
-                # with open(f'../plot/{self.date_dir}/Time_Jump/{new_file_name}', 'a', newline='') as file:
-                #    writer = csv.writer(file)
-                #    writer.writerows(tab_content)
-                # ------------------------------------------------------------------------------------------------------
-
                 # Increasing the jump number
                 i += 1
 
@@ -676,6 +661,131 @@ class Polarimeter:
             md_tab_content += "\n"
             self.warnings["sampling_warning"].append(md_tab_content)
         return jumps
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # SPIKE ANALYSIS
+    # ------------------------------------------------------------------------------------------------------------------
+    def Spike_Report(self, fft: bool, nperseg: int) -> str:
+        """
+            Look up for 'spikes' in the DEM and PWR output of the Polarimeter and in their FFT.\n
+            Create a table in md language (basically a str) in which the spikes found are listed.
+            - **fft** (``bool``): if true, the code looks for spikes in the fft.
+            - **nperseg** (``int``): number of elements of the array on which the fft is calculated
+        """
+        # Initializing a bool to see if the caption of the table is already in the report
+        cap = False
+        # Initialize strings for the rows of the table
+        rows = ""
+        spike_tab = ""
+        # Initialize list for x_data
+        x_data = []
+
+        for type in self.data.keys():
+            for exit in self.data[type].keys():
+
+                if fft:
+                    x_data, y_data = scipy.signal.welch(self.data[type][exit], fs=100,
+                                                        nperseg=min(len(self.data[type][exit]), nperseg),
+                                                        scaling="spectrum")
+                    x_data = [x for x in x_data if x < 25.]
+                    y_data = y_data[:len(x_data)]
+                    threshold = 3
+                    n_chunk = 10
+                    data_type = "FFT"
+
+                else:
+                    y_data = self.data[type][exit]
+                    threshold = 8
+                    n_chunk = 10
+                    data_type = type
+
+                # Find and store spikes indexes
+                spike_idxs = fz.find_spike(y_data, data_type=data_type, threshold=threshold, n_chunk=n_chunk)
+                # No spikes detected
+                if len(spike_idxs) == 0:
+                    spike_tab += f"\nNo spikes detected in {type} {exit} Output.\n"
+                # Spikes detected
+                else:
+                    # Look for spikes in the dataset
+                    if not fft:
+                        # Create the caption for the table of the spikes in Output
+                        if not cap:
+                            spike_tab += (
+                                "\n| Spike Number | Data Type | Exit "
+                                "| Gregorian Date | Julian Date [JHD]| Spike Value - Median [ADU]| MAD [ADU] |\n"
+                                "|:------------:|:---------:|:----:"
+                                "|:--------------:|:----------------:|:-------------------------:|:---------:|\n")
+                            cap = True
+
+                        for idx, item in enumerate(spike_idxs):
+                            # Calculate the Gregorian date in which the spike happened
+                            greg_date = fz.date_update(start_datetime=self.gdate[0],
+                                                       n_samples=item, sampling_frequency=100, ms=True)
+                            # Gregorian date string to a datetime object
+                            greg_datetime = datetime.strptime(f"{greg_date}000",
+                                                              "%Y-%m-%d %H:%M:%S.%f")
+                            # Datetime object to a Julian date
+                            julian_date = Time(greg_datetime).jd
+
+                            rows += f"|{idx + 1}|{type}|{exit}|{greg_date}|{julian_date}" \
+                                    f"|{np.round(y_data[item] - np.median(y_data), 6)}" \
+                                    f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n"
+
+                    # Spikes in the FFT
+                    else:
+                        # Select the more relevant spikes
+                        spike_idxs = fz.select_spike(spike_idx=spike_idxs, s=y_data, freq=x_data)
+                        # Create the caption for the table of the spikes in FFT
+                        if not cap:
+                            spike_tab += (
+                                "\n| Spike Number | Data Type | Exit | Frequency Spike "
+                                "|Spike Value - Median [ADU]| MAD [ADU] |\n"
+                                "|:------------:|:---------:|:----:|:---------------:"
+                                "|:------------------------:|:---------:|\n")
+                            cap = True
+
+                        for idx, item in enumerate(spike_idxs):
+                            rows += (f"|{idx + 1}|FFT {type}|{exit}"
+                                     f"|{np.round(x_data[item] ,6)}"
+                                     f"|{np.round(y_data[item] - np.median(y_data),6)}"
+                                     f"|{np.round(scs.median_abs_deviation(y_data),6)}|\n")
+            if cap:
+                spike_tab += rows
+
+        return spike_tab
+
+    def spike_CSV(self) -> []:
+        """
+            Look up for 'spikes' in the DEM and PWR output of the Polarimeter.\n
+            Create list of str to be written in a CSV file in which the spikes found are listed.
+        """
+        cap = False
+        spike_list = []
+        rows = [[""]]
+        for type in self.data.keys():
+            for exit in self.data[type].keys():
+
+                spike_idxs = fz.find_spike(self.data[type][exit], data_type=type)
+                if len(spike_idxs) != 0:
+                    if not cap:
+                        spike_list = [
+                            [""],
+                            ["Spike in dataset"],
+                            [""],
+                            ["Spike Number", "Data Type", "Exit", "Spike Time [JHD]", "Spike Value - Median [ADU]"]
+                        ]
+                        cap = True
+
+                    for idx, item in enumerate(spike_idxs):
+                        rows.append([f"{idx + 1}", f"{type}", f"{exit}", f"{self.times[item]}",
+                                     f"{self.data[type][exit][item] - np.median(self.data[type][exit])}",
+                                     f""])
+        if cap:
+            spike_list = spike_list + rows
+        else:
+            spike_list = [["No spikes detected in DEM and PWR Output.<br /><p></p>"]]
+
+        return spike_list
 
     def Inversion_EO_Time(self, jumps_pos: list, threshold=3.):
         """
@@ -730,83 +840,3 @@ class Polarimeter:
 
                             self.warnings["eo_warning"].append(msg)
                             logging.warning(msg)
-
-    # ------------------------------------------------------------------------------------------------------------------
-    # SPIKE ANALYSIS
-    # ------------------------------------------------------------------------------------------------------------------
-    def spike_report(self) -> str:
-        """
-            Look up for 'spikes' in the DEM and PWR output of the Polarimeter.\n
-            Create a table in html language (basically a str) in which the spikes found are listed.
-        """
-        cap = False
-        spike_tab = ""
-        rows = ""
-        for type in self.data.keys():
-            for exit in self.data[type].keys():
-
-                spike_idxs = fz.find_spike(self.data[type][exit])
-                if len(spike_idxs) != 0:
-                    if not cap:
-                        spike_tab += "<p></p>" \
-                                     "<style>" \
-                                     "table, th, td {border:1px solid black;}" \
-                                     "</style>" \
-                                     "<body>" \
-                                     "<p></p>" \
-                                     "<table style='width:100%' align=center>" \
-                                     "<tr>" \
-                                     "<th>Spike Number</th>" \
-                                     "<th>Data Type</th>" \
-                                     "<th>Exit</th>" \
-                                     "<th>Spike Time [JHD]</th>" \
-                                     "<th>Spike Value - Median [ADU]</th></tr>"
-                        cap = True
-
-                    for idx, item in enumerate(spike_idxs):
-                        rows += f"<td align=center>{idx + 1}</td>" \
-                                f"<td align=center>{type}</td>" \
-                                f"<td align=center>{exit}</td>" \
-                                f"<td align=center>{self.times[item]}</td>" \
-                                f"<td align=center>{self.data[type][exit][item] - np.median(self.data[type][exit])}" \
-                                f"</td>" \
-                                f"</tr>"
-        if cap:
-            spike_tab += rows + "</table></body><p></p><p></p><p></p>"
-        else:
-            spike_tab = "No spikes detected in DEM and PWR Output.<br /><p></p>"
-
-        return spike_tab
-
-    def spike_CSV(self) -> []:
-        """
-            Look up for 'spikes' in the DEM and PWR output of the Polarimeter.\n
-            Create list of str to be written in a CSV file in which the spikes found are listed.
-        """
-        cap = False
-        spike_list = []
-        rows = [[""]]
-        for type in self.data.keys():
-            for exit in self.data[type].keys():
-
-                spike_idxs = fz.find_spike(self.data[type][exit])
-                if len(spike_idxs) != 0:
-                    if not cap:
-                        spike_list = [
-                            [""],
-                            ["Spike in dataset"],
-                            [""],
-                            ["Spike Number", "Data Type", "Exit", "Spike Time [JHD]", "Spike Value - Median [ADU]"]
-                        ]
-                        cap = True
-
-                    for idx, item in enumerate(spike_idxs):
-                        rows.append([f"{idx + 1}", f"{type}", f"{exit}", f"{self.times[item]}",
-                                     f"{self.data[type][exit][item] - np.median(self.data[type][exit])}",
-                                     f""])
-        if cap:
-            spike_list = spike_list + rows
-        else:
-            spike_list = [["No spikes detected in DEM and PWR Output.<br /><p></p>"]]
-
-        return spike_list

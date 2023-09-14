@@ -291,11 +291,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # Looking for spikes in the dataset ----------------------------------------------------------------------------
         if spike_data:
             logging.info('Looking for spikes in the dataset.')
-            spike_warn.extend(p.spike_report(fft=False, nperseg=0))
+            spike_warn.extend(p.Spike_Report(fft=False, nperseg=0))
 
         if spike_fft:
             logging.info('Looking for spikes in the FFT of the dataset.')
-            spike_warn.extend(p.spike_report(fft=True, nperseg=10**6))
+            spike_warn.extend(p.Spike_Report(fft=True, nperseg=10**6))
         # --------------------------------------------------------------------------------------------------------------
 
         # Preparing the Polarimeter for the analysis: normalization and data cleanse
