@@ -22,7 +22,6 @@ from astropy.time import Time, TimeDelta
 from datetime import datetime
 from numba import njit
 from pathlib import Path
-from rich.logging import RichHandler
 from striptease import DataFile
 from typing import Dict, Any
 
@@ -246,7 +245,7 @@ def find_spike(v, data_type: str, threshold=4.4, n_chunk=10) -> []:
 
     # Start spike algorithm
     for i in range(steps):
-        logging.info(f"Step: {i+1}/{steps}.")
+        # logging.debug(f"Step: {i+1}/{steps}.")
         new_v = v[i:-1-i:steps]
         # Length of the new vector
         l = len(new_v)
@@ -290,11 +289,11 @@ def select_spike(spike_idx: list, s: list, freq: list) -> []:
     # Select only the most significant spikes
     idx_sel = []
     # Divide the array in sub-arrays on the base of the frequency
-    for a in range(-24, 12):
-        s_spike = [s[i] for i in spike_idx if (10 ** (a / 6) < freq[i] < 10 ** ((a + 1) / 6))]
+    for a in range(-16, 8):
+        s_spike = [s[i] for i in spike_idx if (10 ** (a / 4) < freq[i] < 10 ** ((a + 1) / 4))]
         # Keep only the idx of the maxes
         idx_sel += [i for i in spike_idx if
-                    (10 ** (a / 6) < freq[i] < 10 ** ((a + 1) / 6)) and s[i] == max(s_spike)]
+                    (10 ** (a / 4) < freq[i] < 10 ** ((a + 1) / 4)) and s[i] == max(s_spike)]
     return idx_sel
 
 

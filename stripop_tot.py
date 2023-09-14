@@ -283,9 +283,19 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         '\nScientific Analysis. \nLoading Scientific Outputs.')
         p.Load_Pol()
 
-        # Analyzing Polarimeter Sampling -------------------------------------------------------------------------------
-        _ = p.Write_Jump(start_datetime=start_datetime, sam_tolerance=sam_tolerance)
+        # Holes: Analyzing Scientific Output Sampling ------------------------------------------------------------------
+        _ = p.Write_Jump(sam_tolerance=sam_tolerance)
         sampling_warn.extend(p.warnings["sampling_warning"])
+        # --------------------------------------------------------------------------------------------------------------
+
+        # Looking for spikes in the dataset ----------------------------------------------------------------------------
+        if spike_data:
+            logging.info('Looking for spikes in the dataset.')
+            spike_warn.extend(p.spike_report(fft=False, nperseg=0))
+
+        if spike_fft:
+            logging.info('Looking for spikes in the FFT of the dataset.')
+            spike_warn.extend(p.spike_report(fft=True, nperseg=10**6))
         # --------------------------------------------------------------------------------------------------------------
 
         # Preparing the Polarimeter for the analysis: normalization and data cleanse
