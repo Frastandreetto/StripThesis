@@ -8,9 +8,12 @@
 
 # Libraries & Modules
 import logging
+from datetime import datetime
+
 import scipy
 
 import numpy as np
+import scipy.stats as scs
 
 from astropy.time import Time
 from matplotlib import pyplot as plt
@@ -146,7 +149,8 @@ class Thermal_Sensors:
                         good_sampling = False
                         # Print & store a warning message
                         msg = (f"The Thermal sensor: {sensor_name} has a sampling problem.\n"
-                               f"The array of Timestamps has a wrong length\n")
+                               f"The array of Timestamps has a wrong length. "
+                               f"Length difference: {len_data-len_times}.\n")
                         logging.error(msg)
                         self.warnings["time_warning"].append(msg)
                         problematic_ts.append(sensor_name)
@@ -423,3 +427,102 @@ class Thermal_Sensors:
         if show:
             plt.show()
         plt.close(fig)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # SPIKE ANALYSIS
+    # ------------------------------------------------------------------------------------------------------------------
+    def Spike_Report(self, fft: bool, ts_sam_exp_med: int) -> str:
+        """
+            Look up for 'spikes' in the TS output of Strip or in their FFT.\n
+            Create a table in md language (basically a str) in which the spikes found are listed.
+            - **fft** (``bool``): if true, the code looks for spikes in the fft.
+            - **nperseg** (``int``): number of elements of the array on which the fft is calculated
+        """
+        # Initializing a bool to see if the caption of the table is already in the report
+        cap = False
+        # Initialize strings for the rows of the table
+        rows = ""
+        spike_tab = ""
+        # Initialize list for x_data
+        x_data = []
+
+        for name in self.ts["thermal_data"]["calibrated"].keys():
+
+            if fft:
+                x_data, y_data = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][name], fs=ts_sam_exp_med/60,
+                                                    nperseg=min(len(self.ts["thermal_data"]["calibrated"][name]),
+                                                                self.nperseg_thermal),
+                                                    scaling="spectrum")
+                x_data = [x for x in x_data if x < 25.]
+                y_data = y_data[:len(x_data)]
+                threshold = 3
+                n_chunk = 10
+                data_type = "FFT"
+                logging.info("Till here it's ok. ")
+
+            else:
+                logging.info("1. Do I get here?")
+                y_data = self.ts["thermal_data"]["calibrated"][name]
+                logging.info(f"{len(y_data)}")
+                threshold = 3
+                n_chunk = 5
+                data_type = "TS"
+
+            # Find and store spikes indexes
+            logging.info("2. Do I get here?")
+            spike_idxs = fz.find_spike(y_data, data_type=data_type,
+                                       threshold=threshold, n_chunk=min(n_chunk, len(y_data)))
+            # Spikes detected
+            if not spike_idxs:
+                logging.info(f"3. Do I get here? No spikes in {name}.\n")
+            else:
+                logging.info("3. Do I get here? I found spikes")
+                # Spikes in the dataset
+                if not fft:
+                    logging.info(f"Entering the dataset because fft is {fft}")
+                    # Create the caption for the table of the spikes in Output
+                    if not cap:
+                        logging.info("Putting the tab")
+                        spike_tab += (
+                            "\n| Spike Number | Data Type | Sensor Name "
+                            "| Gregorian Date | Julian Date [JHD]| Spike Value - Median [ADU]| MAD [ADU] |\n"
+                            "|:------------:|:---------:|:----:"
+                            "|:--------------:|:----------------:|:-------------------------:|:---------:|\n")
+                        cap = True
+
+                    for idx, item in enumerate(spike_idxs):
+                        # Calculate the Gregorian date in which the spike happened
+                        greg_date = fz.date_update(start_datetime=self.gdate[0],
+                                                   n_samples=item, sampling_frequency=ts_sam_exp_med/60, ms=True)
+                        # Gregorian date string to a datetime object
+                        greg_datetime = datetime.strptime(f"{greg_date}000",
+                                                          "%Y-%m-%d %H:%M:%S.%f")
+                        # Datetime object to a Julian date
+                        julian_date = Time(greg_datetime).jd
+                        logging.info(f"no data, no mean: {name}\n")
+                        rows += (f"|{idx + 1}|{data_type}|{name}"
+                                 f"|{greg_date}|{julian_date}"
+                                 f"|{np.round(y_data[item] - np.median(y_data), 6)}"
+                                 f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
+                # Spikes in the FFT
+                else:
+                    # Select the more relevant spikes
+                    spike_idxs = fz.select_spike(spike_idx=spike_idxs, s=y_data, freq=x_data)
+                    # Create the caption for the table of the spikes in FFT
+                    if not cap:
+                        spike_tab += (
+                            "\n| Spike Number | Data Type | Sensor Name | Frequency Spike "
+                            "|Spike Value - Median [ADU]| MAD [ADU] |\n"
+                            "|:------------:|:---------:|:----:|:---------------:"
+                            "|:------------------------:|:---------:|\n")
+                        cap = True
+                    # Fill the table with the values
+                    for idx, item in enumerate(spike_idxs):
+                        rows += (f"|{idx + 1}|FFT TS|{name}"
+                                 f"|{np.round(x_data[item], 6)}"
+                                 f"|{np.round(y_data[item] - np.median(y_data), 6)}"
+                                 f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
+        if cap:
+            spike_tab += rows
+
+        return spike_tab

@@ -24,6 +24,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                status: str, fft: bool, nperseg_thermal: int,
                ts_sam_exp_med: float, ts_sam_tolerance: float,
+               spike_ts: bool, spike_fft: bool,
                corr_t: float, corr_plot: bool, corr_mat: bool,
                output_plot_dir: str, output_report_dir: str):
     """
@@ -40,6 +41,8 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
             - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS
             - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS
+            - **spike_ts** (`bool`): If true, the code will look for spikes in Thermal Sensors
+            - **spike_fft** (`bool`) If true, the code will look for spikes in FFT of the Thermal Sensors
             - **corr_t** (``float``): lim sup for the correlation value between two dataset:
              if the value computed is higher than the threshold, a warning is produced.
              - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
@@ -64,6 +67,17 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     # Loading the TS
     logging.info('Loading TS.')
     TS.Load_TS()
+
+    # Looking for spikes in the dataset ----------------------------------------------------------------------------
+    spike_warn = []
+    if spike_ts:
+        logging.info('Looking for spikes in the Thermal dataset.')
+        spike_warn.extend(TS.Spike_Report(fft=False, ts_sam_exp_med=ts_sam_exp_med))
+
+    if spike_fft:
+        logging.info('Looking for spikes in the FFT of the Thermal dataset.')
+        spike_warn.extend(TS.Spike_Report(fft=True, ts_sam_exp_med=ts_sam_exp_med))
+    # --------------------------------------------------------------------------------------------------------------
 
     # Analyzing TS Sampling
     sampling_warn = TS.TS_Sampling_Table(sam_exp_med=ts_sam_exp_med, sam_tolerance=ts_sam_tolerance)
@@ -140,6 +154,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     # Updating the report_data dict for the warning report
     report_data.update({"t_warn": TS.warnings["time_warning"],
                         "sampling_warn": sampling_warn,
+                        "spike_warn": spike_warn,
                         "corr_warn": TS.warnings["corr_warning"],
                         })
 

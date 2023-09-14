@@ -153,6 +153,9 @@ def main():
     # Rms
     parser_A.add_argument('--rms', '-rms', action="store_true", default=False,
                           help='If true, compute the rms on the scientific output and data.')
+    # Scientific Output Sampling Tolerance
+    parser_A.add_argument('--sam_tolerance', '-st', type=float, default=0.005,
+                          help='The acceptance sampling tolerances of the Scientific Output of Strip.')
     # Smoothing length
     parser_A.add_argument('--smooth', '-sm', type=int, default=1,
                           help='Smoothing length used to flatter the data. smooth=1 equals no smooth.')
@@ -212,6 +215,12 @@ def main():
     parser_C.add_argument('--status', '-stat', type=int, default=2, choices=[0, 1, 2],
                           help='int value that defines the status of the multiplexer of the TS to analyze: 0 or 1. '
                                'If it is set on 2, both states will be analyzed.')
+    # Spikes TS
+    parser_C.add_argument('--spike_ts', '-s_ts', action="store_true",
+                          help='If true, the code will look for spikes in Thermal Sensors')
+    # Spikes FFT TS
+    parser_C.add_argument('--spike_fft', '-sf_ts', action="store_true",
+                          help='If true, the code will look for spikes in FFT of the Thermal Sensors')
 
     ####################################################################################################################
     # Call .parse_args() on the parser to get the Namespace object that contains all the user’s arguments.
@@ -254,8 +263,10 @@ def main():
 
     # MODE A: check on EOA string
     if args.subcommand == "tot":
-        if args.even_odd_all not in [' ', 'E', 'O', 'A', 'EO', 'EA', 'OA', 'EOA']:
-            logging.error('Wrong data name:. Please choose between the options: E, O, A, EO, EA, OA, EOA')
+        # Create a set of E,O,A
+        args.even_odd_all = set(str(args.even_odd_all).upper())
+        if not args.even_odd_all.issubset({"E", "O", "A"}):
+            logging.error('Wrong data name: Please choose between the options: E, O, A, EO, EA, OA, EOA')
             raise SystemExit(1)
 
     # MODE A and B: Check on the names of the polarimeters
@@ -313,6 +324,7 @@ def main():
         # Total Analysis Operation
         strip_a.tot(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                     thermal_sensors=args.thermal_sensors, housekeeping=args.housekeeping,
+                    sam_tolerance=args.sam_tolerance,
                     hk_sam_exp_med=hk_sam_exp_med, hk_sam_tolerance=hk_sam_tolerance,
                     ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
                     name_pol=args.name_pol, eoa=args.even_odd_all, scientific=args.scientific, rms=args.rms,
@@ -342,6 +354,7 @@ def main():
                                    start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                    status=status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
                                    ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
+                                   spike_ts=args.spike_ts, spike_fft=args.spike_fft,
                                    corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
                                    output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
         else:
@@ -349,6 +362,7 @@ def main():
                                start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
                                ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
+                               spike_ts=args.spike_ts, spike_fft=args.spike_fft,
                                corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
                                output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
