@@ -1,6 +1,4 @@
-<font size="4"><b>Correlation Matrices<b/></font><br />
-<hr style="width:100%;text-align:left;margin-left:0">
-
+## Correlation Matrices
 
 {% for file in png_files %}
 

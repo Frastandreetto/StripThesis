@@ -1,17 +1,14 @@
-<font size="4"><b>Warnings!<b/></font><br />
-<hr style="width:100%;text-align:left;margin-left:0">
+## Warnings!
 
 {% if sampling_warn %}
-<font size="3"><b>Sampling Warnings<b/></font><br />
-<hr style="width:100%;text-align:left;margin-left:0">
+### Sampling Warnings
 
 {% for msg in sampling_warn%}{{ msg }}{% endfor %}
 
 {% endif %}
 
 {% if t_warn %}
-<font size="3"><b>Time Warnings<b/></font><br />
-<hr style="width:100%;text-align:left;margin-left:0">
+### Time Warnings
 
 {% for msg in t_warn %}
 {{ msg }}
@@ -20,8 +17,7 @@
 {% endif %}
 
 {% if corr_warn %}
-<font size="3"><b>Correlation Warnings<b/></font><br />
-<hr style="width:100%;text-align:left;margin-left:0">
+### Correlation Warnings
 High correlations found:
 
 | Data 1 | Data 2 | Correlation Value |
@@ -30,8 +26,7 @@ High correlations found:
 {% endif %}
 
 {% if spike_warn %}
-<font size="3"><b>Spike Warnings<b/></font><br />
-<hr style="width:100%;text-align:left;margin-left:0">
+### Spike Warnings
 
 {% for msg in spike_warn %}{{ msg }}{% endfor %}
 {% endif %}

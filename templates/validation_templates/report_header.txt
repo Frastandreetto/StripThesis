@@ -1,8 +1,6 @@
-<font size="5"><b>Test report for the functional verification test campaign of Strip<b/></font><br />
+# Test report for the functional verification test campaign of Strip
 
-<hr style="width:100%;text-align:left;margin-left:0">
-
-<font size="3"><b>General Info<b/></font><br />
+## General Info
 
 - The analysis was run with the following command line:
 `{{ command_line }}`
@@ -17,7 +15,7 @@
 
 <hr style="width:100%;text-align:left;margin-left:0">
 
-<font size="3"><b>Flags of the modality<b/></font><br />
+## Flags of the modality
 
 {% for cur_flag in args_dict.keys() %}
 - `{{ cur_flag }}`: `{{ args_dict[cur_flag] }}`
