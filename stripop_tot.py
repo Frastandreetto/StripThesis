@@ -162,7 +162,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                                    data_name1=f"{status}_{n1}",
                                                                    data_name2=f"{n2}",
                                                                    start_datetime=start_datetime,
-                                                                   corr_t=corr_t
+                                                                   corr_t=corr_t,
+                                                                   plot_dir=output_plot_dir
                                                                    ))
             # TS Correlation Matrices
             if not corr_mat:
