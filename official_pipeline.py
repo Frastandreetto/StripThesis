@@ -111,6 +111,9 @@ def main():
     common_parser.add_argument('--corr_t', '-ct', type=float, default=0.4,
                                help='Floating point number used as lim sup for the corr value between two dataset: '
                                     'if the value computed is higher than the threshold, a warning is produced.')
+    # Cross Correlation
+    common_parser.add_argument('--cross_corr', '-cc', action="store_true",
+                               help='If true, compute the 55x55 corr matr between the exits of all polarimeters.')
 
     # Output parameters ------------------------------------------------------------------------------------------------
     # Output directory of the plots
@@ -331,7 +334,7 @@ def main():
                     smooth=args.smooth, window=args.window,
                     fft=args.fourier, nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
                     spike_data=args.spike_data, spike_fft=args.spike_fft,
-                    corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t,
+                    corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t, cross_corr=args.cross_corr,
                     output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
 
     elif args.subcommand == "pol_hk":

@@ -15,6 +15,7 @@ from rich.logging import RichHandler
 
 # MyLibraries & MyModules
 import f_strip as fz
+import f_correlation_strip as fz_c
 import polarimeter as pol
 import thermalsensors as ts
 
@@ -31,7 +32,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         sam_tolerance: float,
         hk_sam_exp_med: float, hk_sam_tolerance: float,
         ts_sam_exp_med: float, ts_sam_tolerance: float,
-        corr_plot: bool, corr_mat: bool, corr_t: float,
+        corr_plot: bool, corr_mat: bool, corr_t: float, cross_corr: bool,
         output_plot_dir: str, output_report_dir: str):
     """
     Performs the analysis of one or more polarimeters producing a complete report.
@@ -65,8 +66,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O.
             - **corr_plot** (``bool``): If true, compute the correlation plot of the even-odd and scientific data.
             - **corr_mat** (``bool``): If true, compute the correlation matrices of the even-odd and scientific data.
-            - **corr_t** (``float``): Floating point number used as lim sup for the correlation value.
-             between two dataset: if the value computed is higher than the threshold, a warning is produced.
+            - **corr_t** (``float``): Floating point number used as lim sup for the correlation value
+            between two dataset: if the value computed is higher than the threshold, a warning is produced.
+            - **cross_corr** (``bool``): If true, compute the 55x55 correlation matrices between all the polarimeters.
             - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
             - **command_line** (`str`): Command line used to start the pipeline.
     """
@@ -82,7 +84,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     spike_warn = []
 
     # root: location of the file.txt with the information to build the report
-    root = "../striptease/templates"
+    root = "../striptease/templates/validation_templates"
     templates_dir = Path(root)
 
     # Creating the Jinja2 environment
@@ -143,17 +145,17 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             for i, n1 in enumerate(all_names):
                 for n2 in all_names[i + 1:]:
                     # Correlation warnings -----------------------------------------------------------------------------
-                    corr_warn.extend(fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
-                                                         array2=TS.ts["thermal_data"]["calibrated"][n2],
-                                                         dict1={},
-                                                         dict2={},
-                                                         time1=TS.ts["thermal_times"],
-                                                         time2=TS.ts["thermal_times"],
-                                                         data_name1=f"{status}_{n1}",
-                                                         data_name2=f"{n2}",
-                                                         start_datetime=start_datetime,
-                                                         corr_t=corr_t
-                                                         ))
+                    corr_warn.extend(fz_c.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
+                                                           array2=TS.ts["thermal_data"]["calibrated"][n2],
+                                                           dict1={},
+                                                           dict2={},
+                                                           time1=TS.ts["thermal_times"],
+                                                           time2=TS.ts["thermal_times"],
+                                                           data_name1=f"{status}_{n1}",
+                                                           data_name2=f"{n2}",
+                                                           start_datetime=start_datetime,
+                                                           corr_t=corr_t
+                                                           ))
             # ----------------------------------------------------------------------------------------------------------
             # REPORT TS
             # ----------------------------------------------------------------------------------------------------------
@@ -169,9 +171,19 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             filename = Path(f"{output_report_dir}/report_ts_status_{status}.md")
             with open(filename, 'w') as outf:
                 outf.write(template_ts.render(report_data))
+    # ------------------------------------------------------------------------------------------------------------------
+    # Multi Polarimeter Analysis
+    # ------------------------------------------------------------------------------------------------------------------
+    if cross_corr:
+        logging.warning(
+            f'-------------------------------------------------------------------------------------'
+            f'\nCross Correlation Matrices between all the polarimeters.')
+        corr_warn.extend(fz_c.cross_corr_mat(path_file=path_file,
+                                             start_datetime=start_datetime, end_datetime=end_datetime,
+                                             show=False, corr_t=corr_t))
 
     # ------------------------------------------------------------------------------------------------------------------
-    # Polarimeters Analysis
+    # Single Polarimeter Analysis
     # ------------------------------------------------------------------------------------------------------------------
 
     logging.info("\nReady to analyze the Polarimeters now.")
@@ -241,17 +253,17 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         item2 = hk_name2[0] if hk_name2[0] != "D" else "O"
                         logging.info(item1)
                         corr_warn.extend(
-                            fz.correlation_plot(array1=list(p.hk[item1][hk_name1]),
-                                                array2=list(p.hk[item2][hk_name2]),
-                                                dict1={},
-                                                dict2={},
-                                                time1=list(p.hk_t[item1][hk_name1]),
-                                                time2=list(p.hk_t[item2][hk_name2]),
-                                                data_name1=f"{hk_name1}",
-                                                data_name2=f"{hk_name2}",
-                                                start_datetime=start_datetime,
-                                                corr_t=corr_t,
-                                                plot_dir=output_plot_dir))
+                            fz_c.correlation_plot(array1=list(p.hk[item1][hk_name1]),
+                                                  array2=list(p.hk[item2][hk_name2]),
+                                                  dict1={},
+                                                  dict2={},
+                                                  time1=list(p.hk_t[item1][hk_name1]),
+                                                  time2=list(p.hk_t[item2][hk_name2]),
+                                                  data_name1=f"{hk_name1}",
+                                                  data_name2=f"{hk_name2}",
+                                                  start_datetime=start_datetime,
+                                                  corr_t=corr_t,
+                                                  plot_dir=output_plot_dir))
             # Add some other correlations (?)
             if not corr_mat:
                 pass
@@ -295,7 +307,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
         if spike_fft:
             logging.info('Looking for spikes in the FFT of the dataset.')
-            spike_warn.extend(p.Spike_Report(fft=True, nperseg=10**6))
+            spike_warn.extend(p.Spike_Report(fft=True, nperseg=10 ** 6))
         # --------------------------------------------------------------------------------------------------------------
 
         # Preparing the Polarimeter for the analysis: normalization and data cleanse
@@ -369,7 +381,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 if type == "PWR":
                     logging.info(f"\nOnce ready, I will put the EOA report into: {output_report_dir}.")
 
-                    eoa_letters = fz.letter_combo(eoa)
+                    eoa_letters = fz.letter_combo(str(eoa))
 
                     # Updating the report_data dict
                     report_data.update({"name_pol": np, "fft": fft, "rms": rms, "eoa_letters": eoa_letters})
@@ -437,9 +449,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     logging.info(f"\nOnce ready, I will put the SCIENTIFIC DATA report into: {output_report_dir}.")
 
                     report_data.update({"name_pol": np, "fft": fft})
-                    # Waiting for Warnings
-                    # "corr_warnings": corr_warner,
-                    # "spikes_warnings": spikes_warner
 
                     # Getting instructions to create the SCIDATA report
                     template_hk = env.get_template('report_sci.txt')
@@ -450,17 +459,17 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         outf.write(template_hk.render(report_data))
 
             # ----------------------------------------------------------------------------------------------------------
-            # Correlation plots (?)
+            # Correlation plots
             # ----------------------------------------------------------------------------------------------------------
             if corr_plot:
                 logging.warning(f'-------------------------------------------------------------------------------------'
-                                f'\nCorrelation plots (?). Type {type}.')
+                                f'\nCorrelation plots. Type {type}.')
                 # Correlation Plot Example
-                corr_warn.extend(fz.correlation_plot(array1=[], array2=[], dict1=p.data["DEM"], dict2=p.data["DEM"],
-                                                     time1=p.times, time2=p.times,
-                                                     data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
-                                                     start_datetime=start_datetime, show=False, corr_t=0.4,
-                                                     plot_dir=output_plot_dir))
+                corr_warn.extend(fz_c.correlation_plot(array1=[], array2=[], dict1=p.data["DEM"], dict2=p.data["DEM"],
+                                                       time1=p.times, time2=p.times,
+                                                       data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
+                                                       start_datetime=start_datetime, show=False, corr_t=0.4,
+                                                       plot_dir=output_plot_dir))
                 # ------------------------------------------------------------------------------------------------------
                 # REPORT CORRELATION PLOT
                 # ------------------------------------------------------------------------------------------------------
@@ -476,8 +485,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  and not any(file.startswith(prefix) for prefix in excluded_prefixes)]
 
                     report_data.update({"name_pol": np, "png_files": png_files})
-                    # Waiting for Warnings
-                    # "corr_warnings": corr_warner
 
                     # Getting instructions to create the CORR MAT report
                     template_hk = env.get_template('report_corr_plot.txt')
@@ -495,10 +502,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                 f'\nCorrelation matrices with threshold {corr_t}(?). Type {type}.')
                 # Correlation Mat Example
                 # Note: if there are the same data in the corr plot there will be repetitions in the warnings report
-                corr_warn.extend(fz.correlation_mat(dict1=p.data["DEM"], dict2=p.data["DEM"],
-                                                    data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
-                                                    start_datetime=start_datetime, show=False, corr_t=0.4,
-                                                    plot_dir=output_plot_dir))
+                corr_warn.extend(fz_c.correlation_mat(dict1=p.data["DEM"], dict2=p.data["DEM"],
+                                                      data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
+                                                      start_datetime=start_datetime, show=False, corr_t=0.4,
+                                                      plot_dir=output_plot_dir))
                 # ------------------------------------------------------------------------------------------------------
                 # REPORT CORRELATION MATRIX
                 # ------------------------------------------------------------------------------------------------------
