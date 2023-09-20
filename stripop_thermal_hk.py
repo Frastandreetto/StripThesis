@@ -14,7 +14,7 @@ from rich.logging import RichHandler
 
 # My Modules
 import thermalsensors as ts
-import f_strip as fz
+import f_correlation_strip as fz_c
 
 # Use the module logging to produce nice messages on the shell
 logging.basicConfig(level="INFO", format='%(message)s',
@@ -54,7 +54,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     report_data = {"output_plot_dir": output_plot_dir}
 
     # root: location of the file.txt with the information to build the report
-    root = "../striptease/templates"
+    root = "../striptease/templates/validation_templates"
     templates_dir = Path(root)
 
     # Creating the Jinja2 environment
@@ -114,17 +114,17 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         logging.info(f'Plotting Correlation plots of the TS with each other.')
         for i, n1 in enumerate(all_names):
             for n2 in all_names[i + 1:]:
-                TS.warnings["corr_warning"].extend(fz.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
-                                                                       array2=TS.ts["thermal_data"]["calibrated"][n2],
-                                                                       dict1={},
-                                                                       dict2={},
-                                                                       time1=TS.ts["thermal_times"],
-                                                                       time2=TS.ts["thermal_times"],
-                                                                       data_name1=f"{status}_{n1}",
-                                                                       data_name2=f"{n2}",
-                                                                       start_datetime=start_datetime,
-                                                                       corr_t=corr_t,
-                                                                       plot_dir=output_plot_dir))
+                TS.warnings["corr_warning"].extend(fz_c.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
+                                                                         array2=TS.ts["thermal_data"]["calibrated"][n2],
+                                                                         dict1={},
+                                                                         dict2={},
+                                                                         time1=TS.ts["thermal_times"],
+                                                                         time2=TS.ts["thermal_times"],
+                                                                         data_name1=f"{status}_{n1}",
+                                                                         data_name2=f"{n2}",
+                                                                         start_datetime=start_datetime,
+                                                                         corr_t=corr_t,
+                                                                         plot_dir=output_plot_dir))
     # Add some other correlations (?)
     if not corr_mat:
         pass
