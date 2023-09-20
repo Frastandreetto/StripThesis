@@ -125,12 +125,29 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                                                                          start_datetime=start_datetime,
                                                                          corr_t=corr_t,
                                                                          plot_dir=output_plot_dir))
-    # Add some other correlations (?)
+    # Correlation Matrices between TS in status 0 and 1
     if not corr_mat:
         pass
     else:
-        logging.info("I'll plot correlation matrices.\n")
-        # Add Plot correlation mat - which ones (?)
+        # Define two Thermal Sensors, one per status
+        ts1 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime, end_datetime=end_datetime,
+                                 status=0, nperseg_thermal=nperseg_thermal)
+        ts2 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime, end_datetime=end_datetime,
+                                 status=1, nperseg_thermal=nperseg_thermal)
+        # Loading the two Thermal Sensors
+        ts1.Load_TS()
+        ts2.Load_TS()
+        # Assign the dict
+        ts1_d = ts1.ts["thermal_data"]["calibrated"]
+        ts2_d = ts2.ts["thermal_data"]["calibrated"]
+        # Plotting the 3 correlation Matrices
+        for d1, d2, name1, name2 in [(ts1_d, {}, "TS0", "SelfCorr"), (ts2_d, {}, "TS1", "SelfCorr"),
+                                     (ts1_d, ts2_d, "TS0", "TS1")]:
+            logging.info(f"Plotting correlation matrices {name1} - {name2}.\n")
+            TS.warnings["corr_warning"].extend(
+                fz_c.correlation_mat(dict1=d1, dict2=d2, data_name1=name1, data_name2=name2,
+                                     start_datetime=start_datetime,
+                                     show=False, plot_dir=output_plot_dir))
 
     # --------------------------------------------------------------------------------------------------------------
     # REPORT TS

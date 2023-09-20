@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
+# This file contains the main correlation functions used in the new version of the pipeline
+# for functional verification of LSPE-STRIP (2023)
+# September 19th 2023, Delft (Netherlands)
 
 # Libraries & Modules
 import logging
@@ -13,12 +16,6 @@ import seaborn as sn  # This should be added to requirements.txt
 
 # MyLibraries & MyModules
 import polarimeter as pol
-import f_strip as fz
-
-
-# This file contains the main correlation functions used in the new version of the pipeline
-# for functional verification of LSPE-STRIP (2023)
-# September 19th 2023, Delft (Netherlands)
 
 
 def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: [], time2: [],
@@ -216,7 +213,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     # If show is True the plot is visible on video
     if show:
         plt.show()
-    plt.close(fig)
+    plt.close("all")
 
     return warnings
 
@@ -278,7 +275,7 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
     correlation_matrix = correlation_matrix.astype(float)
 
     # Create a figure to plot the correlation matrices
-    fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(10, 5))
+    fig, axs = plt.subplots(nrows=1, ncols=2, constrained_layout=True, figsize=(20, 10))
     # Set the title of the figure
     fig.suptitle(f'Correlation Matrix {data_name} - Date: {start_datetime}', fontsize=12)
 
@@ -296,12 +293,13 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
     # If show is True the plot is visible on video
     if show:
         plt.show()
-    plt.close(fig)
+    plt.close("all")
 
     return warnings
 
 
-def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=False, corr_t=0.4):
+def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=False, corr_t=0.4,
+                   plot_dir='../plot'):
     """
     - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
     - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
@@ -310,6 +308,7 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
        - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced\n
+       - **plot_dir** (``str``): path where the plots are organized in directories and saved.
        Return a list of warnings that highlight which data are highly correlated.
 
     """
@@ -319,10 +318,9 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
     # Initializing the data_name
     data_name = ""
     # Creating the path to store the png file containing the matrix
-    date_dir = fz.dir_format(f"{start_datetime}__{end_datetime}")
-    store_path = f"../plot/{date_dir}/Cross_Corr/"
+    plot_dir = f"{plot_dir}/Cross_Corr/"
     # Check if the dir exists. If not, it will be created.
-    Path(store_path).mkdir(parents=True, exist_ok=True)
+    Path(plot_dir).mkdir(parents=True, exist_ok=True)
 
     polar_names = ["B0", "B1", "B2", "B3", "B4", "B5", "B6", "I0", "I1", "I2", "I3", "I4", "I5", "I6",
                    "G0", "G1", "G2", "G3", "G4", "G5", "G6", "O0", "O1", "O2", "O3", "O4", "O5", "O6",
@@ -414,7 +412,7 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
                                annot_kws={"size": 2})
 
                     # Saving the figure
-                    plt.savefig(f'{store_path}{data_name}_CorrMat.png', dpi=300)
+                    plt.savefig(f'{plot_dir}{data_name}_CorrMat.png', dpi=300)
                     # Show the figure on video
                     if show:
                         plt.show()
