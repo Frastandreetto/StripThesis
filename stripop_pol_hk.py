@@ -14,7 +14,7 @@ from rich.logging import RichHandler
 
 # MyLibraries & MyModules
 import polarimeter as pol
-import f_strip as fz
+import f_correlation_strip as fz_c
 
 # Use the module logging to produce nice messages on the shell
 logging.basicConfig(level="INFO", format='%(message)s',
@@ -43,7 +43,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
     report_data = {"output_plot_dir": output_plot_dir}
 
     # root: location of the file.txt with the information to build the report
-    root = "../striptease/templates"
+    root = "../striptease/templates/validation_templates"
     templates_dir = Path(root)
 
     # Creating the Jinja2 environment
@@ -96,24 +96,24 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
             # Plot correlation plots
             for idx, hk_name1 in enumerate(all_names):
                 logging.info(hk_name1)
-                for hk_name2 in all_names[idx+1:]:
+                for hk_name2 in all_names[idx + 1:]:
                     logging.info(hk_name2)
                     # Setting the names of the items: I, V, O
                     item1 = hk_name1[0] if hk_name1[0] != "D" else "O"
                     item2 = hk_name2[0] if hk_name2[0] != "D" else "O"
                     logging.info(item1)
                     p.warnings["corr_warning"].extend(
-                        fz.correlation_plot(array1=list(p.hk[item1][hk_name1]),
-                                            array2=list(p.hk[item2][hk_name2]),
-                                            dict1={},
-                                            dict2={},
-                                            time1=list(p.hk_t[item1][hk_name1]),
-                                            time2=list(p.hk_t[item2][hk_name2]),
-                                            data_name1=f"{hk_name1}",
-                                            data_name2=f"{hk_name2}",
-                                            start_datetime=start_datetime,
-                                            corr_t=corr_t,
-                                            plot_dir=output_plot_dir))
+                        fz_c.correlation_plot(array1=list(p.hk[item1][hk_name1]),
+                                              array2=list(p.hk[item2][hk_name2]),
+                                              dict1={},
+                                              dict2={},
+                                              time1=list(p.hk_t[item1][hk_name1]),
+                                              time2=list(p.hk_t[item2][hk_name2]),
+                                              data_name1=f"{hk_name1}",
+                                              data_name2=f"{hk_name2}",
+                                              start_datetime=start_datetime,
+                                              corr_t=corr_t,
+                                              plot_dir=output_plot_dir))
         # Add some other correlations (?)
         if not corr_mat:
             pass
