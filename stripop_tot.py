@@ -280,24 +280,56 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             logging.info('Plotting Offset.')
             p.Plot_Housekeeping(hk_kind="O", show=False)
 
-            # Correlation plots between all HK parameters
+            # Correlation plots
             if not corr_plot:
                 pass
+            # Correlation plots between all HK parameters I, V, O Starts here ------------------------------------------
             else:
                 logging.info("Starting correlation plot.")
                 # Get all HK names
                 all_names = p.hk_list["I"] + p.hk_list["V"] + p.hk_list["O"]
-                # Correlation plots
-                # Between all HK parameters I, V, O
                 for idx, hk_name1 in enumerate(all_names):
                     logging.info(hk_name1)
+                    item1 = hk_name1[0] if hk_name1[0] != "D" else "O"
+
+                    # --------------------------------------------------------------------------------------------------
+                    # Correlation plots between TS and all HK parameter
+                    if not thermal_sensors:
+                        pass
+                    # Plotting the correlation plots:
+                    # TS status 0 - all I and V HK Parameters
+                    # TS status 1 - all I and V HK Parameters
+                    else:
+                        for status in [0, 1]:
+                            # Initializing a TS
+                            TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
+                                                    end_datetime=end_datetime,
+                                                    status=status, nperseg_thermal=nperseg_thermal)
+                            # Loading thermal measures
+                            TS.Load_TS()
+                            # Normalizing thermal times
+                            TS.Norm_TS()
+                            # Correlation Warnings HK vs TS ------------------------------------------------------------
+                            corr_warn.extend(
+                                fz_c.correlation_plot(array1=list(p.hk[item1][hk_name1]),
+                                                      array2=[],
+                                                      dict1=TS.ts["thermal_data"]["calibrated"],
+                                                      dict2={},
+                                                      time1=list(p.hk_t[item1][hk_name1]),
+                                                      time2=list(TS.ts["thermal_times"]),
+                                                      data_name1=f"{hk_name1}",
+                                                      data_name2=f"TS_{status}",
+                                                      start_datetime=start_datetime,
+                                                      corr_t=corr_t,
+                                                      plot_dir=output_plot_dir))
+                    # --------------------------------------------------------------------------------------------------
+
+                    # Correlation plots between all HK parameters I, V, O continues here
                     for hk_name2 in all_names[idx + 1:]:
-                        logging.info(hk_name2)
                         # Setting the names of the items: I, V, O
-                        item1 = hk_name1[0] if hk_name1[0] != "D" else "O"
                         item2 = hk_name2[0] if hk_name2[0] != "D" else "O"
-                        logging.info(item1)
-                        # Correlation Warnings -------------------------------------------------------------------------
+
+                        # Correlation Warnings HK ----------------------------------------------------------------------
                         corr_warn.extend(
                             fz_c.correlation_plot(array1=list(p.hk[item1][hk_name1]),
                                                   array2=list(p.hk[item2][hk_name2]),
@@ -310,6 +342,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                   start_datetime=start_datetime,
                                                   corr_t=corr_t,
                                                   plot_dir=output_plot_dir))
+
+            # Correlation Matrices
             if not corr_mat:
                 pass
             else:
