@@ -124,7 +124,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             logging.info(f'Analyzing TS. Status {status}')
             ts_results = TS.Analyse_TS()
 
-            # Preparing html table for the report
+            # Preparing md table for the report
             logging.info(f'Producing TS table for the report. Status {status}')
             th_table = TS.Thermal_table(results=ts_results)
 
@@ -138,6 +138,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 TS.Plot_FFT_TS()
 
             # TS Correlation plots
+            # Add Correlation Plots TS0 - TS1?
             if not corr_plot:
                 pass
             else:
@@ -165,7 +166,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                                    corr_t=corr_t,
                                                                    plot_dir=output_plot_dir
                                                                    ))
-            # TS Correlation Matrices
+            # TS Correlation Matrices:
+            # TS status 0 - Self Correlations
+            # TS status 1 - Self Correlations
+            # TS status 0 - TS status 1
             if not corr_mat:
                 pass
             else:
@@ -174,21 +178,21 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # Compute correlation matrix only one time
                 else:
                     # Define two Thermal Sensors, one per status
-                    ts1 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
-                                             end_datetime=end_datetime,
-                                             status=0, nperseg_thermal=nperseg_thermal)
-                    ts2 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
-                                             end_datetime=end_datetime,
-                                             status=1, nperseg_thermal=nperseg_thermal)
+                    ts_0 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
+                                              end_datetime=end_datetime,
+                                              status=0, nperseg_thermal=nperseg_thermal)
+                    ts_1 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
+                                              end_datetime=end_datetime,
+                                              status=1, nperseg_thermal=nperseg_thermal)
                     # Loading the two Thermal Sensors
-                    ts1.Load_TS()
-                    ts2.Load_TS()
+                    ts_0.Load_TS()
+                    ts_1.Load_TS()
                     # Assign the dict
-                    ts1_d = ts1.ts["thermal_data"]["calibrated"]
-                    ts2_d = ts2.ts["thermal_data"]["calibrated"]
+                    ts0_d = ts_0.ts["thermal_data"]["calibrated"]
+                    ts1_d = ts_1.ts["thermal_data"]["calibrated"]
                     # Plotting the 3 correlation Matrices
-                    for d1, d2, name1, name2 in [(ts1_d, {}, "TS0", "SelfCorr"), (ts2_d, {}, "TS1", "SelfCorr"),
-                                                 (ts1_d, ts2_d, "TS0", "TS1")]:
+                    for d1, d2, name1, name2 in [(ts0_d, {}, "TS0", "SelfCorr"), (ts1_d, {}, "TS1", "SelfCorr"),
+                                                 (ts0_d, ts1_d, "TS0", "TS1")]:
                         logging.info(f"Plotting correlation matrices {name1} - {name2}.\n")
                         # Correlation warnings -------------------------------------------------------------------------
                         TS.warnings["corr_warning"].extend(
@@ -283,7 +287,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 logging.info("Starting correlation plot.")
                 # Get all HK names
                 all_names = p.hk_list["I"] + p.hk_list["V"] + p.hk_list["O"]
-                # Plot correlation plots
+                # Correlation plots
+                # Between all HK parameters I, V, O
                 for idx, hk_name1 in enumerate(all_names):
                     logging.info(hk_name1)
                     for hk_name2 in all_names[idx + 1:]:
@@ -292,6 +297,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         item1 = hk_name1[0] if hk_name1[0] != "D" else "O"
                         item2 = hk_name2[0] if hk_name2[0] != "D" else "O"
                         logging.info(item1)
+                        # Correlation Warnings -------------------------------------------------------------------------
                         corr_warn.extend(
                             fz_c.correlation_plot(array1=list(p.hk[item1][hk_name1]),
                                                   array2=list(p.hk[item2][hk_name2]),
@@ -304,13 +310,37 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                   start_datetime=start_datetime,
                                                   corr_t=corr_t,
                                                   plot_dir=output_plot_dir))
-            # Add some other correlations (?)
             if not corr_mat:
                 pass
             else:
                 logging.info("I'll plot correlation matrices.\n")
-                # Add Plot correlation mat - which ones (?)
-
+                if not thermal_sensors:
+                    pass
+                # Plotting the 4 correlation Matrices:
+                # TS status 0 - V HK Parameter
+                # TS status 0 - I HK Parameter
+                # TS status 1 - V HK Parameter
+                # TS status 1 - I HK Parameter
+                else:
+                    # Thermal Sensor status
+                    for status, name1 in [(0, "TS0"), (1, "TS1")]:
+                        # HK parameters
+                        for item, name2 in [("I", "I_HK"), ("V", "V_HK")]:
+                            logging.info(f"Plotting correlation matrices {name1} - {name2}.\n")
+                            # Initializing a TS
+                            TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
+                                                    end_datetime=end_datetime,
+                                                    status=status, nperseg_thermal=nperseg_thermal)
+                            # Loading thermal measures
+                            TS.Load_TS()
+                            # Preparing dictionaries
+                            d1 = TS.ts["thermal_data"]["calibrated"]
+                            d2 = p.hk[item]
+                            # Correlation warnings -------------------------------------------------------------
+                            corr_warn.extend(
+                                fz_c.correlation_mat(dict1=d1, dict2=d2, data_name1=name1, data_name2=name2,
+                                                     start_datetime=start_datetime,
+                                                     show=False, plot_dir=output_plot_dir))
             # ----------------------------------------------------------------------------------------------------------
             # REPORT HK
             # ----------------------------------------------------------------------------------------------------------
