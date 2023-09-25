@@ -19,7 +19,8 @@ import polarimeter as pol
 
 
 def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: [], time2: [],
-                     data_name1: str, data_name2: str, start_datetime: str, show=False,
+                     data_name1: str, data_name2: str, measure_unit1: str, measure_unit2: str,
+                     start_datetime: str, show=False,
                      corr_t=0.4, plot_dir='../plot') -> []:
     """
         Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
@@ -28,6 +29,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         - **dict1**, **dict2** (``dict``): dictionaries ({}) with N1, N2 keys
         - **time1**, **time2** (``array``): arrays ([]) of timestamps: not necessary if the dataset have same length.
         - **data_name1**, **data_name2** (``str``): names of the dataset. Used for titles, labels and to save the png.
+        - **measure_unit1**, **measure_unit2** (``str``): measure units. Used for labels in the plots.
         - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
         - **end_datetime** (``str``): end date of dataset. Used for the title of the figure and to save the png.
         - **show** (``bool``):\n
@@ -97,8 +99,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     if n_col == 1:
 
         # Check if the dataset is a TS and store the label for the plots
-        label1 = f"{data_name1} Temperature [K]" if data_name1[0] in ("T", "E") else f"{data_name1} Output [ADU]"
-        label2 = f"{data_name2} Temperature [K]" if data_name2[0] in ("T", "E") else f"{data_name2} Output [ADU]"
+        label1 = f"{data_name1} Temperature [K]" if data_name1[0] in ("T", "E") else f"{data_name1} {measure_unit1}"
+        label2 = f"{data_name2} Temperature [K]" if data_name2[0] in ("T", "E") else f"{data_name2} {measure_unit2}"
 
         # Arrays with different length must be interpolated
         if len(array1) != len(array2):
@@ -145,20 +147,50 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         if n_rows > 1:
             for r, r_exit in enumerate(dict1.keys()):
                 for c, c_exit in enumerate(dict2.keys()):
+
+                    # Put the same x and y axes on the subplots
                     if r == 0:
                         axs[r, c].sharey(axs[1, 0])
                         axs[r, c].sharex(axs[1, 0])
 
-                    x = dict1[r_exit]
-                    y = dict2[c_exit]
+                    # Assign the current arrays
+                    array1 = dict1[r_exit]
+                    array2 = dict2[c_exit]
+                    # Assign the current labels
+                    label1 = f"{data_name1} {r_exit} {measure_unit1}"
+                    label2 = f"{data_name2} {c_exit} {measure_unit2}"
+
+                    # Arrays with different length must be interpolated
+                    if len(array1) != len(array2):
+                        # Timestamps arrays must be provided to interpolate
+                        if time1 == [] or time2 == []:
+                            logging.error("Different sampling frequency: provide timestamps array.")
+                            raise SystemExit(1)
+                        # If the timestamps are provided
+                        else:
+                            # Find the longest array (x) and the shortest to be interpolated
+                            x, short_array, label_x, label_y = (array1, array2, label1, label2) if len(
+                                array1) > len(array2) \
+                                else (array2, array1, label2, label1)
+                            x_t, short_t = (time1, time2) if x is array1 else (time2, time1)
+
+                            # Interpolation of the shortest array
+                            y = np.interp(x_t, short_t, short_array)
+
+                    # Arrays with same length
+                    else:
+                        x = dict1[r_exit]
+                        y = dict2[c_exit]
+                        label_x = label1
+                        label_y = label2
+
                     axs[r, c].plot(x, y, "*", color="teal", label="Corr Data")
 
                     # Subplot title
                     axs[r, c].set_title(f'Corr {c_exit} - {r_exit}')
                     # XY-axis
-                    # Note: the label here is specific for ADU Output: can be easily generalized if needed...
-                    axs[r, c].set_xlabel(f"{data_name1} {r_exit} Output [ADU]")
-                    axs[r, c].set_ylabel(f"{data_name2} {c_exit} Output [ADU]")
+                    axs[r, c].set_xlabel(f"{label_x}")
+                    axs[r, c].set_ylabel(f"{label_y}")
                     # Legend
                     axs[r, c].legend(prop={'size': 9}, loc=4)
 
@@ -176,15 +208,41 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         # array1 vs dict1 ----------------------------------------------------------------------------------------------
         else:
             for c, exit in enumerate(dict1.keys()):
-                x = dict1[exit]
-                y = np.interp(time2, time1, array1)
+                # Assign the current arrays
+                array2 = dict1[exit]
+                # Assign the current labels
+                label1 = f"{data_name1} {measure_unit1}"
+                label2 = f"{data_name2} {measure_unit2}"
+
+                # Arrays with different length must be interpolated
+                if len(array1) != len(array2):
+                    # Timestamps arrays must be provided to interpolate
+                    if time1 == [] or time2 == []:
+                        logging.error("Different sampling frequency: provide timestamps array.")
+                        raise SystemExit(1)
+                    # If the timestamps are provided
+                    else:
+                        # Find the longest array (x) and the shortest to be interpolated
+                        x, short_array, label_x, label_y = (array1, array2, label1, label2) if len(
+                            array1) > len(array2) \
+                            else (array2, array1, label2, label1)
+                        x_t, short_t = (time1, time2) if x is array1 else (time2, time1)
+
+                        # Interpolation of the shortest array
+                        y = np.interp(x_t, short_t, short_array)
+
+                # Arrays with same length
+                else:
+                    x = dict1[exit]
+                    y = np.interp(time2, time1, array1)
+                    label_x = label1
+                    label_y = label2
+
+                # Plotting the data
                 axs[c].plot(x, y, "*", color="lawngreen", label="Corr Data")
 
-                label_x = f"{data_name2} Output [ADU]"
-                label_y = f"{data_name1} Temperature [K]"
-
                 # Subplot title
-                axs[c].set_title(f'Corr {exit}')
+                axs[c].set_title(f'Corr {data_name1} -  {data_name2} {exit}')
                 # XY-axis
                 axs[c].set_xlabel(f"{label_x} ")
                 axs[c].set_ylabel(f"{label_y}")
@@ -198,7 +256,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                 # Print a warning if the correlation value overcomes the threshold, then store it for the report
                 if correlation_value > corr_t:
                     warn_msg = (f"Found high correlation value between {data_name1} and {data_name2} "
-                                f"in exit {exit}: {round(correlation_value, 4)}.")
+                                f"in {exit}: {round(correlation_value, 4)}.")
                     logging.warning(warn_msg)
                     warnings.append(f"|{data_name1}|{data_name2} {exit}|{round(correlation_value, 4)}|\n")
     else:
