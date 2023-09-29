@@ -394,11 +394,22 @@ def name_check(names: list) -> bool:
     """
     for n in names:
         # Check if the letter corresponds to one of the tiles of Strip
-        if n[0] not in (["B", "G", "I", "O", "R", "V", "W", "Y"]):
+        if n[0] in (["B", "G", "I", "O", "R", "V", "W", "Y"]):
+            pass
+        else:
             return False
         # Check if the number is correct
-        if n[1] not in (["0", "1", "2", "3", "4", "5", "6", "7"]):
+        if n[1] in (["0", "1", "2", "3", "4", "5", "6", "7"]):
+            pass
+        else:
             return False
+        # Check the white space after every polarimeter
+        try:
+            if n[2] != "":
+                return False
+        except IndexError:
+            pass
+
         # The only exception is W7
         if n == "W7":
             return False
