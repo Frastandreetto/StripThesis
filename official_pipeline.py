@@ -94,7 +94,7 @@ def main():
                                help='Contains the acceptance sampling tolerances of the hk parameters: I,V,O. '
                                     '(default: %(default)s)', metavar='')
     # Thermal Sensors Sampling Expected Median
-    common_parser.add_argument('--ts_sam_exp_med', '-ts_sem', type=float, default=10.,
+    common_parser.add_argument('--ts_sam_exp_med', '-ts_sem', type=float, default=60.,
                                help='the exp sampling delta between two consecutive timestamps of the Thermal Sensors. '
                                     '(default: %(default)s)', metavar='')
     # Thermal Sensors Sampling Tolerance
@@ -142,7 +142,7 @@ def main():
     # Create the parser for the command A: "tot"
     parser_A = subparsers.add_parser("tot", parents=[common_parser], help="A) Analyzes all the polarimeters provided.")
 
-    # Positional Argument (mandatory)
+    # Positional Arguments (mandatory)
     # name_pol
     parser_A.add_argument('name_pol', type=str, help="- str containing the name(s) of the polarimeter(s). "
                                                      "Write \'all\' to perform the complete analysis")
