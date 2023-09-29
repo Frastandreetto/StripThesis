@@ -117,11 +117,11 @@ def main():
 
     # Output parameters ------------------------------------------------------------------------------------------------
     # Output directory of the plots
-    parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
-                        help='Path of the dir that will contain the plots of the analysis.')
+    common_parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
+                               help='Path of the dir that will contain the plots of the analysis.')
     # Output directory of the reports
-    parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
-                        help='Path of the dir that will contain the reports with the results of the analysis.')
+    common_parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
+                               help='Path of the dir that will contain the reports with the results of the analysis.')
 
     ####################################################################################################################
     # Create subparsers
@@ -137,7 +137,8 @@ def main():
 
     # Positional Argument (mandatory)
     # name_pol
-    parser_A.add_argument('name_pol', type=str, help="str containing the name(s) of the polarimeter(s).")
+    parser_A.add_argument('name_pol', type=str, help="- str containing the name(s) of the polarimeter(s). "
+                                                     "Write \'all\' to perform the complete analysis")
 
     # Flags (optional)
     # Thermal Sensors
@@ -195,7 +196,8 @@ def main():
 
     # Positional Argument (mandatory)
     # name_pol
-    parser_B.add_argument('name_pol', type=str, help="- str containing the name(s) of the polarimeter(s).")
+    parser_B.add_argument('name_pol', type=str, help="- str containing the name(s) of the polarimeter(s). "
+                                                     "Write \'all\' to perform the complete analysis")
 
     ####################################################################################################################
     # MODALITY C: THERMAL_HK
@@ -274,11 +276,21 @@ def main():
 
     # MODE A and B: Check on the names of the polarimeters
     if args.subcommand == "tot" or args.subcommand == "pol_hk":
-        name_pol = args.name_pol.split()
 
+        # Case with all the polarimeter
+        if args.name_pol == "all":
+            # Assign all pol names to the corresponding arg
+            args.name_pol = ("B0 B1 B2 B3 B4 B5 B6 I0 I1 I2 I3 I4 I5 I6 "
+                             "G0 G1 G2 G3 G4 G5 G6 O0 O1 O2 O3 O4 O5 O6 "
+                             "R0 R1 R2 R3 R4 R5 R6 V0 V1 V2 V3 V4 V5 V6 "
+                             "W1 W2 W3 W4 W5 W6 Y0 Y1 Y2 Y3 Y4 Y5 Y6")
+
+        # Create a list of polarimeters names
+        name_pol = args.name_pol.split()
+        # Check the names of the polarimeters provided
         if not fz.name_check(name_pol):
-            logging.error('The names of the polarimeters provided are not valid. Please check them again.'
-                          'They must be written as follows: \'B0 B1\'')
+            logging.error('The names of the polarimeters provided are not valid. Please check the parameter name_pol. '
+                          '\nThe names must be written as follows: \'B0 B1\'')
             raise SystemExit(1)
 
     # MODE C: Check on the status value
