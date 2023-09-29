@@ -87,19 +87,20 @@ def main():
     common_parser.add_argument('--hk_sam_exp_med', '-hk_sem',
                                type=lambda x: [float(val) for val in x.split(',')], default=[1.4, 1.4, 10.],
                                help='Contains the exp sampling delta between two consecutive timestamps of the hk. '
-                                    '(default: %(default)s)')
+                                    '(default: %(default)s)', metavar='')
     # Housekeeping Sampling Tolerance
     common_parser.add_argument('--hk_sam_tolerance', '-hk_st',
                                type=lambda x: [float(val) for val in x.split(',')], default=[0.1, 0.1, 0.5],
                                help='Contains the acceptance sampling tolerances of the hk parameters: I,V,O. '
-                                    '(default: %(default)s)')
+                                    '(default: %(default)s)', metavar='')
     # Thermal Sensors Sampling Expected Median
     common_parser.add_argument('--ts_sam_exp_med', '-ts_sem', type=float, default=10.,
                                help='the exp sampling delta between two consecutive timestamps of the Thermal Sensors. '
-                                    '(default: %(default)s)')
+                                    '(default: %(default)s)', metavar='')
     # Thermal Sensors Sampling Tolerance
     common_parser.add_argument('--ts_sam_tolerance', '-ts_st', type=float, default=1.,
-                               help='the acceptance sampling tolerances of the Thermal Sensors (default: %(default)s).')
+                               help='the acceptance sampling tolerances of the Thermal Sensors (default: %(default)s).',
+                               metavar='')
 
     # Correlation Parameters -------------------------------------------------------------------------------------------
     # Correlation Plot
@@ -114,7 +115,7 @@ def main():
     common_parser.add_argument('--corr_t', '-ct', type=float, default=0.4,
                                help='Floating point number used as lim sup for the corr value between two dataset: '
                                     'if the value computed is higher than the threshold, a warning is produced '
-                                    '(default: %(default)s).')
+                                    '(default: %(default)s).', metavar='')
     # Cross Correlation
     common_parser.add_argument('--cross_corr', '-cc', action="store_true",
                                help='If true, compute the 55x55 corr matr between the exits of all polarimeters.')
@@ -123,11 +124,11 @@ def main():
     # Output directory of the plots
     common_parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
                                help='Path of the dir that will contain the plots of the analysis '
-                                    '(default: %(default)s).')
+                                    '(default: %(default)s).', metavar='')
     # Output directory of the reports
     common_parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
                                help='Path of the dir that will contain the reports with the results of the analysis '
-                                    '(default: %(default)s).')
+                                    '(default: %(default)s).', metavar='')
 
     ####################################################################################################################
     # Create subparsers
@@ -158,7 +159,8 @@ def main():
     # Even Odd All
     parser_A.add_argument('--even_odd_all', '-eoa', type=str, default='EOA',
                           help='Choose which data analyze by adding a letter in the string: '
-                               'even samples (E), odd samples (O) or all samples (A) (default: %(default)s).')
+                               'even samples (E), odd samples (O) or all samples (A) (default: %(default)s).',
+                          metavar='')
     # Scientific Data
     parser_A.add_argument('--scientific', '-sci', action="store_true", default=False,
                           help='If true, compute the double demodulation and analyze the scientific data '
@@ -170,27 +172,27 @@ def main():
     # Scientific Output Sampling Tolerance
     parser_A.add_argument('--sam_tolerance', '-st', type=float, default=0.005,
                           help='The acceptance sampling tolerances of the Scientific Output of Strip '
-                               '(default: %(default)s).')
+                               '(default: %(default)s).', metavar='')
     # Smoothing length
     parser_A.add_argument('--smooth', '-sm', type=int, default=1,
                           help='Smoothing length used to flatter the data. smooth=1 equals no smooth '
-                               '(default: %(default)s).')
+                               '(default: %(default)s).', metavar='')
     # Rolling Window
     parser_A.add_argument('--window', '-w', type=int, default=2,
                           help='Integer number used to convert the array of the data into a matrix '
                                'with a number "window" of elements per row and then calculate the RMS on every row '
-                               '(default: %(default)s).')
+                               '(default: %(default)s).', metavar='')
     # FFT
     parser_A.add_argument('--fourier', '-fft', action="store_true",
                           help='If true, the code will compute the power spectra of the scientific data.')
     # nperseg FFT data
     parser_A.add_argument('--nperseg', '-nps', type=int, default=256,
                           help='int value that defines the number of elements of the array of scientific data'
-                               'on which the fft is calculated (default: %(default)s).')
+                               'on which the fft is calculated (default: %(default)s).', metavar='')
     # nperseg FFT Thermal
     parser_A.add_argument('--nperseg_thermal', '-nps_th', type=int, default=256,
                           help='int value that defines the number of elements of the array of thermal measures'
-                               'on which the fft is calculated (default: %(default)s).')
+                               'on which the fft is calculated (default: %(default)s).', metavar='')
     # Spikes Sci-data
     parser_A.add_argument('--spike_data', '-sd', action="store_true",
                           help='If true, the code will look for spikes in Sci-data')
@@ -228,7 +230,7 @@ def main():
     # nperseg FFT Thermal
     parser_C.add_argument('--nperseg_thermal', '-nps_th', type=int, default=256,
                           help='int value that defines the number of elements of the array of thermal measures'
-                               'on which the fft is calculated (default: %(default)s).')
+                               'on which the fft is calculated (default: %(default)s).', metavar='')
     # Status
     parser_C.add_argument('--status', '-stat', type=int, default=2, choices=[0, 1, 2],
                           help='int value that defines the status of the multiplexer of the TS to analyze: 0 or 1. '
