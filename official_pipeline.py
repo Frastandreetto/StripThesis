@@ -86,17 +86,20 @@ def main():
     # Housekeeping Sampling Expected Median
     common_parser.add_argument('--hk_sam_exp_med', '-hk_sem',
                                type=lambda x: [float(val) for val in x.split(',')], default=[1.4, 1.4, 10.],
-                               help='Contains the exp sampling delta between two consecutive timestamps of the hk')
+                               help='Contains the exp sampling delta between two consecutive timestamps of the hk. '
+                                    '(default: %(default)s)')
     # Housekeeping Sampling Tolerance
     common_parser.add_argument('--hk_sam_tolerance', '-hk_st',
                                type=lambda x: [float(val) for val in x.split(',')], default=[0.1, 0.1, 0.5],
-                               help='Contains the acceptance sampling tolerances of the hk parameters: I,V,O')
+                               help='Contains the acceptance sampling tolerances of the hk parameters: I,V,O. '
+                                    '(default: %(default)s)')
     # Thermal Sensors Sampling Expected Median
     common_parser.add_argument('--ts_sam_exp_med', '-ts_sem', type=float, default=10.,
-                               help='the exp sampling delta between two consecutive timestamps of the Thermal Sensors')
+                               help='the exp sampling delta between two consecutive timestamps of the Thermal Sensors. '
+                                    '(default: %(default)s)')
     # Thermal Sensors Sampling Tolerance
     common_parser.add_argument('--ts_sam_tolerance', '-ts_st', type=float, default=1.,
-                               help='the acceptance sampling tolerances of the Thermal Sensors')
+                               help='the acceptance sampling tolerances of the Thermal Sensors (default: %(default)s).')
 
     # Correlation Parameters -------------------------------------------------------------------------------------------
     # Correlation Plot
@@ -110,7 +113,8 @@ def main():
     # Correlation Threshold
     common_parser.add_argument('--corr_t', '-ct', type=float, default=0.4,
                                help='Floating point number used as lim sup for the corr value between two dataset: '
-                                    'if the value computed is higher than the threshold, a warning is produced.')
+                                    'if the value computed is higher than the threshold, a warning is produced '
+                                    '(default: %(default)s).')
     # Cross Correlation
     common_parser.add_argument('--cross_corr', '-cc', action="store_true",
                                help='If true, compute the 55x55 corr matr between the exits of all polarimeters.')
@@ -118,10 +122,12 @@ def main():
     # Output parameters ------------------------------------------------------------------------------------------------
     # Output directory of the plots
     common_parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
-                               help='Path of the dir that will contain the plots of the analysis.')
+                               help='Path of the dir that will contain the plots of the analysis '
+                                    '(default: %(default)s).')
     # Output directory of the reports
     common_parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
-                               help='Path of the dir that will contain the reports with the results of the analysis.')
+                               help='Path of the dir that will contain the reports with the results of the analysis '
+                                    '(default: %(default)s).')
 
     ####################################################################################################################
     # Create subparsers
@@ -143,41 +149,48 @@ def main():
     # Flags (optional)
     # Thermal Sensors
     parser_A.add_argument('--thermal_sensors', '-ts', action="store_true", default=False,
-                          help='If true, the code will analyze the Thermal Sensors of Strip.')
+                          help='If true, the code will analyze the Thermal Sensors of Strip'
+                               '(default: %(default)s).')
     # Housekeeping Parameters
     parser_A.add_argument('--housekeeping', '-hk', action="store_true", default=False,
-                          help='If true, the code will analyze the Housekeeping parameters of the Polarimeters.')
+                          help='If true, the code will analyze the Housekeeping parameters of the Polarimeters '
+                               '(default: %(default)s).')
     # Even Odd All
     parser_A.add_argument('--even_odd_all', '-eoa', type=str, default='EOA',
                           help='Choose which data analyze by adding a letter in the string: '
-                               'even samples (E), odd samples (O) or all samples (A).')
+                               'even samples (E), odd samples (O) or all samples (A) (default: %(default)s).')
     # Scientific Data
     parser_A.add_argument('--scientific', '-sci', action="store_true", default=False,
-                          help='If true, compute the double demodulation and analyze the scientific data.')
+                          help='If true, compute the double demodulation and analyze the scientific data '
+                               '(default: %(default)s).')
     # Rms
     parser_A.add_argument('--rms', '-rms', action="store_true", default=False,
-                          help='If true, compute the rms on the scientific output and data.')
+                          help='If true, compute the rms on the scientific output and data '
+                               '(default: %(default)s).')
     # Scientific Output Sampling Tolerance
     parser_A.add_argument('--sam_tolerance', '-st', type=float, default=0.005,
-                          help='The acceptance sampling tolerances of the Scientific Output of Strip.')
+                          help='The acceptance sampling tolerances of the Scientific Output of Strip '
+                               '(default: %(default)s).')
     # Smoothing length
     parser_A.add_argument('--smooth', '-sm', type=int, default=1,
-                          help='Smoothing length used to flatter the data. smooth=1 equals no smooth.')
+                          help='Smoothing length used to flatter the data. smooth=1 equals no smooth '
+                               '(default: %(default)s).')
     # Rolling Window
     parser_A.add_argument('--window', '-w', type=int, default=2,
                           help='Integer number used to convert the array of the data into a matrix '
-                               'with a number "window" of elements per row and then calculate the RMS on every row.')
+                               'with a number "window" of elements per row and then calculate the RMS on every row '
+                               '(default: %(default)s).')
     # FFT
     parser_A.add_argument('--fourier', '-fft', action="store_true",
                           help='If true, the code will compute the power spectra of the scientific data.')
     # nperseg FFT data
     parser_A.add_argument('--nperseg', '-nps', type=int, default=256,
                           help='int value that defines the number of elements of the array of scientific data'
-                               'on which the fft is calculated.')
+                               'on which the fft is calculated (default: %(default)s).')
     # nperseg FFT Thermal
     parser_A.add_argument('--nperseg_thermal', '-nps_th', type=int, default=256,
                           help='int value that defines the number of elements of the array of thermal measures'
-                               'on which the fft is calculated.')
+                               'on which the fft is calculated (default: %(default)s).')
     # Spikes Sci-data
     parser_A.add_argument('--spike_data', '-sd', action="store_true",
                           help='If true, the code will look for spikes in Sci-data')
@@ -215,11 +228,11 @@ def main():
     # nperseg FFT Thermal
     parser_C.add_argument('--nperseg_thermal', '-nps_th', type=int, default=256,
                           help='int value that defines the number of elements of the array of thermal measures'
-                               'on which the fft is calculated.')
+                               'on which the fft is calculated (default: %(default)s).')
     # Status
     parser_C.add_argument('--status', '-stat', type=int, default=2, choices=[0, 1, 2],
                           help='int value that defines the status of the multiplexer of the TS to analyze: 0 or 1. '
-                               'If it is set on 2, both states will be analyzed.')
+                               'If it is set on 2, both states will be analyzed (default: %(default)s).')
     # Spikes TS
     parser_C.add_argument('--spike_ts', '-s_ts', action="store_true",
                           help='If true, the code will look for spikes in Thermal Sensors')
