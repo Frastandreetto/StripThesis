@@ -41,7 +41,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     """
     # Creating a list to collect the warnings
     warnings = []
-
+    # Initialize a bool that express a case of self correlations in the datasets
+    self_correlation = False
     # Data comprehension -----------------------------------------------------------------------------------------------
     # Type check
     # array and timestamps array must be list
@@ -61,7 +62,6 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     # Case 2: one 1D array and one dictionary with N keys
     # Plot 1xN: scatter correlation between an array and the exits of a dictionary
     elif array1 != [] and array2 == [] and dict1 != {} and dict2 == {}:
-        logging.debug(f"I should be here!")
         # If the object are different, the sampling frequency may be different
         # hence the timestamps array must be provided to interpolate
         if time1 == [] or time2 == []:
@@ -75,6 +75,16 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     # Case 3: two dictionaries with N and M keys
     # Plot NxM: scatter correlation between each dictionary exit
     elif array1 == [] and array2 == [] and dict1 != {} and dict2 != {}:
+        n_rows = len(dict1.keys())
+        n_col = len(dict2.keys())
+        fig_size = (4 * n_col, 4 * n_rows)
+
+    # Case 4: one dictionary with N keys, correlating to itself
+    # Plot NxN: scatter correlation between each dictionary exit
+    elif array1 == [] and array2 == [] and dict1 != {} and dict2 == {}:
+        # Assign to dict2 the dict1, so to have self correlation
+        dict2 = dict1
+        self_correlation = True
         n_rows = len(dict1.keys())
         n_col = len(dict2.keys())
         fig_size = (4 * n_col, 4 * n_rows)
@@ -95,7 +105,9 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     # Set the title
     fig.suptitle(f'Correlation {data_name} \n Date: {start_datetime}', fontsize=10)
 
-    # array1 vs array2 -------------------------------------------------------------------------------------------------
+    ####################################################################################################################
+    # array1 vs array2
+    ####################################################################################################################
     if n_col == 1:
 
         # Check if the dataset is a TS and store the label for the plots
@@ -135,7 +147,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         # Extract the correlation coefficient between the two datasets from the matrix
         correlation_value = correlation_matrix[0, 1]
         # Print a warning if the correlation value overcomes the threshold, then store it for the report
-        if correlation_value > corr_t:
+        if np.abs(correlation_value) > corr_t:
             warn_msg = (f"Found high correlation value: {round(correlation_value, 4)}"
                         f" between {data_name1} and {data_name2}.")
             logging.warning(warn_msg)
@@ -143,69 +155,104 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     # ------------------------------------------------------------------------------------------------------------------
 
     elif n_col > 1:
-        # dict1 vs dict2 -----------------------------------------------------------------------------------------------
+        ################################################################################################################
+        # dict1 vs dict2
+        ################################################################################################################
         if n_rows > 1:
             for r, r_exit in enumerate(dict1.keys()):
                 for c, c_exit in enumerate(dict2.keys()):
 
-                    # Put the same x and y axes on the subplots
-                    if r == 0:
-                        axs[r, c].sharey(axs[1, 0])
-                        axs[r, c].sharex(axs[1, 0])
-
-                    # Assign the current arrays
-                    array1 = dict1[r_exit]
-                    array2 = dict2[c_exit]
-                    # Assign the current labels
-                    label1 = f"{data_name1} {r_exit} {measure_unit1}"
-                    label2 = f"{data_name2} {c_exit} {measure_unit2}"
-
-                    # Arrays with different length must be interpolated
-                    if len(array1) != len(array2):
-                        # Timestamps arrays must be provided to interpolate
-                        if time1 == [] or time2 == []:
-                            logging.error("Different sampling frequency: provide timestamps array.")
-                            raise SystemExit(1)
-                        # If the timestamps are provided
-                        else:
-                            # Find the longest array (x) and the shortest to be interpolated
-                            x, short_array, label_x, label_y = (array1, array2, label1, label2) if len(
-                                array1) > len(array2) \
-                                else (array2, array1, label2, label1)
-                            x_t, short_t = (time1, time2) if x is array1 else (time2, time1)
-
-                            # Interpolation of the shortest array
-                            y = np.interp(x_t, short_t, short_array)
-
-                    # Arrays with same length
+                    # Do not plot self correlation plots
+                    if self_correlation and c_exit == r_exit:
+                        pass
                     else:
-                        x = dict1[r_exit]
-                        y = dict2[c_exit]
-                        label_x = label1
-                        label_y = label2
+                        # Put the same x and y axes on the subplots
+                        if r == 0:
+                            axs[r, c].sharey(axs[1, 0])
+                            axs[r, c].sharex(axs[1, 0])
 
-                    axs[r, c].plot(x, y, "*", color="teal", label="Corr Data")
+                        # Assign the current arrays
+                        array1 = dict1[r_exit]
+                        array2 = dict2[c_exit]
+                        # Assign the current labels
+                        label1 = f"{data_name1} {r_exit} {measure_unit1}"
+                        label2 = f"{data_name2} {c_exit} {measure_unit2}"
 
-                    # Subplot title
-                    axs[r, c].set_title(f'Corr {c_exit} - {r_exit}')
-                    # XY-axis
-                    axs[r, c].set_xlabel(f"{label_x}")
-                    axs[r, c].set_ylabel(f"{label_y}")
-                    # Legend
-                    axs[r, c].legend(prop={'size': 9}, loc=4)
+                        # Arrays with different length must be interpolated
+                        if len(array1) != len(array2):
+                            # Timestamps arrays must be provided to interpolate
+                            if time1 == [] or time2 == []:
+                                logging.error("Different sampling frequency: provide timestamps array.")
+                                raise SystemExit(1)
+                            # If the timestamps are provided
+                            else:
+                                # Find the longest array (x) and the shortest to be interpolated
+                                x, short_array, label_x, label_y = (array1, array2, label1, label2) if len(
+                                    array1) > len(array2) \
+                                    else (array2, array1, label2, label1)
+                                x_t, short_t = (time1, time2) if x is array1 else (time2, time1)
 
-                    # Calculate the correlation coefficient matrix -----------------------------------------------------
-                    correlation_matrix = np.corrcoef(x, y)
-                    # Extract the correlation coefficient between the two datasets x-y from the matrix
-                    correlation_value = correlation_matrix[0, 1]
-                    # Print a warning if the correlation value overcomes the threshold, then store it for the report
-                    if correlation_value > corr_t:
-                        warn_msg = (f'Found high correlation value between '
-                                    f'{data_name1} {r_exit} and {data_name2} {c_exit}: {round(correlation_value, 4)}.')
+                                # Interpolation of the shortest array
+                                y = np.interp(x_t, short_t, short_array)
+
+                        # Arrays with same length
+                        else:
+                            x = dict1[r_exit]
+                            y = dict2[c_exit]
+                            label_x = label1
+                            label_y = label2
+
+                        axs[r, c].plot(x, y, "*", color="teal", label="Corr Data")
+
+                        # Subplot title
+                        axs[r, c].set_title(f'Corr {c_exit} - {r_exit}')
+                        # XY-axis
+                        axs[r, c].set_xlabel(f"{label_x}")
+                        axs[r, c].set_ylabel(f"{label_y}")
+                        # Legend
+                        axs[r, c].legend(prop={'size': 9}, loc=4)
+
+            # ----------------------------------------------------------------------------------------------------------
+            # Calculate Correlations of the dictionaries
+            # Convert dictionaries to DataFrames
+            df1 = pd.DataFrame(dict1)
+            df2 = pd.DataFrame(dict2)
+
+            # Initialize an empty DataFrame for correlations
+            correlation_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns)
+
+            # ----------------------------------------------------------------------------------------------------------
+            # Calculate Self Correlations
+            if self_correlation:
+                keys = df1.columns
+                for i in range(len(keys) - 1):
+                    if np.abs(correlation_matrix.loc[keys[i], keys[i + 1]]) > corr_t:
+                        warn_msg = (f"Found high correlation value between {keys[i]} and {keys[i + 1]}: "
+                                    f"{round(correlation_matrix.loc[keys[i], keys[i + 1]], 4)}.")
                         logging.warning(warn_msg)
-                        warnings.append(f"|{data_name1}{r_exit} |{data_name2}{c_exit}|{round(correlation_value, 4)}|\n")
+                        warnings.append(
+                            f"|{data_name1} {keys[i]}|{data_name2} {keys[i + 1]}"
+                            f"|{correlation_matrix.loc[keys[i], keys[i + 1]]}|\n")
 
-        # array1 vs dict1 ----------------------------------------------------------------------------------------------
+            # ----------------------------------------------------------------------------------------------------------
+            # Calculate Normal Correlations
+            else:
+                for key1 in df1.columns:
+                    for key2 in df2.columns:
+                        correlation_matrix.loc[key1, key2] = df1[key1].corr(df2[key2])
+
+                        # Print a warning if the correlation value overcomes the threshold, then store it
+                        if np.abs(correlation_matrix.loc[key1, key2]) > corr_t:
+                            warn_msg = (f"Found high correlation value between {key1} and {key2}: "
+                                        f"{round(correlation_matrix.loc[key1, key2], 4)}.")
+                            logging.warning(warn_msg)
+                            warnings.append(
+                                f"|{data_name1} {key1}|{data_name2} {key2}"
+                                f"|{correlation_matrix.loc[key1, key2]}|\n")
+
+        ################################################################################################################
+        # array1 vs dict1
+        ################################################################################################################
         else:
             for c, exit in enumerate(dict1.keys()):
                 # Assign the current arrays
@@ -254,7 +301,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                 # Extract the correlation coefficient between the two datasets from the matrix
                 correlation_value = correlation_matrix[0, 1]
                 # Print a warning if the correlation value overcomes the threshold, then store it for the report
-                if correlation_value > corr_t:
+                if np.abs(correlation_value) > corr_t:
                     warn_msg = (f"Found high correlation value between {data_name1} and {data_name2} "
                                 f"in {exit}: {round(correlation_value, 4)}.")
                     logging.warning(warn_msg)
@@ -311,23 +358,38 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
     # Initialize an empty DataFrame for correlations
     correlation_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns)
 
-    # Calculate correlations
+    # ------------------------------------------------------------------------------------------------------------------
+    # Calculate Correlations
     for key1 in df1.columns:
         for key2 in df2.columns:
             correlation_matrix.loc[key1, key2] = df1[key1].corr(df2[key2])
 
-            # Print a warning if the correlation value overcomes the threshold, then store it for the report
-            if correlation_matrix.loc[key1, key2] > corr_t:
-                warn_msg = (f"Found high correlation value between {key1} and {key2}: "
-                            f"{round(correlation_matrix.loc[key1, key2], 4)}.")
-                logging.warning(warn_msg)
-                warnings.append(f"|{data_name1} {key1}|{data_name2} {key2}|{correlation_matrix.loc[key1, key2]}|\n")
+            if self_correlation:
+                pass
+            else:
+                # Print a warning if the correlation value overcomes the threshold, then store it for the report
+                if np.abs(correlation_matrix.loc[key1, key2]) > corr_t:
+                    warn_msg = (f"Found high correlation value between {key1} and {key2}: "
+                                f"{round(correlation_matrix.loc[key1, key2], 4)}.")
+                    logging.warning(warn_msg)
+                    warnings.append(f"|{data_name1} {key1}|{data_name2} {key2}|{correlation_matrix.loc[key1, key2]}|\n")
 
-    # Self correlation case
+    # ------------------------------------------------------------------------------------------------------------------
+    # Calculate Self Correlations
     if self_correlation:
-        for i in correlation_matrix.keys():
-            # Put at Nan the values on the diagonal of the matrix (self correlations)
-            correlation_matrix[i][i] = np.nan
+        keys = df1.columns
+        for i in range(len(keys) - 1):
+            if np.abs(correlation_matrix.loc[keys[i], keys[i + 1]]) > corr_t:
+                warn_msg = (f"Found high correlation value between {keys[i]} and {keys[i + 1]}: "
+                            f"{round(correlation_matrix.loc[keys[i], keys[i + 1]], 4)}.")
+                logging.warning(warn_msg)
+                warnings.append(
+                    f"|{data_name1} {keys[i]}|{data_name2} {keys[i + 1]}"
+                    f"|{correlation_matrix.loc[keys[i], keys[i + 1]]}|\n")
+
+        # Put at Nan the values on the diagonal of the matrix (self correlations)
+        for n in correlation_matrix.keys():
+            correlation_matrix[n][n] = np.nan
 
     # Convert correlation matrix values to float
     correlation_matrix = correlation_matrix.astype(float)
@@ -451,7 +513,7 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
                     # Check on high correlation values
                     # Done only on the changed row
                     for name2 in other_names:
-                        if correlation_matrix[name][name2] > corr_t:
+                        if np.abs(correlation_matrix[name][name2]) > corr_t:
                             warn_msg = (f"Found high correlation value between "
                                         f"{name} {single_exit} and {name2} {all_exit}: "
                                         f"{round(correlation_matrix[name][name2], 4)}.")

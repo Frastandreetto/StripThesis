@@ -82,6 +82,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     sampling_warn = []
     corr_warn = []
     spike_warn = []
+    # General warning lists used in case of repetitions
+    gen_warn = []
 
     # root: location of the file.txt with the information to build the report
     root = "../striptease/templates/validation_templates"
@@ -92,9 +94,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
     logging.info('\nReady to analyze Strip.')
 
-    # ------------------------------------------------------------------------------------------------------------------
+    ####################################################################################################################
     # Thermal Sensors Analysis
-    # ------------------------------------------------------------------------------------------------------------------
+    ####################################################################################################################
     if not thermal_sensors:
         pass
     else:
@@ -113,8 +115,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
             # Normalizing TS measures
             logging.info(f'Normalizing TS. Status {status}')
-            # Saving a list of sampling problematic TS
-            problematic_TS = TS.Norm_TS()
+            _ = TS.Norm_TS()
 
             # TS Time warnings ----------------------------------------------------------------------------------------
             t_warn.extend(TS.warnings["time_warning"])
@@ -137,69 +138,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 logging.info(f'Plotting the FFT of all the TS measures for status {status} of the multiplexer.')
                 TS.Plot_FFT_TS()
 
-            # TS Correlation plots
-            # Add Correlation Plots TS0 - TS1?
-            if not corr_plot:
-                pass
-            else:
-                if status == 0:
-                    pass
-                # Compute correlation plots only one time
-                else:
-                    # Collecting all names, excluding the problematic TS
-                    all_names = [name for groups in TS.ts_names.values()
-                                 for name in groups if name not in problematic_TS]
-                    # Printing the plots with no repetitions
-                    logging.info(f'Plotting Correlation plots of the TS with each other.')
-                    for i, n1 in enumerate(all_names):
-                        for n2 in all_names[i + 1:]:
-                            # Correlation warnings ---------------------------------------------------------------------
-                            corr_warn.extend(fz_c.correlation_plot(array1=TS.ts["thermal_data"]["calibrated"][n1],
-                                                                   array2=TS.ts["thermal_data"]["calibrated"][n2],
-                                                                   dict1={},
-                                                                   dict2={},
-                                                                   time1=TS.ts["thermal_times"],
-                                                                   time2=TS.ts["thermal_times"],
-                                                                   data_name1=f"{status}_{n1}",
-                                                                   data_name2=f"{n2}",
-                                                                   start_datetime=start_datetime,
-                                                                   corr_t=corr_t,
-                                                                   plot_dir=output_plot_dir
-                                                                   ))
-            # TS Correlation Matrices:
-            # TS status 0 - Self Correlations
-            # TS status 1 - Self Correlations
-            # TS status 0 - TS status 1
-            if not corr_mat:
-                pass
-            else:
-                if status == 0:
-                    pass
-                # Compute correlation matrix only one time
-                else:
-                    # Define two Thermal Sensors, one per status
-                    ts_0 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
-                                              end_datetime=end_datetime,
-                                              status=0, nperseg_thermal=nperseg_thermal)
-                    ts_1 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
-                                              end_datetime=end_datetime,
-                                              status=1, nperseg_thermal=nperseg_thermal)
-                    # Loading the two Thermal Sensors
-                    ts_0.Load_TS()
-                    ts_1.Load_TS()
-                    # Assign the dict
-                    ts0_d = ts_0.ts["thermal_data"]["calibrated"]
-                    ts1_d = ts_1.ts["thermal_data"]["calibrated"]
-                    # Plotting the 3 correlation Matrices
-                    for d1, d2, name1, name2 in [(ts0_d, {}, "TS0", "SelfCorr"), (ts1_d, {}, "TS1", "SelfCorr"),
-                                                 (ts0_d, ts1_d, "TS0", "TS1")]:
-                        logging.info(f"Plotting correlation matrices {name1} - {name2}.\n")
-                        # Correlation warnings -------------------------------------------------------------------------
-                        TS.warnings["corr_warning"].extend(
-                            fz_c.correlation_mat(dict1=d1, dict2=d2, data_name1=name1, data_name2=name2,
-                                                 start_datetime=start_datetime,
-                                                 show=False, plot_dir=output_plot_dir))
-
             # ----------------------------------------------------------------------------------------------------------
             # REPORT TS
             # ----------------------------------------------------------------------------------------------------------
@@ -215,9 +153,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             filename = Path(f"{output_report_dir}/report_ts_status_{status}.md")
             with open(filename, 'w') as outf:
                 outf.write(template_ts.render(report_data))
-    # ------------------------------------------------------------------------------------------------------------------
+
+    ####################################################################################################################
     # Multi Polarimeter Analysis
-    # ------------------------------------------------------------------------------------------------------------------
+    ####################################################################################################################
     if cross_corr:
         logging.warning(
             f'-------------------------------------------------------------------------------------'
@@ -226,10 +165,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                              start_datetime=start_datetime, end_datetime=end_datetime,
                                              show=False, corr_t=corr_t))
 
-    # ------------------------------------------------------------------------------------------------------------------
+    ####################################################################################################################
     # Single Polarimeter Analysis
-    # ------------------------------------------------------------------------------------------------------------------
-
+    ####################################################################################################################
     logging.info("\nReady to analyze the Polarimeters now.")
     # Converting the string of polarimeters into a list
     name_pol = name_pol.split()
@@ -241,9 +179,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         p = pol.Polarimeter(name_pol=np, path_file=path_file,
                             start_datetime=start_datetime, end_datetime=end_datetime)
 
-        # --------------------------------------------------------------------------------------------------------------
+        ################################################################################################################
         # Housekeeping Analysis
-        # --------------------------------------------------------------------------------------------------------------
+        ################################################################################################################
         if not housekeeping:
             pass
         else:
@@ -272,109 +210,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             logging.info('Producing HK table for the report.')
             hk_table = p.HK_table(results=hk_results)
 
-            # Plots of the Bias HK: Tensions and Currents
-            logging.info('Plotting Bias HK.')
-            p.Plot_Housekeeping(hk_kind="V", show=False)
-            p.Plot_Housekeeping(hk_kind="I", show=False)
-            # Plots of the Offsets
-            logging.info('Plotting Offset.')
-            p.Plot_Housekeeping(hk_kind="O", show=False)
+            # Plots of the Bias HK (Tensions and Currents) and of the Offsets
+            logging.info('Plotting Bias HK and Offsets.')
+            for hk_kind in ["I", "V", "O"]:
+                p.Plot_Housekeeping(hk_kind=hk_kind, show=False)
 
-            # Correlation plots
-            if not corr_plot:
-                pass
-            # Correlation plots between all HK parameters I, V, O Starts here ------------------------------------------
-            else:
-                logging.info("Starting correlation plot.")
-                # Get all HK names
-                all_names = p.hk_list["I"] + p.hk_list["V"] + p.hk_list["O"]
-                for idx, hk_name1 in enumerate(all_names):
-                    logging.info(hk_name1)
-                    item1 = hk_name1[0] if hk_name1[0] != "D" else "O"
-
-                    # --------------------------------------------------------------------------------------------------
-                    # Correlation plots between TS and all HK parameter
-                    if not thermal_sensors:
-                        pass
-                    # Plotting the correlation plots:
-                    # TS status 0 - all I and V HK Parameters
-                    # TS status 1 - all I and V HK Parameters
-                    else:
-                        for status in [0, 1]:
-                            # Initializing a TS
-                            TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
-                                                    end_datetime=end_datetime,
-                                                    status=status, nperseg_thermal=nperseg_thermal)
-                            # Loading thermal measures
-                            TS.Load_TS()
-                            # Normalizing thermal times
-                            TS.Norm_TS()
-                            # Correlation Warnings HK vs TS ------------------------------------------------------------
-                            corr_warn.extend(
-                                fz_c.correlation_plot(array1=list(p.hk[item1][hk_name1]),
-                                                      array2=[],
-                                                      dict1=TS.ts["thermal_data"]["calibrated"],
-                                                      dict2={},
-                                                      time1=list(p.hk_t[item1][hk_name1]),
-                                                      time2=list(TS.ts["thermal_times"]),
-                                                      data_name1=f"{hk_name1}",
-                                                      data_name2=f"TS_{status}",
-                                                      start_datetime=start_datetime,
-                                                      corr_t=corr_t,
-                                                      plot_dir=output_plot_dir))
-                    # --------------------------------------------------------------------------------------------------
-
-                    # Correlation plots between all HK parameters I, V, O continues here
-                    for hk_name2 in all_names[idx + 1:]:
-                        # Setting the names of the items: I, V, O
-                        item2 = hk_name2[0] if hk_name2[0] != "D" else "O"
-
-                        # Correlation Warnings HK ----------------------------------------------------------------------
-                        corr_warn.extend(
-                            fz_c.correlation_plot(array1=list(p.hk[item1][hk_name1]),
-                                                  array2=list(p.hk[item2][hk_name2]),
-                                                  dict1={},
-                                                  dict2={},
-                                                  time1=list(p.hk_t[item1][hk_name1]),
-                                                  time2=list(p.hk_t[item2][hk_name2]),
-                                                  data_name1=f"{hk_name1}",
-                                                  data_name2=f"{hk_name2}",
-                                                  start_datetime=start_datetime,
-                                                  corr_t=corr_t,
-                                                  plot_dir=output_plot_dir))
-
-            # Correlation Matrices
-            if not corr_mat:
-                pass
-            else:
-                logging.info("I'll plot correlation matrices.\n")
-                if not thermal_sensors:
-                    pass
-                # Plotting the 4 correlation Matrices:
-                # TS status 0 - V HK Parameter
-                # TS status 0 - I HK Parameter
-                # TS status 1 - V HK Parameter
-                # TS status 1 - I HK Parameter
-                else:
-                    # Thermal Sensor status
-                    for status, name1 in [(0, "TS0"), (1, "TS1")]:
-                        # HK parameters
-                        for item, name2 in [("I", "I_HK"), ("V", "V_HK")]:
-                            logging.info(f"Plotting correlation matrices {name1} - {name2}.\n")
-                            # Initializing a TS
-                            TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
-                                                    end_datetime=end_datetime,
-                                                    status=status, nperseg_thermal=nperseg_thermal)
-                            # Loading thermal measures
-                            TS.Load_TS()
-                            # Preparing dictionaries
-                            d1 = TS.ts["thermal_data"]["calibrated"]
-                            d2 = p.hk[item]
-                            # Correlation warnings -------------------------------------------------------------
-                            corr_warn.extend(
-                                fz_c.correlation_mat(dict1=d1, dict2=d2, data_name1=name1, data_name2=name2,
-                                                     start_datetime=start_datetime,
-                                                     show=False, plot_dir=output_plot_dir))
             # ----------------------------------------------------------------------------------------------------------
             # REPORT HK
             # ----------------------------------------------------------------------------------------------------------
@@ -391,9 +231,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             with open(filename, 'w') as outf:
                 outf.write(template_hk.render(report_data))
 
-        # --------------------------------------------------------------------------------------------------------------
+        ################################################################################################################
         # Scientific Output Analysis
-        # --------------------------------------------------------------------------------------------------------------
+        ################################################################################################################
         # Loading the Scientific Outputs
         logging.warning('--------------------------------------------------------------------------------------'
                         '\nScientific Analysis. \nLoading Scientific Outputs.')
@@ -424,9 +264,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             logging.info(f'Plotting {type} Outputs.')
             p.Plot_Output(type=type, begin=0, end=-1, show=False)
 
-            # ----------------------------------------------------------------------------------------------------------
+            ############################################################################################################
             # Even Odd All Analysis
-            # ----------------------------------------------------------------------------------------------------------
+            ############################################################################################################
             if eoa == ' ':
                 pass
             else:
@@ -498,9 +338,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     with open(filename, 'w') as outf:
                         outf.write(template_hk.render(report_data))
 
-            # ----------------------------------------------------------------------------------------------------------
+            ############################################################################################################
             # Scientific Data Analysis
-            # ----------------------------------------------------------------------------------------------------------
+            ############################################################################################################
             if not scientific:
                 pass
             else:
@@ -562,74 +402,343 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     with open(filename, 'w') as outf:
                         outf.write(template_hk.render(report_data))
 
-            # ----------------------------------------------------------------------------------------------------------
-            # Correlation plots
-            # ----------------------------------------------------------------------------------------------------------
-            if corr_plot:
+            ############################################################################################################
+            # Correlation plots and matrices
+            # Scientific Output
+            ############################################################################################################
+            # Output Self correlations
+            # Output vs TS
+            # Output vs HK
+            ############################################################################################################
+            if corr_plot or corr_mat:
+                # List used to contain all possible data combinations to calculate correlations
+                possible_combos = []
                 logging.warning(f'-------------------------------------------------------------------------------------'
-                                f'\nCorrelation plots. Type {type}.')
-                # Correlation Plot Example
-                corr_warn.extend(fz_c.correlation_plot(array1=[], array2=[], dict1=p.data["DEM"], dict2=p.data["DEM"],
-                                                       time1=p.times, time2=p.times,
-                                                       data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
-                                                       start_datetime=start_datetime, show=False, corr_t=0.4,
-                                                       plot_dir=output_plot_dir))
+                                f'\nCorrelation Analysis. Type {type}.\n')
+
                 # ------------------------------------------------------------------------------------------------------
-                # REPORT CORRELATION PLOT
+                # Scientific Output Self correlation
                 # ------------------------------------------------------------------------------------------------------
-                # Produce the report only the second time: when all the plots are ready
-                if type == "PWR":
-                    logging.info(f"\nOnce ready, I will put the CORR PLOT report into: {output_report_dir}.")
+                # Collecting all possible combinations of Output correlations
+                possible_combos.extend([
+                    # Output self correlation
+                    (p.data[type], p.times, f"{np}_{type}", "Output [ADU]",
+                     {}, [], "Self_Corr", "Output [ADU]")
+                ])
 
-                    # Get a list of PNG files in the directory
-                    # Excluding TS correlation plots
-                    excluded_prefixes = ['0', '1']
-                    png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Plot/")
-                                 if file.lower().endswith('.png')
-                                 and not any(file.startswith(prefix) for prefix in excluded_prefixes)]
+                # ------------------------------------------------------------------------------------------------------
+                # Scientific Output vs TS
+                # ------------------------------------------------------------------------------------------------------
+                if not thermal_sensors:
+                    pass
+                else:
+                    for status in [0, 1]:
+                        # Initializing a TS
+                        TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
+                                                end_datetime=end_datetime,
+                                                status=status, nperseg_thermal=nperseg_thermal)
+                        # Loading thermal measures
+                        TS.Load_TS()
+                        # Normalizing thermal times
+                        _ = TS.Norm_TS()
 
-                    report_data.update({"name_pol": np, "png_files": png_files})
+                        # Collecting all possible data combinations between Outputs and TS
+                        possible_combos.extend([
+                            # Output vs TS_status 0 or 1
+                            (p.data[type], p.times, f"{np}_{type}", "Output [ADU]",
+                             TS.ts["thermal_data"]["calibrated"], TS.ts["thermal_times"],
+                             f"TS_{status}", "Temperature [K]")
+                        ])
 
-                    # Getting instructions to create the CORR MAT report
-                    template_hk = env.get_template('report_corr_plot.txt')
+                # ------------------------------------------------------------------------------------------------------
+                # Output vs HK
+                # ------------------------------------------------------------------------------------------------------
+                if not housekeeping:
+                    pass
+                else:
+                    # Loading the Housekeeping parameters
+                    p.Load_HouseKeeping()
+                    # Normalizing the Housekeeping parameters
+                    p.Norm_HouseKeeping()
 
-                    # Report CORR MAT generation
-                    filename = Path(f"{output_report_dir}/report_corr_plot.md")
-                    with open(filename, 'w') as outf:
-                        outf.write(template_hk.render(report_data))
+                    # Define the HK key, unit of measure and first HK
+                    for item, unit, first_hk in [("I", "[µA]", "ID0_HK"), ("V", "[mV]", "VD0_HK")]:
+
+                        # Collecting all possible data combinations between Outputs and TS
+                        possible_combos.extend([
+                            # Output vs TS_status 0 or 1
+                            (p.data[type], p.times, f"{np}_{type}", "Output [ADU]",
+                             p.hk[item], p.hk_t[item][first_hk],
+                             f"Bias_{item}", f"{unit}")
+                        ])
+
+                # Produce all correlation plots and matrix using all the combinations of the Outputs
+                for d1, t1, n1, u1, d2, t2, n2, u2 in possible_combos:
+
+                    # --------------------------------------------------------------------------------------------------
+                    # Correlation Plot
+                    # --------------------------------------------------------------------------------------------------
+                    if corr_plot:
+                        logging.warning(
+                            f'---------------------------------------------------------------------------------'
+                            f'\nCorrelation plot with threshold {corr_t}. '
+                            f'\n{n1} - {n2}.')
+                        # Store correlation warnings from the correlation plot
+                        gen_warn = fz_c.correlation_plot(array1=[], array2=[],
+                                                         dict1=d1, dict2=d2,
+                                                         time1=list(t1), time2=list(t2),
+                                                         data_name1=f"{n1}", data_name2=f"{n2}",
+                                                         measure_unit1=f"{u1}", measure_unit2=f"{u2}",
+                                                         start_datetime=start_datetime,
+                                                         show=False,
+                                                         corr_t=corr_t,
+                                                         plot_dir=output_plot_dir)
+
+                    # --------------------------------------------------------------------------------------------------
+                    # Correlation Matrix
+                    # --------------------------------------------------------------------------------------------------
+                    if corr_mat:
+                        logging.warning(
+                            f'---------------------------------------------------------------------------------'
+                            f'\nCorrelation matrix with threshold {corr_t}. '
+                            f'\n{n1} - {n2}.')
+                        # Store/Overwrite correlation warnings from the correlation matrix
+                        gen_warn = fz_c.correlation_mat(dict1=d1, dict2=d2,
+                                                        data_name1=f"{n1}", data_name2=f"{n2}",
+                                                        start_datetime=start_datetime,
+                                                        show=False, plot_dir=output_plot_dir)
+                    # Store correlation warnings
+                    corr_warn.extend(gen_warn)
+
+        ################################################################################################################
+        # Other Correlation plots and matrices: HK & TS
+        ################################################################################################################
+        if corr_plot or corr_mat:
+            # List used to contain all possible data combinations to calculate correlations
+            possible_combos = []
 
             # ----------------------------------------------------------------------------------------------------------
-            # Correlation matrices (?)
+            # HK Correlations
+            # Bias Currents I vs Bias Voltages V
+            # Bias Currents I Self Correlations
+            # Bias Voltages V Self Correlations
             # ----------------------------------------------------------------------------------------------------------
-            if corr_mat:
-                logging.warning(f'---------------------------------------------------------------------------------'
-                                f'\nCorrelation matrices with threshold {corr_t}(?). Type {type}.')
-                # Correlation Mat Example
-                # Note: if there are the same data in the corr plot there will be repetitions in the warnings report
-                corr_warn.extend(fz_c.correlation_mat(dict1=p.data["DEM"], dict2=p.data["DEM"],
-                                                      data_name1=f"{np}_DEM", data_name2=f"{np}_PWR",
-                                                      start_datetime=start_datetime, show=False, corr_t=0.4,
-                                                      plot_dir=output_plot_dir))
+            if not housekeeping:
+                pass
+            else:
+                logging.info("Housekeeping: Correlation Plots and Matrices")
+                # Loading the HK parameters
+                p.Load_HouseKeeping()
+                # Normalizing the HK parameters
+                p.Norm_HouseKeeping()
+
+                # Collecting all possible combinations of HK correlations
+                # Note: time is fixed for all I and V: hence the timestamps are defined by the first HK parameter
+                possible_combos.extend([
+                    # I vs V
+                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], "Bias_I", "[µA]",
+                     p.hk["V"], p.hk_t["V"]["VD0_HK"], "Bias_V", "[mV]"),
+                    # I Self Correlations
+                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], "Bias_I", "[µA]",
+                     {}, [], "Self_Corr", "[µA]"),
+                    # V Self Correlations
+                    (p.hk["V"], p.hk_t["V"]["VD0_HK"], "Bias_V", "[mV]",
+                     {}, [], "Self_Corr", "[mV]")
+                ])
+
                 # ------------------------------------------------------------------------------------------------------
-                # REPORT CORRELATION MATRIX
+                # HK vs TS
+                # Bias Currents I vs TS status 0 or 1
+                # Bias Voltages V vs TS status 0 or 1
                 # ------------------------------------------------------------------------------------------------------
-                # Produce the report only the second time: when all the plots are ready
-                if type == "PWR":
-                    logging.info(f"\nOnce ready, I will put the CORR MATRIX report into: {output_report_dir}.")
+                if not thermal_sensors:
+                    pass
+                else:
+                    for status in [0, 1]:
+                        # Initializing a TS
+                        TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
+                                                end_datetime=end_datetime,
+                                                status=status, nperseg_thermal=nperseg_thermal)
+                        # Loading thermal measures
+                        TS.Load_TS()
+                        # Normalizing thermal times
+                        _ = TS.Norm_TS()
 
-                    # Get a list of PNG files in the directory
-                    png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Matrix/")
-                                 if file.lower().endswith('.png')]
+                        # Collecting all possible combinations of Hk with TS
+                        possible_combos.extend([
+                            # Bias Currents I vs TS status 0 or 1
+                            (p.hk["I"], p.hk_t["I"]["ID0_HK"], "Bias_I", "[µA]",
+                             TS.ts["thermal_data"]["calibrated"], TS.ts["thermal_times"],
+                             f"TS_status_{status}", "Temperature [K]"),
+                            # Bias Voltages V vs TS status 0 or 1
+                            (p.hk["V"], p.hk_t["V"]["VD0_HK"], "Bias_V", "[mV]",
+                             TS.ts["thermal_data"]["calibrated"], TS.ts["thermal_times"],
+                             f"TS_status_{status}", "Temperature [K]")
+                        ])
 
-                    report_data.update({"name_pol": np, "png_files": png_files})
+                # Produce all correlation plots and matrix using all the combinations
+                for d1, t1, n1, u1, d2, t2, n2, u2 in possible_combos:
 
-                    # Getting instructions to create the CORR MAT report
-                    template_hk = env.get_template('report_corr_mat.txt')
+                    # --------------------------------------------------------------------------------------------------
+                    # Correlation Plot
+                    # --------------------------------------------------------------------------------------------------
+                    if corr_plot:
+                        logging.warning(
+                            f'---------------------------------------------------------------------------------'
+                            f'\nCorrelation plot with threshold {corr_t}. '
+                            f'\n{n1} - {n2}.')
+                        # Store correlation warnings from the correlation plot
+                        gen_warn = fz_c.correlation_plot(array1=[], array2=[],
+                                                         dict1=d1, dict2=d2,
+                                                         time1=list(t1), time2=list(t2),
+                                                         data_name1=f"{n1}", data_name2=f"{n2}",
+                                                         measure_unit1=f"{u1}", measure_unit2=f"{u2}",
+                                                         start_datetime=start_datetime,
+                                                         show=False,
+                                                         corr_t=corr_t,
+                                                         plot_dir=output_plot_dir)
 
-                    # Report CORR MAT generation
-                    filename = Path(f"{output_report_dir}/report_corr_mat.md")
-                    with open(filename, 'w') as outf:
-                        outf.write(template_hk.render(report_data))
+                    # --------------------------------------------------------------------------------------------------
+                    # Correlation Matrix
+                    # --------------------------------------------------------------------------------------------------
+                    if corr_mat:
+                        logging.warning(
+                            f'---------------------------------------------------------------------------------'
+                            f'\nCorrelation matrix with threshold {corr_t}. '
+                            f'\n{n1} - {n2}.')
+                        # Store/Overwrite correlation warnings from the correlation matrix
+                        gen_warn = fz_c.correlation_mat(dict1=d1, dict2=d2,
+                                                        data_name1=f"{n1}", data_name2=f"{n2}",
+                                                        start_datetime=start_datetime,
+                                                        show=False, plot_dir=output_plot_dir)
+                    # Store correlation warnings
+                    corr_warn.extend(gen_warn)
+
+    ####################################################################################################################
+    # Other Correlation plots and matrices: TS
+    ####################################################################################################################
+    if corr_plot or corr_mat:
+        # List used to contain all possible TS data combinations to calculate correlations
+        possible_combos = []
+
+        # ----------------------------------------------------------------------------------------------------------
+        # TS Correlations
+        # TS 0 vs TS 1
+        # TS 0 self correlation
+        # TS 1 self correlation
+        # ----------------------------------------------------------------------------------------------------------
+        if not thermal_sensors:
+            pass
+        else:
+            logging.info("Thermal Sensors: Correlation Plots and Matrices")
+            # Define TS in both status 0 and 1
+            ts_0 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
+                                      end_datetime=end_datetime,
+                                      status=0, nperseg_thermal=nperseg_thermal)
+            ts_1 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
+                                      end_datetime=end_datetime,
+                                      status=1, nperseg_thermal=nperseg_thermal)
+            # Loading thermal measures
+            ts_0.Load_TS()
+            ts_1.Load_TS()
+            # Normalizing thermal times
+            _ = ts_0.Norm_TS()
+            _ = ts_1.Norm_TS()
+
+            # Collecting all possible combinations of TS correlations
+            possible_combos.extend([
+                # TS 0 vs TS 1
+                (ts_0.ts["thermal_data"]["calibrated"], ts_0.ts["thermal_times"],
+                 "TS_status_0", "Temperature [K]",
+                 ts_1.ts["thermal_data"]["calibrated"], ts_1.ts["thermal_times"],
+                 "TS_status_1", "Temperature [K]"),
+                # TS 0 self correlation
+                (ts_0.ts["thermal_data"]["calibrated"], ts_0.ts["thermal_times"],
+                 "TS_status_0", "Temperature [K]",
+                 {}, [], "Self_Corr", "Temperature [K]"),
+                # TS 1 self correlation
+                (ts_1.ts["thermal_data"]["calibrated"], ts_1.ts["thermal_times"],
+                 "TS_status_1", "Temperature [K]",
+                 {}, [], "Self_Corr", "Temperature [K]",)
+            ])
+
+            # Produce all correlation plots and matrix using all the combinations
+            for d1, t1, n1, u1, d2, t2, n2, u2 in possible_combos:
+
+                # Correlation Plot
+                if corr_plot:
+                    logging.warning(
+                        f'---------------------------------------------------------------------------------'
+                        f'\nCorrelation plot with threshold {corr_t}. '
+                        f'\n{n1} - {n2}.')
+                    # Store correlation warnings from the correlation plot
+                    gen_warn = fz_c.correlation_plot(array1=[],
+                                                     array2=[],
+                                                     dict1=d1,
+                                                     dict2=d2,
+                                                     time1=list(t1),
+                                                     time2=list(t2),
+                                                     data_name1=f"{n1}",
+                                                     data_name2=f"{n2}",
+                                                     measure_unit1=f"{u1}",
+                                                     measure_unit2=f"{u2}",
+                                                     start_datetime=start_datetime,
+                                                     show=False,
+                                                     corr_t=corr_t,
+                                                     plot_dir=output_plot_dir)
+                # Correlation Matrix
+                if corr_mat:
+                    logging.warning(
+                        f'---------------------------------------------------------------------------------'
+                        f'\nCorrelation matrix with threshold {corr_t}. '
+                        f'\n{n1} - {n2}.')
+                    # Store/Overwrite correlation warnings from the correlation matrix
+                    gen_warn = fz_c.correlation_mat(dict1=d1,
+                                                    dict2=d2,
+                                                    data_name1=f"{n1}", data_name2=f"{n2}",
+                                                    start_datetime=start_datetime,
+                                                    show=False, plot_dir=output_plot_dir)
+                # Store correlation warnings
+                corr_warn.extend(gen_warn)
+
+    # ------------------------------------------------------------------------------------------------------
+    # REPORT CORRELATION PLOT:
+    # ------------------------------------------------------------------------------------------------------
+    if corr_plot:
+        logging.info(f"\nOnce ready, I will put the CORR PLOT report into: {output_report_dir}.")
+
+        # Get png files name from the dir Correlation_Plot
+        png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Plot/")
+                     if file.lower().endswith('.png')]
+        report_data.update({"png_files": png_files})
+
+        # Getting instructions to create the CORR PLOT report
+        template_hk = env.get_template('report_corr_plot.txt')
+
+        # Report CORR PLOT generation
+        filename = Path(f"{output_report_dir}/report_corr_plot.md")
+        with open(filename, 'w') as outf:
+            outf.write(template_hk.render(report_data))
+
+    # ------------------------------------------------------------------------------------------------------
+    # REPORT CORRELATION MATRIX
+    # ------------------------------------------------------------------------------------------------------
+    if corr_mat:
+        logging.info(f"\nOnce ready, I will put the CORR MATRIX report into: {output_report_dir}.")
+
+        # Get png files name from the dir Correlation_Matrix
+        png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Matrix/")
+                     if file.lower().endswith('.png')]
+
+        report_data.update({"png_files": png_files})
+
+        # Getting instructions to create the CORR MAT report
+        template_hk = env.get_template('report_corr_mat.txt')
+
+        # Report CORR MAT generation
+        filename = Path(f"{output_report_dir}/report_corr_mat.md")
+        with open(filename, 'w') as outf:
+            outf.write(template_hk.render(report_data))
 
         # ------------------------------------------------------------------------------------------------------
         # REPORT WARNINGS
