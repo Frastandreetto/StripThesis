@@ -159,8 +159,12 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         # dict1 vs dict2
         ################################################################################################################
         if n_rows > 1:
+            # length of the shortest array in the dictionary.
+            min_len = np.inf
             for r, r_exit in enumerate(dict1.keys()):
+                logging.info(dict1.keys())
                 for c, c_exit in enumerate(dict2.keys()):
+                    logging.info(dict2.keys())
 
                     # Do not plot self correlation plots
                     if self_correlation and c_exit == r_exit:
@@ -180,6 +184,10 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
 
                         # Arrays with different length must be interpolated
                         if len(array1) != len(array2):
+
+                            # Debug length mismatch in correlations
+                            logging.warning(f"PRE: len array1 {len(array1)} - len array2 {len(array2)}")
+
                             # Timestamps arrays must be provided to interpolate
                             if time1 == [] or time2 == []:
                                 logging.error("Different sampling frequency: provide timestamps array.")
@@ -187,13 +195,29 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                             # If the timestamps are provided
                             else:
                                 # Find the longest array (x) and the shortest to be interpolated
-                                x, short_array, label_x, label_y = (array1, array2, label1, label2) if len(
-                                    array1) > len(array2) \
+                                x, short_array, label_x, label_y = (array1, array2, label1, label2) \
+                                    if len(array1) > len(array2) \
                                     else (array2, array1, label2, label1)
                                 x_t, short_t = (time1, time2) if x is array1 else (time2, time1)
 
+                                if len(short_t) != len(short_array):
+                                    lim = min(len(short_t), len(short_array))
+                                    short_t = short_t[:lim-1]
+                                    short_array = short_array[:lim-1]
                                 # Interpolation of the shortest array
                                 y = np.interp(x_t, short_t, short_array)
+
+                                # Debug length mismatch in correlations
+                                logging.warning(f"POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
+
+                                # Fixing (im)possible len mismatch
+                                if len(x) != len(y):
+                                    lim = min(len(x), len(y))
+                                    x = x[:lim-1]
+                                    y = y[:lim-1]
+
+                                    # Debug length mismatch in correlations
+                                    logging.warning(f"SECOND POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
 
                         # Arrays with same length
                         else:
@@ -201,6 +225,12 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                             y = dict2[c_exit]
                             label_x = label1
                             label_y = label2
+
+                            # Debug length mismatch in correlations
+                            logging.warning(f"THIRD POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
+
+                        # Debug length mismatch in correlations
+                        logging.info("Till here the code is ok: plotting...\n\n")
 
                         axs[r, c].plot(x, y, "*", color="teal", label="Corr Data")
 
@@ -212,15 +242,34 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                         # Legend
                         axs[r, c].legend(prop={'size': 9}, loc=4)
 
+                        # Modify the original dictionary, not to have length mismatch in the dataframes
+                        dict1[r_exit] = x
+                        dict2[c_exit] = y
+                        if len(x) < min_len:
+                            min_len = len(x)
+                            logging.info(f"min length: {min_len}")
+
             # ----------------------------------------------------------------------------------------------------------
             # Calculate Correlations of the dictionaries
+            # ----------------------------------------------------------------------------------------------------------
+            # Adjust arrays lengths
+            for r_exit in dict1.keys():
+                dict1[r_exit] = dict1[r_exit][:min_len - 1]
+            for c_exit in dict2.keys():
+                dict2[c_exit] = dict2[c_exit][:min_len - 1]
+
             # Convert dictionaries to DataFrames
+            logging.info("First DataFrame")
             df1 = pd.DataFrame(dict1)
+            print(dict1)
+            logging.info(f"Second DataFrame {type(dict2)}")
+            print(dict2)
             df2 = pd.DataFrame(dict2)
+            logging.info("\nGoing to produce the correlation matrix")
 
             # Initialize an empty DataFrame for correlations
             correlation_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns)
-
+            logging.info("Done.")
             # ----------------------------------------------------------------------------------------------------------
             # Calculate Self Correlations
             if self_correlation:
@@ -435,8 +484,9 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
     # Creating a list to collect the warnings
     warnings = []
 
-    # Initializing the data_name
-    data_name = ""
+    # length of the shortest array in the dictionary: needed for correlation with Dataframes
+    min_len = np.inf
+
     # Creating the path to store the png file containing the matrix
     plot_dir = f"{plot_dir}/Cross_Corr/"
     # Check if the dir exists. If not, it will be created.
@@ -447,94 +497,110 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
                    "R0", "R1", "R2", "R3", "R4", "R5", "R6", "V0", "V1", "V2", "V3", "V4", "V5", "V6",
                    "W1", "W2", "W3", "W4", "W5", "W6", "Y0", "Y1", "Y2", "Y3", "Y4", "Y5", "Y6"]
 
-    polars = {name: {} for name in polar_names}
+    # Initialize the main dictionary
+    polars = {"DEM": {}, "PWR": {}}
+
+    # Initialize the sub-dictionaries for each exit ("Q1", "Q2", "U1", "U2")
+    all_exits = ["Q1", "Q2", "U1", "U2"]
+
+    for exit in all_exits:
+        # Initialize the sub-dictionary for each category
+        polars["DEM"][exit] = {pol_n: [] for pol_n in polar_names}
+        polars["PWR"][exit] = {pol_n: [] for pol_n in polar_names}
 
     # Loading all polarimeters
     # Time needed on a 3h dataset: ~ 5sec/pol => ~ 5 minutes tot
-    for name in polars.keys():
+    for name in polar_names:
         # Define a Polarimeter
         p = pol.Polarimeter(name_pol=name, path_file=path_file,
                             start_datetime=start_datetime, end_datetime=end_datetime)
         # Loading scientific Output
         logging.info(f"\nLoading Polarimeter {name}.")
         p.Load_Pol()
-        # Fill the dictionary with all the data of the polarimeters
+
+        # Fill the dictionary "polars" with all the data of the polarimeters
         for kind in ["DEM", "PWR"]:
-            polars[name][kind] = p.data[kind]
+            for exit in all_exits:
+                polars[kind][exit][name] = p.data[kind][exit]
+                # Looking for the shortest array
+                l = len(p.data[kind][exit])
+                if l < min_len:
+                    min_len = l
+
+    # Fixing length mismatch
+    for name in polar_names:
+        for kind in ["DEM", "PWR"]:
+            for exit in all_exits:
+                polars[kind][exit][name] = polars[kind][exit][name][:min_len-1]
 
     # Producing 55x55 correlation matrices
-    # Total number of matrices: 55 pol x4 single exits x4 all other exits x2 data type => 1760
-    # Time needed on a 3h dataset: ~ 7 sec/matr => 3.4 hours
-    for type in ["DEM", "PWR"]:
-        # Initialize an int that collect the number of repetitions
-        times = 1  # type: int
-        # Preparing a list of all the names of the polarimeters to parse
-        other_names = list(polars.keys())
-        for name in polars.keys():
-            # Removing the name of the current pol: needed to not repeat the check
-            other_names.remove(name)
-            # Exit of all the pol of the matrix
-            all_exits = ["Q1", "Q2", "U1", "U2"]
-            for all_exit in all_exits:
-                # Exit of the current pol
-                for single_exit in ["Q1", "Q2", "U1", "U2"]:
+    # ------------------------------------------------------------------------------------------------------------------
+    # Total number of matrices: 20.
+    # Q1 vs Q1, Q2, U1, U2;
+    # Q2 vs Q2, U1, U2;
+    # U1 vs U1, U2;
+    # U2 vs U2;
+    # 4 output ( Q1, Q2, U1, U2) vs all other x2 data type (DEM/PWR)
 
-                    # Considering the same exit on all polarimeters
-                    data = {key: val[type][all_exit] for key, val in polars.items()}
+    # Repetition of the procedure for the two data type: DEM/PWR
+    for kind in ["DEM", "PWR"]:
 
-                    # Condition to avoid the repetitions of the matrix
-                    if single_exit == all_exit:
-                        # times == 4 when the four exits have already been parsed
-                        if times < 4:
-                            # Updating data_name
-                            data_name = f"{type}_{all_exit}"
-                            times += 1
-                        else:
-                            pass
-                    else:
-                        # Changing the data exit of the current pol
-                        data[name] = polars[name][type][single_exit]
-                        # Updating data name
-                        data_name = f"{type}-{name}_{single_exit}-All_{all_exit}"
+        # Combinations of the exits: Q1, Q2, U1, U2
+        for i in range(len(all_exits)):
+            for j in range(i, len(all_exits)):
+                exit_1 = all_exits[i]
+                exit_2 = all_exits[j]
 
-                    logging.info(f"{data_name}")
+                data_name = f"{kind}_{exit_1}_{exit_2}"
+                logging.info(f"Combination: ({exit_1}, {exit_2})")
 
-                    # Create a DataFrame from the data
-                    df = pd.DataFrame(data)
-                    # Calculate the correlation matrix
-                    correlation_matrix = df.corr()
+                # Convert dictionaries to DataFrames
+                df1 = pd.DataFrame(polars[kind][exit_1])
+                df2 = pd.DataFrame(polars[kind][exit_2])
 
-                    # Remove self-correlations
-                    if single_exit == all_exit:
-                        for i in correlation_matrix.keys():
-                            # Put at Nan the values on the diagonal of the matrix
-                            correlation_matrix[i][i] = np.nan
+                # Initialize an empty DataFrame for correlations
+                correlation_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns)
 
-                    # Check on high correlation values
-                    # Done only on the changed row
-                    for name2 in other_names:
-                        if np.abs(correlation_matrix[name][name2]) > corr_t:
-                            warn_msg = (f"Found high correlation value between "
-                                        f"{name} {single_exit} and {name2} {all_exit}: "
-                                        f"{round(correlation_matrix[name][name2], 4)}.")
-                            logging.warning(warn_msg)
-                            warnings.append(f"|{name} {type} {single_exit}"
-                                            f"|{name2} {type} {all_exit}"
-                                            f"|{round(correlation_matrix[name][name2], 4)}|\n")
+                # Calculate Correlations
+                for key1 in df1.columns:
+                    for key2 in df2.columns:
+                        correlation_matrix.loc[key1, key2] = df1[key1].corr(df2[key2])
 
-                    # Prepare the figure
-                    plt.figure(figsize=(12, 10))
-                    plt.xticks(size=4)
-                    plt.yticks(size=4)
-                    plt.title(f'Correlation Matrix - {data_name}')
-                    # Color the matrix
-                    sn.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5, vmin=-0.8, vmax=0.8,
-                               annot_kws={"size": 2})
+                # Remove self-correlations on the diagonal
+                if exit_1 == exit_2:
+                    for n in polar_names:
+                        correlation_matrix.loc[n, n] = np.nan
 
-                    # Saving the figure
-                    plt.savefig(f'{plot_dir}{data_name}_CorrMat.png', dpi=300)
-                    # Show the figure on video
-                    if show:
-                        plt.show()
-                    plt.close('all')
+                # Combination of the names in pol_names
+                for n_1 in range(len(polar_names)):
+                    for n_2 in range(n_1 + 1, len(polar_names)):
+                        name_1 = polar_names[n_1]
+                        name_2 = polar_names[n_2]
+                        # logging.info(corr_matrix)
+                        # logging.info(corr_matrix[name_1])
+                        # Print a warning if the correlation value overcomes the threshold, then store it
+                        if np.abs(correlation_matrix[name_1][name_2]) > corr_t:
+                            warn_msg = (f"Found high correlation value between {name_1} {exit_1} and {name_2} {exit_2}:"
+                                        f" {round(correlation_matrix[name_1][name_2], 4)}.")
+                            # logging.warning(warn_msg)
+                            warnings.append(
+                                f"|{name_1} {exit_1}|{name_2} {exit_2}"
+                                f"|{correlation_matrix[name_1][name_2]}|\n")
+
+                # Convert correlation matrix values to float
+                correlation_matrix = correlation_matrix.astype(float)
+
+                # Create a heatmap using Seaborn
+                plt.figure(figsize=(20, 16))
+                sn.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=.5, vmin=-0.8, vmax=0.8,
+                           annot_kws={"size": 4}, xticklabels=True, yticklabels=True)
+                plt.title(f'Correlation Matrix {data_name}', fontsize=40)
+
+                # Save the heatmap as a PNG file
+                plt.savefig(f'{plot_dir}/{data_name}_corr_mat.png', dpi=300)
+
+                # Show the figure on video
+                if show:
+                    plt.show()
+                plt.close('all')
     return warnings
