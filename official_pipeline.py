@@ -7,6 +7,8 @@
 # Libraries & Modules
 import argparse
 import logging
+import os
+import shutil
 import sys
 
 from jinja2 import Environment, FileSystemLoader
@@ -82,6 +84,11 @@ def main():
     common_parser.add_argument("end_datetime", action='store', type=str,
                                help='- Ending datetime of the analysis. Format: "YYYY-MM-DD hh:mm:ss".')
 
+    # TOML information -------------------------------------------------------------------------------------------------
+    # toml_file_path
+    common_parser.add_argument("--toml_file_path", "-toml",
+                               action='store', type=str,
+                               help='Complete path of the TOML file used to start the pipeline')
     # Sampling Parameters ----------------------------------------------------------------------------------------------
     # Housekeeping Sampling Expected Median
     common_parser.add_argument('--hk_sam_exp_med', '-hk_sem',
@@ -140,7 +147,8 @@ def main():
     ####################################################################################################################
 
     # Create the parser for the command A: "tot"
-    parser_A = subparsers.add_parser("tot", parents=[common_parser], help="A) Analyzes all the polarimeters provided.")
+    parser_A = subparsers.add_parser("tot", parents=[common_parser],
+                                     help="A) Analyzes all the polarimeters provided.")
 
     # Positional Arguments (mandatory)
     # name_pol
@@ -281,6 +289,18 @@ def main():
         logging.error('end_datetime is equal to start_datetime: wrong datetime values.')
         raise SystemExit(1)
 
+    # Check if the toml file provided by the user exists.
+    try:
+        Path(args.toml_file_path)
+    except AttributeError:
+        logging.error('Modality not selected. Type -h for help!')
+        raise SystemExit(1)
+
+    if not Path(args.toml_file_path).exists():
+        logging.error(f'The target directory {args.toml_file_path} does not exist. '
+                      f'Please select a real location of the toml file to start the pipelinr.\n')
+        raise SystemExit(1)
+
     # MODE A: check on EOA string
     if args.subcommand == "tot":
         # Create a set of E,O,A
@@ -295,10 +315,15 @@ def main():
         # Case with all the polarimeter
         if args.name_pol == "all":
             # Assign all pol names to the corresponding arg
-            args.name_pol = ("B0 B1 B2 B3 B4 B5 B6 I0 I1 I2 I3 I4 I5 I6 "
-                             "G0 G1 G2 G3 G4 G5 G6 O0 O1 O2 O3 O4 O5 O6 "
-                             "R0 R1 R2 R3 R4 R5 R6 V0 V1 V2 V3 V4 V5 V6 "
-                             "W1 W2 W3 W4 W5 W6 Y0 Y1 Y2 Y3 Y4 Y5 Y6")
+            args.name_pol = ("B0 B1 B2 B3 B4 B5 B6 "
+                             "I0 I1 I2 I3 I4 I5 I6 "
+                             "G0 G1 G2 G3 G4 G5 G6 "
+                             "O0 O1 O2 O3 O4 O5 O6 "
+                             # "R0 R1 R2 R3 R4 R5 R6 "
+                             "R0 R2 R3 R4 R5 R6 "
+                             "V0 V1 V2 V3 V4 V5 V6 "
+                             "W1 W2 W3 W4 W5 W6 "
+                             "Y0 Y1 Y2 Y3 Y4 Y5 Y6")
 
         # Create a list of polarimeters names
         name_pol = args.name_pol.split()
@@ -346,6 +371,24 @@ def main():
     args.output_report_dir = f"{args.output_report_dir}/{date_dir}"
     # Check if the dir exists. If not, it will be created.
     Path(args.output_report_dir).mkdir(parents=True, exist_ok=True)
+
+    ####################################################################################################################
+    # TOML Information
+    # Saving the TOML file used to start the pipeline in the report directory
+
+    # Extract the TOML file name from the input path
+    toml_file_name = os.path.basename(args.toml_file_path)
+    # Construct the output file path by joining the output directory with the file name
+    output_file_path = os.path.join(args.output_report_dir, toml_file_name)
+
+    try:
+        # Copy the file
+        shutil.copy(args.toml_file_path, output_file_path)
+        logging.info(f"TOML file copied successfully to {output_file_path}\n")
+    except FileNotFoundError:
+        logging.error(f"The file {args.toml_file_path} does not exist.\n")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}\n")
 
     ####################################################################################################################
     # Operations: A-B-C
@@ -424,7 +467,7 @@ def main():
     header_template = env.get_template('report_header.txt')
 
     # Report generation: header
-    filename = Path(f"{args.output_report_dir}/report_{args.subcommand}_head.md")
+    filename = Path(f"{args.output_report_dir}/1_report_{args.subcommand}_head.md")
     with open(filename, 'w') as outf:
         outf.write(header_template.render(header_report_data))
 

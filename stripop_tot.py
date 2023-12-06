@@ -150,7 +150,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             template_ts = env.get_template('report_thermals.txt')
 
             # Report TS generation
-            filename = Path(f"{output_report_dir}/report_ts_status_{status}.md")
+            filename = Path(f"{output_report_dir}/3_report_ts_status_{status}.md")
             with open(filename, 'w') as outf:
                 outf.write(template_ts.render(report_data))
 
@@ -227,7 +227,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             template_hk = env.get_template('report_hk.txt')
 
             # Report HK generation
-            filename = Path(f"{output_report_dir}/report_hk.md")
+            filename = Path(f"{output_report_dir}/4_report_hk.md")
             with open(filename, 'w') as outf:
                 outf.write(template_hk.render(report_data))
 
@@ -334,7 +334,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     template_hk = env.get_template('report_eoa.txt')
 
                     # Report HK generation
-                    filename = Path(f"{output_report_dir}/report_eoa.md")
+                    filename = Path(f"{output_report_dir}/5_report_eoa.md")
                     with open(filename, 'w') as outf:
                         outf.write(template_hk.render(report_data))
 
@@ -398,7 +398,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     template_hk = env.get_template('report_sci.txt')
 
                     # Report SCIDATA generation
-                    filename = Path(f"{output_report_dir}/report_sci.md")
+                    filename = Path(f"{output_report_dir}/6_report_sci.md")
                     with open(filename, 'w') as outf:
                         outf.write(template_hk.render(report_data))
 
@@ -716,7 +716,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         template_hk = env.get_template('report_corr_plot.txt')
 
         # Report CORR PLOT generation
-        filename = Path(f"{output_report_dir}/report_corr_plot.md")
+        filename = Path(f"{output_report_dir}/7_report_corr_plot.md")
         with open(filename, 'w') as outf:
             outf.write(template_hk.render(report_data))
 
@@ -736,25 +736,25 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         template_hk = env.get_template('report_corr_mat.txt')
 
         # Report CORR MAT generation
-        filename = Path(f"{output_report_dir}/report_corr_mat.md")
+        filename = Path(f"{output_report_dir}/8_report_corr_mat.md")
         with open(filename, 'w') as outf:
             outf.write(template_hk.render(report_data))
 
-        # ------------------------------------------------------------------------------------------------------
-        # REPORT WARNINGS
-        # ------------------------------------------------------------------------------------------------------
-        # Updating the report_data dict for the warning report
-        report_data.update({"t_warn": t_warn,
-                            "sampling_warn": sampling_warn,
-                            "corr_warn": corr_warn,
-                            "spike_warn": spike_warn
-                            })
+    # ------------------------------------------------------------------------------------------------------
+    # REPORT WARNINGS
+    # ------------------------------------------------------------------------------------------------------
+    # Updating the report_data dict for the warning report
+    report_data.update({"t_warn": t_warn,
+                        "sampling_warn": sampling_warn,
+                        "corr_warn": corr_warn,
+                        "spike_warn": spike_warn
+                        })
 
-        # Getting instructions to create the head of the report
-        template_ts = env.get_template('report_warnings.txt')
+    # Getting instructions to create the head of the report
+    template_ts = env.get_template('report_warnings.txt')
 
-        # Report generation
-        filename = Path(f"{output_report_dir}/report_tot_warnings.md")
-        with open(filename, 'w') as outf:
-            outf.write(template_ts.render(report_data))
+    # Report generation
+    filename = Path(f"{output_report_dir}/2_report_tot_warnings.md")
+    with open(filename, 'w') as outf:
+        outf.write(template_ts.render(report_data))
     return
