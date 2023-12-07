@@ -143,14 +143,14 @@ class Thermal_Sensors:
                 if len_times != len_data:
                     # If they differ by 1 unit it means that a data in that status of the multiplexer
                     # hasn't been stored yet in the time interval given, hence the time array is reduced by one unit
-                    if len_times == len_data + 1 and self.status == 1:
+                    if len_times == len_data + 1:  # and self.status == 1:
                         self.ts["thermal_times"] = self.ts["thermal_times"][1:]
                     else:
                         good_sampling = False
                         # Print & store a warning message
                         msg = (f"The Thermal sensor: {sensor_name} has a sampling problem.\n"
                                f"The array of Timestamps has a wrong length. "
-                               f"Length difference: {len_data-len_times}.\n")
+                               f"Length difference: {len_data - len_times}.\n")
                         logging.error(msg)
                         self.warnings["time_warning"].append(msg)
                         problematic_ts.append(sensor_name)
@@ -182,8 +182,10 @@ class Thermal_Sensors:
 
     def TS_Sampling_Table(self, sam_exp_med: float, sam_tolerance: float) -> []:
         """
-        Create a list with the info of the Thermal Sensors sampling.
-        Now are listed in the table: the TS name, the number of sampling jumps, the median jump,
+        Create a dictionary with the info of the Thermal Sensors sampling.
+        The dictionary has two keys "md" and "csv" - each contains a list with the info to create the relative report
+        The current code produces a table with the following information:
+        the TS name, the number of sampling jumps, the median jump,
         the expected median jump, the 5th percentile and the 95th percentile.
         The HouseKeeping parameters included are: I Drain, I Gate, V Drain, V Gate, Offset.
 
@@ -191,8 +193,15 @@ class Thermal_Sensors:
         - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of the hk
         - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
         """
-        # Initialize a result list for the report
-        sampling_results = []
+
+        # [MD] Initialize a result list
+        md_results = []
+        # [CSV] Initialize a result list
+        csv_results = []
+
+        # Initialize a result dict for the reports
+        sampling_results = {"md": md_results, "csv": csv_results}
+
         # Initialize a string to collect the names of the TS with problems
         problematic_TS = ""
 
@@ -200,28 +209,41 @@ class Thermal_Sensors:
         jumps = fz.find_jump(self.ts["thermal_times"], exp_med=sam_exp_med, tolerance=sam_tolerance)
 
         # Check if there are jumps
+        # No Jumps detected
         if jumps["n"] == 0:
-            sampling_results = [f"\nThe sampling of the Thermal Sensors in status {self.status} is good: "
-                                f"no jumps in the TS Timestamps.\n"]
+            sampling_results["md"].append([f"\nThe sampling of the Thermal Sensors in status {self.status} is good: "
+                                           f"no jumps in the TS Timestamps.\n"])
+            sampling_results["csv"] += [f"Thermal Sensors Sampling status {self.status}:",
+                                        "GOOD", "No jumps in timestamps"]
+
+        # Jumps detected
         else:
 
-            # Preparing Table caption
-            sampling_results.append(
+            # [MD] Preparing Table caption
+            sampling_results["md"].append(
                 "| Data Name | # Jumps | &Delta;t Median [s] | Exp &Delta;t Median [s] | Tolerance "
                 "| 5th percentile | 95th percentile |\n"
                 "|:---------:|:-------:|:-------------------:|:-----------------------:|:---------:"
                 "|:--------------:|:---------------:|\n")
+            # [CSV] Preparing Table caption
+            sampling_results["cvs"] += ["Data Name", "# Jumps", "&Delta;t", "Median [s]", "Exp &Delta;t",
+                                        "Median [s]", "Tolerance", "5th percentile", "95th percentile"]
 
             # Collect all TS names into a str
             for group in self.ts_names.keys():
                 for sensor_name in self.ts_names[group]:
                     problematic_TS += f"{sensor_name} "
 
-            # Storing TS sampling information
-            sampling_results.append(
+            # [MD] Storing TS sampling information
+            sampling_results["md"].append(
                 f"|TS status {self.status}: {problematic_TS}"
                 f"|{jumps['n']}|{jumps['median']}|{jumps['exp_med']}|{jumps['tolerance']}"
                 f"|{jumps['5per']}|{jumps['95per']}|\n")
+
+            # [CSV] Storing TS sampling information
+            sampling_results["csv"] += [f"TS status {self.status}: {problematic_TS}", f"{jumps['n']}",
+                                        f"{jumps['median']}", f"{jumps['exp_med']}", f"{jumps['tolerance']}",
+                                        f"{jumps['5per']}", f"{jumps['95per']}"]
 
         return sampling_results
 
@@ -389,7 +411,7 @@ class Thermal_Sensors:
         # Set the title of the figure
         fig.suptitle(f'Plot Thermal Sensors FFT status {self.status}- Date: {self.gdate[0]}', fontsize=14)
 
-        # Note: the steps used by the periodogram are 1/20.
+        # Note: the steps used by the periodogram are 1/20, the sampling frequency of the thermal measures.
         fs = 1 / 20.
         for i, group in enumerate(self.ts_names.keys()):
             for j, sensor_name in enumerate(self.ts_names[group]):
@@ -449,7 +471,7 @@ class Thermal_Sensors:
         for name in self.ts["thermal_data"]["calibrated"].keys():
 
             if fft:
-                x_data, y_data = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][name], fs=ts_sam_exp_med/60,
+                x_data, y_data = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][name], fs=ts_sam_exp_med / 60,
                                                     nperseg=min(len(self.ts["thermal_data"]["calibrated"][name]),
                                                                 self.nperseg_thermal),
                                                     scaling="spectrum")
@@ -493,7 +515,7 @@ class Thermal_Sensors:
                     for idx, item in enumerate(spike_idxs):
                         # Calculate the Gregorian date in which the spike happened
                         greg_date = fz.date_update(start_datetime=self.gdate[0],
-                                                   n_samples=item, sampling_frequency=ts_sam_exp_med/60, ms=True)
+                                                   n_samples=item, sampling_frequency=ts_sam_exp_med / 60, ms=True)
                         # Gregorian date string to a datetime object
                         greg_datetime = datetime.strptime(f"{greg_date}000",
                                                           "%Y-%m-%d %H:%M:%S.%f")

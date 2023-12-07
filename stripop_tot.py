@@ -6,9 +6,11 @@
 # August 14th 2023, Brescia (Italy)
 
 # Libraries & Modules
+import csv
 import logging
 import os
 
+from astropy.time import Time
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from rich.logging import RichHandler
@@ -74,14 +76,50 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     """
     logging.info('\nLoading dir and templates information...')
 
-    # Initializing the data-dict for the report
+    # REPORTS ----------------------------------------------------------------------------------------------------------
+
+    # Markdown REPORT --------------------------------------------------------------------------------------------------
+    # Initializing the data-dict for the md report
     report_data = {"output_plot_dir": output_plot_dir}
 
-    # Initializing warning lists
+    # CSV REPORT -------------------------------------------------------------------------------------------------------
+    # General Information about the whole procedure are collected in a csv file
+
+    # csv_output_dir := directory that contains the csv reports
+    csv_output_dir = f"{output_report_dir}/CSV"
+    Path(csv_output_dir).mkdir(parents=True, exist_ok=True)
+
+    # Heading of the csv file
+    csv_general = [
+        ["GENERAL REPORT CSV"],
+        [""],
+        ["Path dataset file", "Start Date Time", "Start Date Time"],
+        [f"{path_file}", f"{fz.dir_format(start_datetime)}", f"{fz.dir_format(end_datetime)}"],
+        [""],
+        ["N Polarimeters"],
+        [f"{len(name_pol.split())}"],
+        [""],
+        ["Warnings List"],
+        [""],
+        [""]
+    ]
+
+    # [CSV] Open and append information
+    with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+              'a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerows(csv_general)
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # [MD] Initializing warning lists
     t_warn = []
     sampling_warn = []
     corr_warn = []
     spike_warn = []
+
+    # [CSV] Initializing warning list
+    csv_warning = []
+
     # General warning lists used in case of repetitions
     gen_warn = []
 
@@ -110,7 +148,18 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             TS.Load_TS()
 
             # TS Sampling warnings -------------------------------------------------------------------------------------
-            sampling_warn.extend(TS.TS_Sampling_Table(sam_exp_med=ts_sam_exp_med, sam_tolerance=ts_sam_tolerance))
+            sampling_table = TS.TS_Sampling_Table(sam_exp_med=ts_sam_exp_med, sam_tolerance=ts_sam_tolerance)
+            sampling_warn.extend(sampling_table["md"])
+            csv_warning.append(sampling_table["csv"])
+
+            # [CSV] write results in the report
+            with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                      'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_warning)
+
+                # Clean the memory
+                csv_warning = []
             # ----------------------------------------------------------------------------------------------------------
 
             # Normalizing TS measures
