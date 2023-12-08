@@ -468,7 +468,7 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
 
 
 def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=False, corr_t=0.4,
-                   plot_dir='../plot'):
+                   plot_dir='../plot') -> {}:
     """
     - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
     - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
@@ -478,11 +478,20 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
             *False* -> save the figure only
        - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced\n
        - **plot_dir** (``str``): path where the plots are organized in directories and saved.
-       Return a list of warnings that highlight which data are highly correlated.
+       Return a dict of warnings that highlight which data are highly correlated.
 
     """
-    # Creating a list to collect the warnings
-    warnings = []
+    # [MD] Initializing a list to collect the warnings
+    md_war = []
+    # [CSV] Initializing a list to collect the warnings
+    csv_war = [[""],
+               [""],
+               ["Cross Correlation between Polarimeters"],
+               [""],
+               ["Data 1", "Data 2", "Correlation Value"],
+               ]
+
+    warnings = {"md": md_war, "csv": csv_war}
 
     # length of the shortest array in the dictionary: needed for correlation with Dataframes
     min_len = np.inf
@@ -552,7 +561,7 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
                 exit_2 = all_exits[j]
 
                 data_name = f"{kind}_{exit_1}_{exit_2}"
-                logging.info(f"Combination: ({exit_1}, {exit_2})")
+                # logging.info(f"Combination: ({exit_1}, {exit_2})")
 
                 # Convert dictionaries to DataFrames
                 df1 = pd.DataFrame(polars[kind][exit_1])
@@ -580,12 +589,17 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
                         # logging.info(corr_matrix[name_1])
                         # Print a warning if the correlation value overcomes the threshold, then store it
                         if np.abs(correlation_matrix[name_1][name_2]) > corr_t:
-                            warn_msg = (f"Found high correlation value between {name_1} {exit_1} and {name_2} {exit_2}:"
+                            warn_msg = (f"Found high correlation value between "
+                                        f"{name_1} {exit_1} {kind} and {name_2} {exit_2} {kind}:"
                                         f" {round(correlation_matrix[name_1][name_2], 4)}.")
-                            # logging.warning(warn_msg)
-                            warnings.append(
-                                f"|{name_1} {exit_1}|{name_2} {exit_2}"
+                            logging.warning(warn_msg)
+                            # [MD] Collecting the warning
+                            warnings["md"].append(
+                                f"|{name_1} {exit_1} {kind} |{name_2} {exit_2} {kind} "
                                 f"|{correlation_matrix[name_1][name_2]}|\n")
+                            # [CSV] Collecting the warning
+                            warnings["csv"].append([f"{name_1} {exit_1} {kind}", f"{name_2} {exit_2} {kind}",
+                                                    f"{correlation_matrix[name_1][name_2]}"])
 
                 # Convert correlation matrix values to float
                 correlation_matrix = correlation_matrix.astype(float)

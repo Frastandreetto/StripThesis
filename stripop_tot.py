@@ -10,7 +10,6 @@ import csv
 import logging
 import os
 
-from astropy.time import Time
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from rich.logging import RichHandler
@@ -117,9 +116,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     corr_warn = []
     spike_warn = []
 
-    # [CSV] Cleaning memory for the new csv information
-    csv_general = []
-
     # General warning lists used in case of repetitions
     gen_warn = []
 
@@ -171,8 +167,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-            # [CSV] Clean the memory to avoid repetitions
-            csv_general = []
             # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing TS and collecting the results ------------------------------------------------------------------
@@ -192,9 +186,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-
-            # Clean the memory
-            csv_general = []
             # ----------------------------------------------------------------------------------------------------------
 
             # Plots of all TS
@@ -229,9 +220,18 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         logging.warning(
             f'-------------------------------------------------------------------------------------'
             f'\nCross Correlation Matrices between all the polarimeters.')
-        corr_warn.extend(fz_c.cross_corr_mat(path_file=path_file,
+        cross_corr_mat = fz_c.cross_corr_mat(path_file=path_file,
                                              start_datetime=start_datetime, end_datetime=end_datetime,
-                                             show=False, corr_t=corr_t))
+                                             show=False, corr_t=corr_t)
+        corr_warn.extend(cross_corr_mat["md"])
+        csv_general = cross_corr_mat["csv"]
+
+        # [CSV] write Cross Correlations results in the report ---------------------------------------------------------
+        with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                  'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(csv_general)
+        # --------------------------------------------------------------------------------------------------------------
 
     ####################################################################################################################
     # Single Polarimeter Analysis
@@ -531,7 +531,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                     # Define the HK key, unit of measure and first HK
                     for item, unit, first_hk in [("I", "[µA]", "ID0_HK"), ("V", "[mV]", "VD0_HK")]:
-
                         # Collecting all possible data combinations between Outputs and TS
                         possible_combos.extend([
                             # Output vs TS_status 0 or 1
