@@ -218,8 +218,9 @@ class Thermal_Sensors:
         if jumps["n"] == 0:
             sampling_results["md"].append([f"\nThe sampling of the Thermal Sensors in status {self.status} is good: "
                                            f"no jumps in the TS Timestamps.\n"])
-            sampling_results["csv"] += [f"Thermal Sensors Sampling status {self.status}:",
-                                        "GOOD", "No jumps in timestamps"]
+            sampling_results["csv"].append([f"Thermal Sensors Sampling status {self.status}:",
+                                            "GOOD", "No jumps in timestamps"])
+            sampling_results["csv"].append([""])
 
         # Jumps detected
         else:
@@ -231,8 +232,9 @@ class Thermal_Sensors:
                 "|:---------:|:-------:|:-------------------:|:-----------------------:|:---------:"
                 "|:--------------:|:---------------:|\n")
             # [CSV] Preparing Table caption
-            sampling_results["cvs"] += ["Data Name", "# Jumps", "&Delta;t", "Median [s]", "Exp &Delta;t",
-                                        "Median [s]", "Tolerance", "5th percentile", "95th percentile"]
+            sampling_results["cvs"].append(["Data Name", "# Jumps", "&Delta;t", "Median [s]", "Exp &Delta;t",
+                                            "Median [s]", "Tolerance", "5th percentile", "95th percentile"])
+            sampling_results["csv"].append([""])
 
             # Collect all TS names into a str
             for group in self.ts_names.keys():
@@ -249,6 +251,7 @@ class Thermal_Sensors:
             sampling_results["csv"] += [f"TS status {self.status}: {problematic_TS}", f"{jumps['n']}",
                                         f"{jumps['median']}", f"{jumps['exp_med']}", f"{jumps['tolerance']}",
                                         f"{jumps['5per']}", f"{jumps['95per']}"]
+            sampling_results["csv"].append([""])
 
         return sampling_results
 
@@ -334,15 +337,21 @@ class Thermal_Sensors:
 
         return results
 
-    def Thermal_table(self, results) -> str:
+    def Thermal_table(self, results) -> {}:
         """
-        Create a string with the md code for a table of thermal results.
+        Create a dictionary containing a string and a list to produce a table of thermal results.
+        The string contains the code for Markdown reports, the list is used for CSV reports.
         In the table there are the following info:  the sensor name, the status of acquisition (0 or 1),
         the group of the sensor, the max value, the min value, the mean, the standard deviation
         and the NaN percentage found for both RAW and calibrated (CAL) Temperatures.
         """
+        # Initialize a string to contain the md table
         md_table = " "
+        # Initialize a list to contain the csv table
+        csv_table = []
+
         for calib in ['raw', 'calibrated']:
+            # [MD]
             md_table += (f"\n\n"
                          f"{calib} data"
                          f"\n\n"
@@ -351,6 +360,14 @@ class Thermal_Sensors:
                          "|:-------:|:------:|:-----:|:-------------:|:-------------:|:--------:|:-----------:|:-----:|"
                          "\n"
                          )
+            # [CSV]
+            csv_table.append([""])
+            csv_table.append([f"{calib} data"])
+            csv_table.append([""])
+            csv_table.append(["TS Name", "Status", "Group",
+                              "Max value [K]", "Min value [K]", "Mean [K]", "Std_Dev [K]", "NaN %"])
+            csv_table.append([""])
+
             for group in self.ts_names.keys():
                 for sensor_name in self.ts_names[group]:
                     md_table += (f"|{sensor_name}|{self.status}|{group}|"
@@ -360,7 +377,17 @@ class Thermal_Sensors:
                                  f"{round(results[calib]['dev_std'][sensor_name], 4)}|"
                                  f"{round(results[calib]['nan_percent'][sensor_name], 4)}"
                                  f"\n")
-        return md_table
+                    csv_table.append([f"{sensor_name}", f"{self.status}", f"{group}",
+                                      f"{round(results[calib]['max'][sensor_name], 4)}",
+                                      f"{round(results[calib]['min'][sensor_name], 4)}",
+                                      f"{round(results[calib]['mean'][sensor_name], 4)}",
+                                      f"{round(results[calib]['dev_std'][sensor_name], 4)}",
+                                      f"{round(results[calib]['nan_percent'][sensor_name], 4)}"])
+                    csv_table.append([""])
+
+        # Initialize a dict to contain the tables
+        table = {"md": md_table, "csv": csv_table}
+        return table
 
     def Plot_TS(self, show=False):
         """

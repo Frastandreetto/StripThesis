@@ -117,8 +117,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     corr_warn = []
     spike_warn = []
 
-    # [CSV] Initializing warning list
-    csv_warning = []
+    # [CSV] Cleaning memory for the new csv information
+    csv_general = []
 
     # General warning lists used in case of repetitions
     gen_warn = []
@@ -149,17 +149,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
             # TS Sampling warnings -------------------------------------------------------------------------------------
             sampling_table = TS.TS_Sampling_Table(sam_exp_med=ts_sam_exp_med, sam_tolerance=ts_sam_tolerance)
+            # [MD] Storing TS sampling warnings
             sampling_warn.extend(sampling_table["md"])
-            csv_warning.append(sampling_table["csv"])
-
-            # [CSV] write warnings & results in the report
-            with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
-                      'a', newline='') as file:
-                writer = csv.writer(file)
-                writer.writerows(csv_warning)
-
-                # Clean the memory
-                csv_warning = []
+            # [CSV] Storing TS sampling warnings
+            csv_general = sampling_table["csv"]
             # ----------------------------------------------------------------------------------------------------------
 
             # Normalizing TS measures
@@ -170,16 +163,39 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # [MD]
             t_warn.extend(TS.warnings["time_warning"])
             # [CSV]
-            csv_warning.append(TS.warnings["time_warning"])
+            csv_general.append(TS.warnings["time_warning"])
             # ----------------------------------------------------------------------------------------------------------
 
-            # Analyzing TS and collecting the results
+            # [CSV] REPORT: write TS sampling & time warnings in the report --------------------------------------------
+            with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                      'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_general)
+            # [CSV] Clean the memory to avoid repetitions
+            csv_general = []
+            # ----------------------------------------------------------------------------------------------------------
+
+            # Analyzing TS and collecting the results ------------------------------------------------------------------
             logging.info(f'Analyzing TS. Status {status}')
             ts_results = TS.Analyse_TS()
 
-            # Preparing md table for the report
+            # Preparing tables for the reports
             logging.info(f'Producing TS table for the report. Status {status}')
-            th_table = TS.Thermal_table(results=ts_results)
+            # [MD]
+            th_table = TS.Thermal_table(results=ts_results)["md"]
+            # [CSV]
+            csv_general = TS.Thermal_table(results=ts_results)["csv"]
+            # ----------------------------------------------------------------------------------------------------------
+
+            # [CSV] write TS results in the report ---------------------------------------------------------------------
+            with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                      'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_general)
+
+            # Clean the memory
+            csv_general = []
+            # ----------------------------------------------------------------------------------------------------------
 
             # Plots of all TS
             logging.info(f'Plotting all TS measures for status {status} of the multiplexer.')
