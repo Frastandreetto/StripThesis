@@ -152,7 +152,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             sampling_warn.extend(sampling_table["md"])
             csv_warning.append(sampling_table["csv"])
 
-            # [CSV] write results in the report
+            # [CSV] write warnings & results in the report
             with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
@@ -167,7 +167,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             _ = TS.Norm_TS()
 
             # TS Time warnings ----------------------------------------------------------------------------------------
+            # [MD]
             t_warn.extend(TS.warnings["time_warning"])
+            # [CSV]
+            csv_warning.append(TS.warnings["time_warning"])
             # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing TS and collecting the results

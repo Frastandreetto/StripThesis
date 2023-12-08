@@ -128,9 +128,9 @@ class Thermal_Sensors:
         """
         Check if the TIME array and the CALIBRATED DATA array have the same length.
         Normalize all Thermal Sensor's timestamps putting one every 30 seconds from the beginning of the dataset.
+        Return a list of problematic TS
         """
-        # Check if the TIME array and the CALIBRATED DATA array have the same length
-        # Return a list of problematic TS
+        # Initialize a list of problematic TS
         problematic_ts = []
         # Initialize a boolean variable to True meaning there is no sampling problems
         good_sampling = True
@@ -141,16 +141,21 @@ class Thermal_Sensors:
                 len_data = len(self.ts["thermal_data"]["calibrated"][sensor_name])
                 # If timestamps and data don't have the same length
                 if len_times != len_data:
-                    # If they differ by 1 unit it means that a data in that status of the multiplexer
-                    # hasn't been stored yet in the time interval given, hence the time array is reduced by one unit
+                    # If they differ by 1 unit it means that:
+                    # 1) A datum of the status of the multiplexer hasn't been stored yet in the time interval given,
+                    # but its timestamp was already collected, hence the time array is reduced by one unit
                     if len_times == len_data + 1:  # and self.status == 1:
-                        self.ts["thermal_times"] = self.ts["thermal_times"][1:]
+                        self.ts["thermal_times"] = self.ts["thermal_times"][:-1]
+
+                    # 2) A datum of the status of the multiplexer has been stored in the time interval given,
+                    # but its timestamp was collected before the start_datetime given,
+                    # hence a warning is produced and stored
                     else:
                         good_sampling = False
                         # Print & store a warning message
                         msg = (f"The Thermal sensor: {sensor_name} has a sampling problem.\n"
                                f"The array of Timestamps has a wrong length. "
-                               f"Length difference: {len_data - len_times}.\n")
+                               f"Length difference len_data - len_times = {len_data - len_times}.\n")
                         logging.error(msg)
                         self.warnings["time_warning"].append(msg)
                         problematic_ts.append(sensor_name)
@@ -180,7 +185,7 @@ class Thermal_Sensors:
 
         return problematic_ts
 
-    def TS_Sampling_Table(self, sam_exp_med: float, sam_tolerance: float) -> []:
+    def TS_Sampling_Table(self, sam_exp_med: float, sam_tolerance: float) -> {}:
         """
         Create a dictionary with the info of the Thermal Sensors sampling.
         The dictionary has two keys "md" and "csv" - each contains a list with the info to create the relative report
