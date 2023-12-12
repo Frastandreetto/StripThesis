@@ -278,10 +278,14 @@ class Polarimeter:
                                                                                    par=hk_name
                                                                                    )
 
-    def Norm_HouseKeeping(self):
+    def Norm_HouseKeeping(self) -> []:
         """
+        Check if the TIME array and the House-keeping data array have the same length.
         Normalize all House-Keeping's timestamps putting one every 1.4 seconds from the beginning of the dataset.
+        Return a list of problematic HK
         """
+        # Initialize a list of problematic HK
+        problematic_hk = []
         # Initialize a boolean variable to True meaning there is no sampling problems
         good_sampling = True
         for item in self.hk_list.keys():
@@ -312,6 +316,10 @@ class Polarimeter:
             msg = "\nThe assignment of the Timestamps of the House-Keeping parameters is good.\n"
             logging.info(msg)
             self.warnings["time_warning"].append(msg)
+            # [CSV] Append the name of a problematic HK
+            problematic_hk.append(f"{self.name} - {hk_name}")
+
+        return problematic_hk
 
     def Analyse_HouseKeeping(self) -> {}:
         """
@@ -410,10 +418,12 @@ class Polarimeter:
                              )
         return md_table
 
-    def HK_Sampling_Table(self, sam_exp_med: dict, sam_tolerance: dict) -> []:
+    def HK_Sampling_Table(self, sam_exp_med: dict, sam_tolerance: dict) -> {}:
         """
-        Create a list with the info of the housekeeping parameter sampling.
-        Now are listed in the table: the HK-Parameter name, the number of sampling jumps, the median jump,
+        Create a dictionary with the info of the housekeeping parameter sampling.
+        The dictionary has two keys "md" and "csv" - each contains a list with the info to create the relative report
+        The current code produces a table with the following information:
+        the HK-Parameter name, the number of sampling jumps, the median jump,
         the expected median jump, the 5th percentile and the 95th percentile.
         The HouseKeeping parameters included are: I Drain, I Gate, V Drain, V Gate, Offset.
 
@@ -423,8 +433,15 @@ class Polarimeter:
         """
         # Initialize a warning dict and a jump list to collect info about the samplings
         sampling_info = {}
-        # Initialize a result list for the report
-        sampling_results = []
+
+        # [MD] Initialize a result list
+        md_results = []
+        # [CSV] Initialize a result list
+        csv_results = []
+
+        # Initialize a result dict for the reports
+        sampling_results = {"md": md_results, "csv": csv_results}
+
         # Initialize a boolean variable: if true, no jumps occurred
         good_sampling = True
 
@@ -439,23 +456,45 @@ class Polarimeter:
                     good_sampling = False
                     sampling_info.update({f"{hk_name}": jumps})
 
+        # No Jumps detected
         if good_sampling:
-            sampling_results = ["\nThe sampling of the House-Keeping parameters is good: "
-                                "no jumps in the HK Timestamps\n"]
+            sampling_results["md"].append(["\nThe sampling of the House-Keeping parameters is good: "
+                                           "no jumps in the HK Timestamps\n"])
+            sampling_results["csv"].append(["House-Keeping Sampling:", "GOOD", "No jumps in HK Timestamps"])
+            sampling_results["csv"].append([""])
+
+        # Jumps detected
         else:
-            sampling_results.append(
-                "| HK Name | # Jumps | &Delta;t Median [s] | Exp &Delta;t Median [s] | Tolerance "
+
+            # [MD] Preparing Table caption
+            sampling_results["md"].append(
+                "| HK Name | # Jumps | &Delta;t Median [s] | Exp &Delta;t [s] | Tolerance "
                 "| 5th percentile | 95th percentile |\n"
                 "|:---------:|:-------:|:-------------------:|:-----------------------:|:---------:"
                 "|:--------------:|:---------------:|\n")
+            # [CSV] Preparing Table caption
+            sampling_results["csv"].append(["HK Name", "# Jumps", "Delta t Median [s]", "Exp Delta t Median [s]",
+                                            "Tolerance", "5th percentile", "95th percentile"])
+            sampling_results["csv"].append([""])
 
-            # Saving table info about the jumps
+            # Saving...
             for name in sampling_info.keys():
-                sampling_results.append(
+                # [MD] Storing HK sampling information
+                sampling_results["md"].append(
                     f"|{name}|{sampling_info[name]['n']}"
                     f"|{sampling_info[name]['median']}|{sampling_info[name]['exp_med']}"
                     f"|{sampling_info[name]['tolerance']}"
                     f"|{sampling_info[name]['5per']}|{sampling_info[name]['95per']}|\n")
+
+                # [CSV] Storing TS sampling information
+                sampling_results["csv"].append([f"{name}",
+                                                f"{sampling_info[name]['n']}",
+                                                f"{sampling_info[name]['median']}",
+                                                f"{sampling_info[name]['exp_med']}",
+                                                f"{sampling_info[name]['tolerance']}",
+                                                f"{sampling_info[name]['5per']}",
+                                                f"{sampling_info[name]['95per']}"])
+                sampling_results["csv"].append([""])
 
         return sampling_results
 
@@ -746,9 +785,9 @@ class Polarimeter:
 
                         for idx, item in enumerate(spike_idxs):
                             rows += (f"|{idx + 1}|FFT {type}|{exit}"
-                                     f"|{np.round(x_data[item] ,6)}"
-                                     f"|{np.round(y_data[item] - np.median(y_data),6)}"
-                                     f"|{np.round(scs.median_abs_deviation(y_data),6)}|\n")
+                                     f"|{np.round(x_data[item], 6)}"
+                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}"
+                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
             if cap:
                 spike_tab += rows
 

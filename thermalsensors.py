@@ -192,7 +192,6 @@ class Thermal_Sensors:
         The current code produces a table with the following information:
         the TS name, the number of sampling jumps, the median jump,
         the expected median jump, the 5th percentile and the 95th percentile.
-        The HouseKeeping parameters included are: I Drain, I Gate, V Drain, V Gate, Offset.
 
         Parameters:\n
         - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of the hk
@@ -219,7 +218,7 @@ class Thermal_Sensors:
             sampling_results["md"].append([f"\nThe sampling of the Thermal Sensors in status {self.status} is good: "
                                            f"no jumps in the TS Timestamps.\n"])
             sampling_results["csv"].append([f"Thermal Sensors Sampling status {self.status}:",
-                                            "GOOD", "No jumps in timestamps"])
+                                            "GOOD", "No jumps in TS timestamps"])
             sampling_results["csv"].append([""])
 
         # Jumps detected
@@ -232,8 +231,8 @@ class Thermal_Sensors:
                 "|:---------:|:-------:|:-------------------:|:-----------------------:|:---------:"
                 "|:--------------:|:---------------:|\n")
             # [CSV] Preparing Table caption
-            sampling_results["cvs"].append(["Data Name", "# Jumps", "&Delta;t", "Median [s]", "Exp &Delta;t",
-                                            "Median [s]", "Tolerance", "5th percentile", "95th percentile"])
+            sampling_results["csv"].append(["Data Name", "# Jumps", "Delta t Median [s]", "Exp Delta t Median",
+                                            "Tolerance", "5th percentile", "95th percentile"])
             sampling_results["csv"].append([""])
 
             # Collect all TS names into a str
@@ -248,9 +247,9 @@ class Thermal_Sensors:
                 f"|{jumps['5per']}|{jumps['95per']}|\n")
 
             # [CSV] Storing TS sampling information
-            sampling_results["csv"] += [f"TS status {self.status}: {problematic_TS}", f"{jumps['n']}",
-                                        f"{jumps['median']}", f"{jumps['exp_med']}", f"{jumps['tolerance']}",
-                                        f"{jumps['5per']}", f"{jumps['95per']}"]
+            sampling_results["csv"].append([f"TS status {self.status}: {problematic_TS}", f"{jumps['n']}",
+                                            f"{jumps['median']}", f"{jumps['exp_med']}", f"{jumps['tolerance']}",
+                                            f"{jumps['5per']}", f"{jumps['95per']}"])
             sampling_results["csv"].append([""])
 
         return sampling_results

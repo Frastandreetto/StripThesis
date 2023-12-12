@@ -175,10 +175,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
             # Preparing tables for the reports
             logging.info(f'Producing TS table for the report. Status {status}')
+            TS_table = TS.Thermal_table(results=ts_results)
             # [MD]
-            th_table = TS.Thermal_table(results=ts_results)["md"]
+            th_table = TS_table["md"]
             # [CSV]
-            csv_general = TS.Thermal_table(results=ts_results)["csv"]
+            csv_general = TS_table["csv"]
             # ----------------------------------------------------------------------------------------------------------
 
             # [CSV] write TS results in the report ---------------------------------------------------------------------
@@ -241,8 +242,26 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     name_pol = name_pol.split()
     # Repeating the analysis for all the polarimeters in the list
     for np in name_pol:
+
+        # Messages for report and user
+        # --------------------------------------------------------------------------------------------------------------
+        msg = f'Parsing {np}'
+        csv_general = [
+            [""],
+            [f"{msg}"],
+            [""]
+        ]
+        # [CSV] write which polarimeter is parsed ---------------------------------------------------------
+        with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                  'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(csv_general)
+        # -------------------------------------------------------------------------------------------------
+
         logging.warning(f'--------------------------------------------------------------------------------------'
-                        f'\nParsing {np}')
+                        f'\n{msg}\n')
+        # --------------------------------------------------------------------------------------------------------------
+
         # Initializing a Polarimeter
         p = pol.Polarimeter(name_pol=np, path_file=path_file,
                             start_datetime=start_datetime, end_datetime=end_datetime)
@@ -259,22 +278,36 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             p.Load_HouseKeeping()
 
             # HK Sampling warnings -------------------------------------------------------------------------------------
-            sampling_warn.extend(p.HK_Sampling_Table(sam_exp_med=hk_sam_exp_med, sam_tolerance=hk_sam_tolerance))
+            HK_sampling_table = p.HK_Sampling_Table(sam_exp_med=hk_sam_exp_med, sam_tolerance=hk_sam_tolerance)
+            # [MD]
+            sampling_warn.extend(HK_sampling_table["md"])
+            # [CSV]
+            csv_general = HK_sampling_table["csv"]
             # ----------------------------------------------------------------------------------------------------------
 
             # Normalizing the HK measures
             logging.info('Normalizing HK.')
-            p.Norm_HouseKeeping()
+            problematic_hk = p.Norm_HouseKeeping()
 
             # HK Time warnings -----------------------------------------------------------------------------------------
+            # [MD]
             t_warn.extend(p.warnings["time_warning"])
+            # [CSV]
+            csv_general.append(problematic_hk)
+            # ----------------------------------------------------------------------------------------------------------
+
+            # [CSV] REPORT: write HK sampling & time warnings in the report --------------------------------------------
+            with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                      'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_general)
             # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing HK and collecting the results
             logging.info('Analyzing HK.')
             hk_results = p.Analyse_HouseKeeping()
 
-            # Preparing html table for the report
+            # Preparing md table for the report
             logging.info('Producing HK table for the report.')
             hk_table = p.HK_table(results=hk_results)
 
