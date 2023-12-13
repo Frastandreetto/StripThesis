@@ -379,28 +379,34 @@ class Polarimeter:
 
         return results
 
-    def HK_table(self, results: dict) -> str:
+    def HK_table(self, results: dict) -> {}:
         """
-        Create a string with the md code for a table of Housekeeping results.
-        Now are listed in the table: the HK-Parameter name, the max value, the min value, the mean,
+        Create a dictionary containing a string and a list to produce a table of Housekeeping results.
+        The string contains the code for Markdown reports, the list is used for CSV reports.
+        In the table there are the following info: the HK-Parameter name, the max value, the min value, the mean,
         the standard deviation and the NaN percentage.
         The HouseKeeping parameters included are: I Drain, I Gate, V Drain, V Gate, Offset.
 
         Parameters:\n
         **results** (``dict``): contains the info about hk analysis obtained with Analyze_Housekeeping
         """
-        md_table = ""
+        # Initialize a string to contain the md table
+        md_table = " "
+        # Initialize a list to contain the csv table
+        csv_table = []
+
         for item in self.hk_list.keys():
             if item == "V":
-                unit = "[&mu;V]"
+                unit = "[mV]"
                 title = f"Tension {unit}"
             elif item == "I":
-                unit = "[mA]"
+                unit = "[&mu;A]"
                 title = f"Current {unit}"
             else:
                 unit = "[ADU]"
                 title = f"Offset {unit}"
 
+            # [MD] Heading of the table
             md_table += (f"\n"
                          f"- {title}\n\n"
                          f"| Parameter | Max Value {unit} | Min Value {unit} | Mean {unit} | Std_Dev {unit} | NaN % |"
@@ -408,7 +414,16 @@ class Polarimeter:
                          " |:---------:|:-----------:|:-----------:|:------:|:---------:|:-----:|"
                          "\n"
                          )
+            # [CSV] Heading of the table
+            csv_table.append([""])
+            csv_table.append([f"{title}"])
+            csv_table.append([""])
+            csv_table.append(["Parameter", f"Max Value {unit}", f"Min Value {unit}",
+                              f"Mean {unit}", f"Std_Dev {unit}", "NaN %"])
+            csv_table.append([""])
+
             for hk_name in self.hk_list[item]:
+                # [MD] Filling the table with values
                 md_table += (f"|{hk_name}|{round(results['max'][item][hk_name], 4)}|"
                              f"{round(results['min'][item][hk_name], 4)}|"
                              f"{round(results['mean'][item][hk_name], 4)}|"
@@ -416,7 +431,17 @@ class Polarimeter:
                              f"{round(results['nan_percent'][item][hk_name], 4)}|"
                              f"\n"
                              )
-        return md_table
+
+                # [CSV] Filling the table with values
+                csv_table.append([f"{hk_name}", f"{round(results['max'][item][hk_name], 4)}",
+                                  f"{round(results['min'][item][hk_name], 4)}",
+                                  f"{round(results['mean'][item][hk_name], 4)}",
+                                  f"{round(results['dev_std'][item][hk_name], 4)}",
+                                  f"{round(results['nan_percent'][item][hk_name], 4)}"])
+
+                # Initialize a dict to contain the tables
+        table = {"md": md_table, "csv": csv_table}
+        return table
 
     def HK_Sampling_Table(self, sam_exp_med: dict, sam_tolerance: dict) -> {}:
         """

@@ -108,7 +108,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
               'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(csv_general)
-
+    logging.info("#####\nCSV Report updated: Heading written.\n#####\n")
     # ------------------------------------------------------------------------------------------------------------------
     # [MD] Initializing warning lists
     t_warn = []
@@ -167,6 +167,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
+            logging.info("#####\nCSV Report updated: TS Sampling Table written.\n#####\n")
             # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing TS and collecting the results ------------------------------------------------------------------
@@ -182,11 +183,12 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             csv_general = TS_table["csv"]
             # ----------------------------------------------------------------------------------------------------------
 
-            # [CSV] write TS results in the report ---------------------------------------------------------------------
+            # [CSV] write TS results table in the report ---------------------------------------------------------------
             with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
+            logging.info("#####\nCSV Report updated: TS Table written.\n#####\n")
             # ----------------------------------------------------------------------------------------------------------
 
             # Plots of all TS
@@ -232,6 +234,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
+            logging.info("#####\nCSV Report updated: Cross Correlation Warnings written.\n#####\n")
         # --------------------------------------------------------------------------------------------------------------
 
     ####################################################################################################################
@@ -281,7 +284,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             HK_sampling_table = p.HK_Sampling_Table(sam_exp_med=hk_sam_exp_med, sam_tolerance=hk_sam_tolerance)
             # [MD]
             sampling_warn.extend(HK_sampling_table["md"])
-            # [CSV]
+            # [CSV] Storing HK sampling table
             csv_general = HK_sampling_table["csv"]
             # ----------------------------------------------------------------------------------------------------------
 
@@ -301,15 +304,26 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
+            logging.info("#####\nCSV Report updated: HK Sampling Table written.\n#####\n")
             # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing HK and collecting the results
             logging.info('Analyzing HK.')
             hk_results = p.Analyse_HouseKeeping()
 
-            # Preparing md table for the report
+            # Preparing tables for the report
             logging.info('Producing HK table for the report.')
-            hk_table = p.HK_table(results=hk_results)
+            HK_table = p.HK_table(results=hk_results)
+
+            # [CSV] Storing the HK results table
+            csv_general = HK_table["csv"]
+            # [CSV] REPORT: write HK Table in the report ---------------------------------------------------------------
+            with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                      'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_general)
+            logging.info("#####\nCSV Report updated: HK Table written.\n#####\n")
+            # ----------------------------------------------------------------------------------------------------------
 
             # Plots of the Bias HK (Tensions and Currents) and of the Offsets
             logging.info('Plotting Bias HK and Offsets.')
@@ -317,12 +331,12 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 p.Plot_Housekeeping(hk_kind=hk_kind, show=False)
 
             # ----------------------------------------------------------------------------------------------------------
-            # REPORT HK
+            # REPORT Markdown HK
             # ----------------------------------------------------------------------------------------------------------
             logging.info(f"\nOnce ready, I will put the HK report into: {output_report_dir}.")
 
             # Updating the report_data dict
-            report_data.update({"hk_table": hk_table})
+            report_data.update({"hk_table": HK_table["md"]})
 
             # Getting instructions to create the HK report
             template_hk = env.get_template('report_hk.txt')
