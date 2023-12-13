@@ -350,7 +350,8 @@ class Thermal_Sensors:
         csv_table = []
 
         for calib in ['raw', 'calibrated']:
-            # [MD]
+
+            # [MD] Heading of the table
             md_table += (f"\n\n"
                          f"{calib} data"
                          f"\n\n"
@@ -359,7 +360,8 @@ class Thermal_Sensors:
                          "|:-------:|:------:|:-----:|:-------------:|:-------------:|:--------:|:-----------:|:-----:|"
                          "\n"
                          )
-            # [CSV]
+
+            # [CSV] Heading of the table
             csv_table.append([""])
             csv_table.append([f"{calib} data"])
             csv_table.append([""])
@@ -369,6 +371,8 @@ class Thermal_Sensors:
 
             for group in self.ts_names.keys():
                 for sensor_name in self.ts_names[group]:
+
+                    # [MD] Filling the table with values
                     md_table += (f"|{sensor_name}|{self.status}|{group}|"
                                  f"{round(results[calib]['max'][sensor_name], 4)}|"
                                  f"{round(results[calib]['min'][sensor_name], 4)}|"
@@ -376,6 +380,8 @@ class Thermal_Sensors:
                                  f"{round(results[calib]['dev_std'][sensor_name], 4)}|"
                                  f"{round(results[calib]['nan_percent'][sensor_name], 4)}"
                                  f"\n")
+
+                    # [CSV] Filling the table with values
                     csv_table.append([f"{sensor_name}", f"{self.status}", f"{group}",
                                       f"{round(results[calib]['max'][sensor_name], 4)}",
                                       f"{round(results[calib]['min'][sensor_name], 4)}",
