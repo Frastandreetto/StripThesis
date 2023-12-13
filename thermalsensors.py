@@ -215,8 +215,11 @@ class Thermal_Sensors:
         # Check if there are jumps
         # No Jumps detected
         if jumps["n"] == 0:
+            # [MD] Good Sampling
             sampling_results["md"].append([f"\nThe sampling of the Thermal Sensors in status {self.status} is good: "
                                            f"no jumps in the TS Timestamps.\n"])
+            # [CSV] Good Sampling
+            sampling_results["csv"].append([""])
             sampling_results["csv"].append([f"Thermal Sensors Sampling status {self.status}:",
                                             "GOOD", "No jumps in TS timestamps"])
             sampling_results["csv"].append([""])
