@@ -388,7 +388,6 @@ class Thermal_Sensors:
                                       f"{round(results[calib]['mean'][sensor_name], 4)}",
                                       f"{round(results[calib]['dev_std'][sensor_name], 4)}",
                                       f"{round(results[calib]['nan_percent'][sensor_name], 4)}"])
-                    csv_table.append([""])
 
         # Initialize a dict to contain the tables
         table = {"md": md_table, "csv": csv_table}
