@@ -304,7 +304,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-            logging.info("#####\nCSV Report updated: HK Sampling Table written.\n#####\n")
+            logging.info(f"#####\nCSV Report updated: HK {np} Sampling Table written.\n#####\n")
             # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing HK and collecting the results
@@ -322,7 +322,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-            logging.info("#####\nCSV Report updated: HK Table written.\n#####\n")
+            logging.info(f"#####\nCSV Report updated: HK {np} Table written.\n#####\n")
             # ----------------------------------------------------------------------------------------------------------
 
             # Plots of the Bias HK (Tensions and Currents) and of the Offsets
@@ -355,9 +355,17 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         p.Load_Pol()
 
         # Holes: Analyzing Scientific Output Sampling ------------------------------------------------------------------
-        _ = p.Write_Jump(sam_tolerance=sam_tolerance)
+        csv_general = p.Pol_Sampling_Table(sam_tolerance=sam_tolerance)
         sampling_warn.extend(p.warnings["sampling_warning"])
         # --------------------------------------------------------------------------------------------------------------
+
+        # [CSV] REPORT: write Polarimeter Sampling Table (Jumps) in the report -----------------------------------------
+        with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                  'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(csv_general)
+        logging.info(f"#####\nCSV Report updated: Polarimeter {np} Sampling Table written.\n#####\n")
+        # ----------------------------------------------------------------------------------------------------------
 
         # Looking for spikes in the dataset ----------------------------------------------------------------------------
         if spike_data:
@@ -621,7 +629,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                         data_name1=f"{n1}", data_name2=f"{n2}",
                                                         start_datetime=start_datetime,
                                                         show=False, plot_dir=output_plot_dir)
-                    # Store correlation warnings
+                    # Store correlation warnings (only once, to avoid repetitions)
                     corr_warn.extend(gen_warn)
 
         ################################################################################################################

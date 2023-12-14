@@ -299,7 +299,11 @@ class Polarimeter:
                     msg = (f"The House-Keeping: {hk_name} has a sampling problem. "
                            f"The array of Timestamps has a wrong length\n")
                     logging.error(msg)
+                    # [MD] Append the message with the problematic HK
                     self.warnings["time_warning"].append(msg + "\n")
+
+                    # [CSV] Append the name of a problematic HK
+                    problematic_hk.append(f"{self.name} - {hk_name}")
 
                 # Normalization Operations
                 if item == "O":
@@ -316,8 +320,6 @@ class Polarimeter:
             msg = "\nThe assignment of the Timestamps of the House-Keeping parameters is good.\n"
             logging.info(msg)
             self.warnings["time_warning"].append(msg)
-            # [CSV] Append the name of a problematic HK
-            problematic_hk.append(f"{self.name} - {hk_name}")
 
         return problematic_hk
 
@@ -519,7 +521,6 @@ class Polarimeter:
                                                 f"{sampling_info[name]['tolerance']}",
                                                 f"{sampling_info[name]['5per']}",
                                                 f"{sampling_info[name]['95per']}"])
-                sampling_results["csv"].append([""])
 
         return sampling_results
 
@@ -675,17 +676,21 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    def Write_Jump(self, sam_tolerance: float) -> {}:
+    def Pol_Sampling_Table(self, sam_tolerance: float) -> []:
         """
-        Find the 'jumps' in the timestamps of a given dataset and produce a file .txt with a description for every jump,
-        including: Name_Polarimeter - Jump_Index - Delta_t before - tDelta_t after - Gregorian Date - JHD.\n
+        Return a list to produce a CSV table that contains a description of jumps in Polarimeter timestamps.
+        This function store also a table in Markdown format in self.warnings
+
+        The current code produces a table with the following information:
+        Name_Polarimeter - Jump_Index - Jump Value [JHD] - Jump Value [s] - Gregorian Date - Julian Date.\n
+
         Parameters:\n
         - **start_datetime** (``str``): start time, format: "%Y-%m-%d %H:%M:%S". That must be the start_time used
         to define the polarimeter for which the jumps dictionary has been created with the function "find_jump" above.\n
         - **sam_tolerance** (``float``): the acceptance sampling tolerances of the scientific output
         """
-        logging.basicConfig(level="INFO", format='%(message)s',
-                            datefmt="[%X]", handlers=[RichHandler()])  # <3
+        # [CSV] Initialize a result list
+        csv_results = []
 
         logging.info("Looking for jumps...\n")
         jumps = fz.find_jump(v=self.times, exp_med=0.01, tolerance=sam_tolerance)
@@ -703,9 +708,16 @@ class Polarimeter:
             # Saving the warning message
             self.warnings["sampling_warning"].append(t_warn + "\n")
 
+            # [MD] Preparing Table Heading
             md_tab_content = (f"Time Jumps Pol {self.name}\n"
                               f"| # Jump | Jump value [JHD] | Jump value [s] | Gregorian Date | Julian Date [JHD]|\n"
                               f"|:------:|:----------------:|:--------------:|:--------------:|:----------------:|\n")
+
+            # [CSV] Preparing Table Heading
+            csv_results.append([f"Time Jumps Pol {self.name}"])
+            csv_results.append([""])
+            csv_results.append(["# Jump", "Jump value [JHD]", "Jump value [s]", "Gregorian Date", "Julian Date [JHD]"])
+
             # Initializing the jump number
             i = 1
 
@@ -715,8 +727,11 @@ class Polarimeter:
                 # Saving the Gregorian Date at which the Jump happened
                 greg_jump_instant = Time(jump_instant, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
 
-                # Updating the row of the md_table with the info of a new jump
+                # [MD] Storing Polarimeter jumps information
                 md_tab_content += f"|{i}|{j_value}|{j_val_s}|{greg_jump_instant}|{jump_instant}|\n"
+
+                # [CSV] Storing Polarimeter jumps information
+                csv_results.append([f"{i}", f"{j_value}", f"{j_val_s}", f"{greg_jump_instant}", f"{jump_instant}"])
 
                 # Increasing the jump number
                 i += 1
@@ -724,7 +739,8 @@ class Polarimeter:
             # Report: storing the table
             md_tab_content += "\n"
             self.warnings["sampling_warning"].append(md_tab_content)
-        return jumps
+
+        return csv_results
 
     # ------------------------------------------------------------------------------------------------------------------
     # SPIKE ANALYSIS
