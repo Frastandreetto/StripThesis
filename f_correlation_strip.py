@@ -37,10 +37,17 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
             *False* -> save the figure only
         - **corr_t** (``int``): if it is overcome by the correlation value of a plot, a warning is produced.\n
         - **plot_dir** (``str``): path where the plots are organized in directories and saved.
-        Return a list of warnings that highlight which data are highly correlated.
+
+        Return a dictionary of warnings that highlight which data are highly correlated.
     """
-    # Creating a list to collect the warnings
-    warnings = []
+    # [MD] Initialize a correlation list
+    md_correlation = []
+    # [CSV] Initialize a correlation list
+    csv_correlation = []
+
+    # Initialize a warning dict for the reports
+    warnings = {"md": md_correlation, "csv": csv_correlation}
+
     # Initialize a bool that express a case of self correlations in the datasets
     self_correlation = False
     # Data comprehension -----------------------------------------------------------------------------------------------
@@ -151,7 +158,15 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
             warn_msg = (f"Found high correlation value: {round(correlation_value, 4)}"
                         f" between {data_name1} and {data_name2}.")
             logging.warning(warn_msg)
-            warnings.append(f"|{data_name1}|{data_name2}|{round(correlation_value, 4)}|\n")
+
+            # [MD] Collecting correlation values
+            warnings["md"].append(f"|{data_name1}|{data_name2}|{round(correlation_value, 4)}|\n")
+
+            # [CSV] Collecting correlation values
+            warnings["csv"].append([""])
+            warnings["csv"].append(["Data 1", "Data 2", "Correlation Value"])
+            warnings["csv"].append([""])
+            warnings["csv"].append([f"{data_name1}", f"{data_name2}", f"{round(correlation_value, 4)}"])
     # ------------------------------------------------------------------------------------------------------------------
 
     elif n_col > 1:
@@ -202,8 +217,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
 
                                 if len(short_t) != len(short_array):
                                     lim = min(len(short_t), len(short_array))
-                                    short_t = short_t[:lim-1]
-                                    short_array = short_array[:lim-1]
+                                    short_t = short_t[:lim - 1]
+                                    short_array = short_array[:lim - 1]
                                 # Interpolation of the shortest array
                                 y = np.interp(x_t, short_t, short_array)
 
@@ -213,8 +228,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                                 # Fixing (im)possible len mismatch
                                 if len(x) != len(y):
                                     lim = min(len(x), len(y))
-                                    x = x[:lim-1]
-                                    y = y[:lim-1]
+                                    x = x[:lim - 1]
+                                    y = y[:lim - 1]
 
                                     # Debug length mismatch in correlations
                                     logging.warning(f"SECOND POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
@@ -279,10 +294,18 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                         warn_msg = (f"Found high correlation value between {keys[i]} and {keys[i + 1]}: "
                                     f"{round(correlation_matrix.loc[keys[i], keys[i + 1]], 4)}.")
                         logging.warning(warn_msg)
-                        warnings.append(
+
+                        # [MD] Collecting the warning
+                        warnings["md"].append(
                             f"|{data_name1} {keys[i]}|{data_name2} {keys[i + 1]}"
                             f"|{correlation_matrix.loc[keys[i], keys[i + 1]]}|\n")
 
+                        # [CSV] Collecting the warning
+                        warnings["csv"].append([""])
+                        warnings["csv"].append(["Data 1", "Data 2", "Correlation Value"])
+                        warnings["csv"].append([""])
+                        warnings["csv"].append([f"{data_name1} {keys[i]}", f"{data_name2} {keys[i + 1]}",
+                                                f"{correlation_matrix.loc[keys[i], keys[i + 1]]}"])
             # ----------------------------------------------------------------------------------------------------------
             # Calculate Normal Correlations
             else:
@@ -295,9 +318,15 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                             warn_msg = (f"Found high correlation value between {key1} and {key2}: "
                                         f"{round(correlation_matrix.loc[key1, key2], 4)}.")
                             logging.warning(warn_msg)
-                            warnings.append(
+
+                            # [MD] Collecting the warning
+                            warnings["md"].append(
                                 f"|{data_name1} {key1}|{data_name2} {key2}"
                                 f"|{correlation_matrix.loc[key1, key2]}|\n")
+
+                            # [CSV] Collecting the warning
+                            warnings["csv"].append([f"{data_name1} {key1}", f"{data_name2} {key2}",
+                                                    f"{correlation_matrix.loc[key1, key2]}"])
 
         ################################################################################################################
         # array1 vs dict1
@@ -354,7 +383,14 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                     warn_msg = (f"Found high correlation value between {data_name1} and {data_name2} "
                                 f"in {exit}: {round(correlation_value, 4)}.")
                     logging.warning(warn_msg)
-                    warnings.append(f"|{data_name1}|{data_name2} {exit}|{round(correlation_value, 4)}|\n")
+
+                    # [MD] Collecting the warning
+                    warnings["md"].append(f"|{data_name1}|{data_name2} {exit}|{round(correlation_value, 4)}|\n")
+
+                    # [CSV] Collecting the warning
+                    warnings["csv"].append([f"{data_name1}",
+                                            f"{data_name2} {exit}",
+                                            f"{round(correlation_value, 4)}"])
     else:
         return warnings
 
@@ -391,8 +427,13 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
     # Creating the name of the data: used for the fig title and to save the png
     data_name = f"{data_name1}-{data_name2}"
 
-    # Creating a list to collect the warnings
-    warnings = []
+    # [MD] Initialize a correlation list
+    md_correlation = []
+    # [CSV] Initialize a correlation list
+    csv_correlation = []
+
+    # Initialize a warning dict for the reports
+    warnings = {"md": md_correlation, "csv": csv_correlation}
 
     # Initialize a boolean variable for the self correlation of a dataset
     self_correlation = False
@@ -421,7 +462,14 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
                     warn_msg = (f"Found high correlation value between {key1} and {key2}: "
                                 f"{round(correlation_matrix.loc[key1, key2], 4)}.")
                     logging.warning(warn_msg)
-                    warnings.append(f"|{data_name1} {key1}|{data_name2} {key2}|{correlation_matrix.loc[key1, key2]}|\n")
+
+                    # [MD] Collecting correlation values
+                    warnings["md"].append(f"|{data_name1} {key1}|{data_name2} {key2}|"
+                                          f"{correlation_matrix.loc[key1, key2]}|\n")
+
+                    # [CSV] Collecting correlation values
+                    warnings["csv"].append([f"{data_name1} {key1}", f"{data_name2} {key2}",
+                                            f"{correlation_matrix.loc[key1, key2]}"])
 
     # ------------------------------------------------------------------------------------------------------------------
     # Calculate Self Correlations
@@ -432,9 +480,16 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
                 warn_msg = (f"Found high correlation value between {keys[i]} and {keys[i + 1]}: "
                             f"{round(correlation_matrix.loc[keys[i], keys[i + 1]], 4)}.")
                 logging.warning(warn_msg)
-                warnings.append(
+
+                # [MD] Collecting correlation values
+                warnings["md"].append(
                     f"|{data_name1} {keys[i]}|{data_name2} {keys[i + 1]}"
                     f"|{correlation_matrix.loc[keys[i], keys[i + 1]]}|\n")
+
+                # [CSV] Collecting correlation values
+                warnings["csv"].append([f"{data_name1} {keys[i]}",
+                                        f"{data_name2} {keys[i + 1]}",
+                                        f"{correlation_matrix.loc[keys[i], keys[i + 1]]}"])
 
         # Put at Nan the values on the diagonal of the matrix (self correlations)
         for n in correlation_matrix.keys():
@@ -470,6 +525,8 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
 def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=False, corr_t=0.4,
                    plot_dir='../plot') -> {}:
     """
+    Plot 55x55 matrices of every data-kind DEM/PWR of every exit combination: Q1, Q2, U1, U2.
+    Parameters:\n
     - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
     - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
     - **end_datetime** (``str``): end date of dataset. Used for the title of the figure and to save the png.
@@ -540,7 +597,7 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
     for name in polar_names:
         for kind in ["DEM", "PWR"]:
             for exit in all_exits:
-                polars[kind][exit][name] = polars[kind][exit][name][:min_len-1]
+                polars[kind][exit][name] = polars[kind][exit][name][:min_len - 1]
 
     # Producing 55x55 correlation matrices
     # ------------------------------------------------------------------------------------------------------------------
@@ -593,10 +650,12 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
                                         f"{name_1} {exit_1} {kind} and {name_2} {exit_2} {kind}:"
                                         f" {round(correlation_matrix[name_1][name_2], 4)}.")
                             logging.warning(warn_msg)
+
                             # [MD] Collecting the warning
                             warnings["md"].append(
                                 f"|{name_1} {exit_1} {kind} |{name_2} {exit_2} {kind} "
                                 f"|{correlation_matrix[name_1][name_2]}|\n")
+
                             # [CSV] Collecting the warning
                             warnings["csv"].append([f"{name_1} {exit_1} {kind}", f"{name_2} {exit_2} {kind}",
                                                     f"{correlation_matrix[name_1][name_2]}"])

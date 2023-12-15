@@ -621,6 +621,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         ])
 
                 # Produce all correlation plots and matrix using all the combinations of the Outputs
+                # d -> data
+                # t -> timestamps
+                # n -> (data) name
+                # u -> unit of measure
                 for d1, t1, n1, u1, d2, t2, n2, u2 in possible_combos:
 
                     # --------------------------------------------------------------------------------------------------
@@ -632,15 +636,20 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             f'\nCorrelation plot with threshold {corr_t}. '
                             f'\n{n1} - {n2}.')
                         # Store correlation warnings from the correlation plot
-                        gen_warn = fz_c.correlation_plot(array1=[], array2=[],
-                                                         dict1=d1, dict2=d2,
-                                                         time1=list(t1), time2=list(t2),
-                                                         data_name1=f"{n1}", data_name2=f"{n2}",
-                                                         measure_unit1=f"{u1}", measure_unit2=f"{u2}",
-                                                         start_datetime=start_datetime,
-                                                         show=False,
-                                                         corr_t=corr_t,
-                                                         plot_dir=output_plot_dir)
+
+                        correlation_warnings = fz_c.correlation_plot(array1=[], array2=[],
+                                                                     dict1=d1, dict2=d2,
+                                                                     time1=list(t1), time2=list(t2),
+                                                                     data_name1=f"{n1}", data_name2=f"{n2}",
+                                                                     measure_unit1=f"{u1}", measure_unit2=f"{u2}",
+                                                                     start_datetime=start_datetime,
+                                                                     show=False,
+                                                                     corr_t=corr_t,
+                                                                     plot_dir=output_plot_dir)
+                        # [MD] Collecting correlation warnings
+                        gen_warn = correlation_warnings["md"]
+                        # [CSV] Collecting correlation warnings
+                        csv_general = correlation_warnings["csv"]
 
                     # --------------------------------------------------------------------------------------------------
                     # Correlation Matrix
@@ -651,12 +660,26 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             f'\nCorrelation matrix with threshold {corr_t}. '
                             f'\n{n1} - {n2}.')
                         # Store/Overwrite correlation warnings from the correlation matrix
-                        gen_warn = fz_c.correlation_mat(dict1=d1, dict2=d2,
-                                                        data_name1=f"{n1}", data_name2=f"{n2}",
-                                                        start_datetime=start_datetime,
-                                                        show=False, plot_dir=output_plot_dir)
+                        correlation_warnings = fz_c.correlation_mat(dict1=d1, dict2=d2,
+                                                                    data_name1=f"{n1}", data_name2=f"{n2}",
+                                                                    start_datetime=start_datetime,
+                                                                    show=False, plot_dir=output_plot_dir)
+                        # [MD] Collecting correlation warnings
+                        gen_warn = correlation_warnings["md"]
+                        # [CSV] Collecting correlation warnings
+                        csv_general = correlation_warnings["csv"]
+
                     # Store correlation warnings (only once, to avoid repetitions)
+                    # [MD] Collecting correlation warnings
                     corr_warn.extend(gen_warn)
+
+                    # [CSV] REPORT: write Polarimeter Correlation warnings in the report ---------------------------
+                    with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                              'a', newline='') as file:
+                        writer = csv.writer(file)
+                        writer.writerows(csv_general)
+                    logging.info(f"#####\nCSV Report updated: Polarimeter {np} correlations {n1} - {n2}.\n#####\n")
+                    # ----------------------------------------------------------------------------------------------
 
         ################################################################################################################
         # Other Correlation plots and matrices: HK & TS
@@ -736,15 +759,19 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             f'\nCorrelation plot with threshold {corr_t}. '
                             f'\n{n1} - {n2}.')
                         # Store correlation warnings from the correlation plot
-                        gen_warn = fz_c.correlation_plot(array1=[], array2=[],
-                                                         dict1=d1, dict2=d2,
-                                                         time1=list(t1), time2=list(t2),
-                                                         data_name1=f"{n1}", data_name2=f"{n2}",
-                                                         measure_unit1=f"{u1}", measure_unit2=f"{u2}",
-                                                         start_datetime=start_datetime,
-                                                         show=False,
-                                                         corr_t=corr_t,
-                                                         plot_dir=output_plot_dir)
+                        correlation_warnings = fz_c.correlation_plot(array1=[], array2=[],
+                                                                     dict1=d1, dict2=d2,
+                                                                     time1=list(t1), time2=list(t2),
+                                                                     data_name1=f"{n1}", data_name2=f"{n2}",
+                                                                     measure_unit1=f"{u1}", measure_unit2=f"{u2}",
+                                                                     start_datetime=start_datetime,
+                                                                     show=False,
+                                                                     corr_t=corr_t,
+                                                                     plot_dir=output_plot_dir)
+                        # [MD] Collecting correlation warnings
+                        gen_warn = correlation_warnings["md"]
+                        # [CSV] Collecting correlation warnings
+                        csv_general = correlation_warnings["csv"]
 
                     # --------------------------------------------------------------------------------------------------
                     # Correlation Matrix
@@ -755,12 +782,26 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             f'\nCorrelation matrix with threshold {corr_t}. '
                             f'\n{n1} - {n2}.')
                         # Store/Overwrite correlation warnings from the correlation matrix
-                        gen_warn = fz_c.correlation_mat(dict1=d1, dict2=d2,
-                                                        data_name1=f"{n1}", data_name2=f"{n2}",
-                                                        start_datetime=start_datetime,
-                                                        show=False, plot_dir=output_plot_dir)
-                    # Store correlation warnings
+                        correlation_warnings = fz_c.correlation_mat(dict1=d1, dict2=d2,
+                                                                    data_name1=f"{n1}", data_name2=f"{n2}",
+                                                                    start_datetime=start_datetime,
+                                                                    show=False, plot_dir=output_plot_dir)
+                        # [MD] Collecting correlation warnings
+                        gen_warn = correlation_warnings["md"]
+                        # [CSV] Collecting correlation warnings
+                        csv_general = correlation_warnings["csv"]
+
+                    # Store correlation warnings (only once, to avoid repetitions)
+                    # [MD] Collecting correlation warnings
                     corr_warn.extend(gen_warn)
+
+                    # [CSV] REPORT: write Correlation warnings in the report -------------------------------------------
+                    with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                              'a', newline='') as file:
+                        writer = csv.writer(file)
+                        writer.writerows(csv_general)
+                    logging.info(f"#####\nCSV Report updated: correlations {n1} - {n2}.\n#####\n")
+                    # --------------------------------------------------------------------------------------------------
 
     ####################################################################################################################
     # Other Correlation plots and matrices: TS
@@ -820,20 +861,26 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         f'\nCorrelation plot with threshold {corr_t}. '
                         f'\n{n1} - {n2}.')
                     # Store correlation warnings from the correlation plot
-                    gen_warn = fz_c.correlation_plot(array1=[],
-                                                     array2=[],
-                                                     dict1=d1,
-                                                     dict2=d2,
-                                                     time1=list(t1),
-                                                     time2=list(t2),
-                                                     data_name1=f"{n1}",
-                                                     data_name2=f"{n2}",
-                                                     measure_unit1=f"{u1}",
-                                                     measure_unit2=f"{u2}",
-                                                     start_datetime=start_datetime,
-                                                     show=False,
-                                                     corr_t=corr_t,
-                                                     plot_dir=output_plot_dir)
+                    correlation_warnings = fz_c.correlation_plot(array1=[],
+                                                                 array2=[],
+                                                                 dict1=d1,
+                                                                 dict2=d2,
+                                                                 time1=list(t1),
+                                                                 time2=list(t2),
+                                                                 data_name1=f"{n1}",
+                                                                 data_name2=f"{n2}",
+                                                                 measure_unit1=f"{u1}",
+                                                                 measure_unit2=f"{u2}",
+                                                                 start_datetime=start_datetime,
+                                                                 show=False,
+                                                                 corr_t=corr_t,
+                                                                 plot_dir=output_plot_dir)
+
+                    # [MD] Collecting correlation warnings
+                    gen_warn = correlation_warnings["md"]
+                    # [CSV] Collecting correlation warnings
+                    csv_general = correlation_warnings["csv"]
+
                 # Correlation Matrix
                 if corr_mat:
                     logging.warning(
@@ -841,17 +888,31 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         f'\nCorrelation matrix with threshold {corr_t}. '
                         f'\n{n1} - {n2}.')
                     # Store/Overwrite correlation warnings from the correlation matrix
-                    gen_warn = fz_c.correlation_mat(dict1=d1,
-                                                    dict2=d2,
-                                                    data_name1=f"{n1}", data_name2=f"{n2}",
-                                                    start_datetime=start_datetime,
-                                                    show=False, plot_dir=output_plot_dir)
-                # Store correlation warnings
+                    correlation_warnings = fz_c.correlation_mat(dict1=d1,
+                                                                dict2=d2,
+                                                                data_name1=f"{n1}", data_name2=f"{n2}",
+                                                                start_datetime=start_datetime,
+                                                                show=False, plot_dir=output_plot_dir)
+                    # [MD] Collecting correlation warnings
+                    gen_warn = correlation_warnings["md"]
+                    # [CSV] Collecting correlation warnings
+                    csv_general = correlation_warnings["csv"]
+
+                # Store correlation warnings (only once, to avoid repetitions)
+                # [MD] Collecting correlation warnings
                 corr_warn.extend(gen_warn)
 
-    # ------------------------------------------------------------------------------------------------------
+                # [CSV] REPORT: write Polarimeter Correlation warnings in the report -----------------------------------
+                with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                          'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerows(csv_general)
+                logging.info(f"#####\nCSV Report updated: Correlations {n1} - {n2}.\n#####\n")
+                # ------------------------------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------------------------------------------
     # REPORT CORRELATION PLOT:
-    # ------------------------------------------------------------------------------------------------------
+    # ------------------------------------------------------------------------------------------------------------------
     if corr_plot:
         logging.info(f"\nOnce ready, I will put the CORR PLOT report into: {output_report_dir}.")
 
