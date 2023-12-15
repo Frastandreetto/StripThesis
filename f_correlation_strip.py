@@ -201,7 +201,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                         if len(array1) != len(array2):
 
                             # Debug length mismatch in correlations
-                            logging.warning(f"PRE: len array1 {len(array1)} - len array2 {len(array2)}")
+                            # logging.debug(f"PRE: len array1 {len(array1)} - len array2 {len(array2)}")
 
                             # Timestamps arrays must be provided to interpolate
                             if time1 == [] or time2 == []:

@@ -108,7 +108,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
               'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(csv_general)
-    logging.info("#####\nCSV Report updated: Heading written.\n#####\n")
+    logging.info("####################\n"
+                 "CSV Report updated: Heading written.\n####################\n")
     # ------------------------------------------------------------------------------------------------------------------
     # [MD] Initializing warning lists
     t_warn = []
@@ -167,7 +168,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-            logging.info("#####\nCSV Report updated: TS Sampling Table written.\n#####\n")
+            logging.info("####################\n"
+                         "CSV Report updated: TS Sampling Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing TS and collecting the results ------------------------------------------------------------------
@@ -188,7 +190,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-            logging.info("#####\nCSV Report updated: TS Table written.\n#####\n")
+            logging.info("####################\n"
+                         "CSV Report updated: TS Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
             # Plots of all TS
@@ -234,7 +237,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
-            logging.info("#####\nCSV Report updated: Cross Correlation Warnings written.\n#####\n")
+            logging.info("####################\n"
+                         "CSV Report updated: Cross Correlation Warnings written.\n####################\n")
         # --------------------------------------------------------------------------------------------------------------
 
     ####################################################################################################################
@@ -304,7 +308,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-            logging.info(f"#####\nCSV Report updated: HK {np} Sampling Table written.\n#####\n")
+            logging.info(f"####################\n"
+                         f"CSV Report updated: HK {np} Sampling Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
             # Analyzing HK and collecting the results
@@ -322,7 +327,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-            logging.info(f"#####\nCSV Report updated: HK {np} Table written.\n#####\n")
+            logging.info(f"####################\n"
+                         f"CSV Report updated: HK {np} Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
             # Plots of the Bias HK (Tensions and Currents) and of the Offsets
@@ -364,7 +370,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
-        logging.info(f"#####\nCSV Report updated: Polarimeter {np} Sampling Table written.\n#####\n")
+        logging.info(f"####################\n"
+                     f"CSV Report updated: Polarimeter {np} Sampling Table written.\n####################\n")
         # --------------------------------------------------------------------------------------------------------------
 
         # Looking for spikes in the dataset ----------------------------------------------------------------------------
@@ -383,7 +390,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-            logging.info(f"#####\nCSV Report updated: Polarimeter {np} Spikes Table written.\n#####\n")
+            logging.info(f"####################\n"
+                         f"CSV Report updated: Polarimeter {np} Spikes Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
         # FFT Spikes
@@ -400,7 +408,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
-            logging.info(f"#####\nCSV Report updated: Polarimeter {np} FFT Spikes Table written.\n#####\n")
+            logging.info(f"####################\n"
+                         f"CSV Report updated: Polarimeter {np} FFT Spikes Table written.\n####################\n")
         # --------------------------------------------------------------------------------------------------------------
 
         # Preparing the Polarimeter for the analysis: normalization and data cleanse
@@ -678,7 +687,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                               'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerows(csv_general)
-                    logging.info(f"#####\nCSV Report updated: Polarimeter {np} correlations {n1} - {n2}.\n#####\n")
+                    logging.info(f"####################\n"
+                                 f"CSV Report updated: Polarimeter {np} correlations {n1} - {n2}.\n####################\n")
                     # ----------------------------------------------------------------------------------------------
 
         ################################################################################################################
@@ -800,7 +810,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                               'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerows(csv_general)
-                    logging.info(f"#####\nCSV Report updated: correlations {n1} - {n2}.\n#####\n")
+                    logging.info(f"####################\n"
+                                 f"CSV Report updated: correlations {n1} - {n2}.\n####################\n")
                     # --------------------------------------------------------------------------------------------------
 
     ####################################################################################################################
@@ -907,7 +918,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                           'a', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerows(csv_general)
-                logging.info(f"#####\nCSV Report updated: Correlations {n1} - {n2}.\n#####\n")
+                logging.info(f"####################\n"
+                             f"CSV Report updated: Correlations {n1} - {n2}.\n####################\n")
                 # ------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
