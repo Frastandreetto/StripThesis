@@ -709,11 +709,12 @@ class Polarimeter:
             self.warnings["sampling_warning"].append(t_warn + "\n")
 
             # [MD] Preparing Table Heading
-            md_tab_content = (f"Time Jumps Pol {self.name}\n"
+            md_tab_content = (f"\nTime Jumps Pol {self.name}\n"
                               f"| # Jump | Jump value [JHD] | Jump value [s] | Gregorian Date | Julian Date [JHD]|\n"
                               f"|:------:|:----------------:|:--------------:|:--------------:|:----------------:|\n")
 
             # [CSV] Preparing Table Heading
+            csv_results.append([""])
             csv_results.append([f"Time Jumps Pol {self.name}"])
             csv_results.append([""])
             csv_results.append(["# Jump", "Jump value [JHD]", "Jump value [s]", "Gregorian Date", "Julian Date [JHD]"])

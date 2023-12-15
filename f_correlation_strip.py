@@ -164,7 +164,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
 
             # [CSV] Collecting correlation values
             warnings["csv"].append([""])
-            warnings["csv"].append(["Data 1", "Data 2", "Correlation Value"])
+            warnings["csv"].append(["Data 1 Name", "Data 2 Name", "Correlation Value"])
             warnings["csv"].append([""])
             warnings["csv"].append([f"{data_name1}", f"{data_name2}", f"{round(correlation_value, 4)}"])
     # ------------------------------------------------------------------------------------------------------------------
@@ -177,9 +177,9 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
             # length of the shortest array in the dictionary.
             min_len = np.inf
             for r, r_exit in enumerate(dict1.keys()):
-                logging.info(dict1.keys())
+                # logging.debug(dict1.keys())
                 for c, c_exit in enumerate(dict2.keys()):
-                    logging.info(dict2.keys())
+                    # logging.debug(dict2.keys())
 
                     # Do not plot self correlation plots
                     if self_correlation and c_exit == r_exit:
@@ -223,7 +223,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                                 y = np.interp(x_t, short_t, short_array)
 
                                 # Debug length mismatch in correlations
-                                logging.warning(f"POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
+                                # logging.debug(f"POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
 
                                 # Fixing (im)possible len mismatch
                                 if len(x) != len(y):
@@ -232,7 +232,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                                     y = y[:lim - 1]
 
                                     # Debug length mismatch in correlations
-                                    logging.warning(f"SECOND POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
+                                    # logging.debug(f"SECOND POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
 
                         # Arrays with same length
                         else:
@@ -242,10 +242,10 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                             label_y = label2
 
                             # Debug length mismatch in correlations
-                            logging.warning(f"THIRD POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
+                            # logging.debug(f"THIRD POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
 
                         # Debug length mismatch in correlations
-                        logging.info("Till here the code is ok: plotting...\n\n")
+                        # logging.debug("Plotting...\n\n")
 
                         axs[r, c].plot(x, y, "*", color="teal", label="Corr Data")
 
@@ -262,7 +262,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                         dict2[c_exit] = y
                         if len(x) < min_len:
                             min_len = len(x)
-                            logging.info(f"min length: {min_len}")
+                            # logging.debug(f"min length: {min_len}")
 
             # ----------------------------------------------------------------------------------------------------------
             # Calculate Correlations of the dictionaries
@@ -274,17 +274,13 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                 dict2[c_exit] = dict2[c_exit][:min_len - 1]
 
             # Convert dictionaries to DataFrames
-            logging.info("First DataFrame")
             df1 = pd.DataFrame(dict1)
-            print(dict1)
-            logging.info(f"Second DataFrame {type(dict2)}")
-            print(dict2)
             df2 = pd.DataFrame(dict2)
-            logging.info("\nGoing to produce the correlation matrix")
+            logging.info("\nGoing to produce the correlation matrix.")
 
             # Initialize an empty DataFrame for correlations
             correlation_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns)
-            logging.info("Done.")
+            logging.info("Done.\n")
             # ----------------------------------------------------------------------------------------------------------
             # Calculate Self Correlations
             if self_correlation:
@@ -302,7 +298,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
 
                         # [CSV] Collecting the warning
                         warnings["csv"].append([""])
-                        warnings["csv"].append(["Data 1", "Data 2", "Correlation Value"])
+                        warnings["csv"].append(["Data 1 Name", "Data 2 Name", "Correlation Value"])
                         warnings["csv"].append([""])
                         warnings["csv"].append([f"{data_name1} {keys[i]}", f"{data_name2} {keys[i + 1]}",
                                                 f"{correlation_matrix.loc[keys[i], keys[i + 1]]}"])
@@ -427,6 +423,9 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
     # Creating the name of the data: used for the fig title and to save the png
     data_name = f"{data_name1}-{data_name2}"
 
+    # Initialize a boolean variable for the heading of the table
+    heading = False
+
     # [MD] Initialize a correlation list
     md_correlation = []
     # [CSV] Initialize a correlation list
@@ -466,6 +465,11 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
                     # [MD] Collecting correlation values
                     warnings["md"].append(f"|{data_name1} {key1}|{data_name2} {key2}|"
                                           f"{correlation_matrix.loc[key1, key2]}|\n")
+                    # [CSV] Storing the heading
+                    if not heading:
+                        warnings["csv"].append([""])
+                        warnings["csv"].append(["Data 1 Name", "Data 2 Name", "Correlation Value"])
+                        heading = True
 
                     # [CSV] Collecting correlation values
                     warnings["csv"].append([f"{data_name1} {key1}", f"{data_name2} {key2}",
@@ -485,6 +489,12 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
                 warnings["md"].append(
                     f"|{data_name1} {keys[i]}|{data_name2} {keys[i + 1]}"
                     f"|{correlation_matrix.loc[keys[i], keys[i + 1]]}|\n")
+
+                # [CSV] Storing the heading
+                if not heading:
+                    warnings["csv"].append([""])
+                    warnings["csv"].append(["Data 1 Name", "Data 2 Name", "Correlation Value"])
+                    heading = True
 
                 # [CSV] Collecting correlation values
                 warnings["csv"].append([f"{data_name1} {keys[i]}",
@@ -545,7 +555,7 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
                [""],
                ["Cross Correlation between Polarimeters"],
                [""],
-               ["Data 1", "Data 2", "Correlation Value"],
+               ["Data 1 Name", "Data 2 Name", "Correlation Value"],
                ]
 
     warnings = {"md": md_war, "csv": csv_war}
@@ -618,7 +628,7 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
                 exit_2 = all_exits[j]
 
                 data_name = f"{kind}_{exit_1}_{exit_2}"
-                # logging.info(f"Combination: ({exit_1}, {exit_2})")
+                # logging.debug(f"Combination: ({exit_1}, {exit_2})")
 
                 # Convert dictionaries to DataFrames
                 df1 = pd.DataFrame(polars[kind][exit_1])
@@ -642,8 +652,8 @@ def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=
                     for n_2 in range(n_1 + 1, len(polar_names)):
                         name_1 = polar_names[n_1]
                         name_2 = polar_names[n_2]
-                        # logging.info(corr_matrix)
-                        # logging.info(corr_matrix[name_1])
+                        # logging.debug(corr_matrix)
+                        # logging.debug(corr_matrix[name_1])
                         # Print a warning if the correlation value overcomes the threshold, then store it
                         if np.abs(correlation_matrix[name_1][name_2]) > corr_t:
                             warn_msg = (f"Found high correlation value between "

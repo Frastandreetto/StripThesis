@@ -284,7 +284,7 @@ def select_spike(spike_idx: list, s: list, freq: list) -> []:
     - **s** (``list``): is an array-like object that contains spikes\n
     - **freq** (``list``): is an array-like object that contains the frequency corresponding to the s values\n
     """
-    # Select only the most significant spikes
+    # Select only the most "significant" spikes
     idx_sel = []
     # Divide the array in sub-arrays on the base of the frequency
     for a in range(-16, 8):
@@ -319,7 +319,7 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
     med_dt = np.median(dt)
     median_ok = True
 
-    # If the tolerance is overcome a warning message is produced
+    # If the tolerance is overcome -> a warning message is produced
     if np.abs(np.abs(med_dt) - np.abs(exp_med)) > tolerance:
         msg = f"Median is out of range: {med_dt}, expected {exp_med}."
         logging.warning(msg)
@@ -340,9 +340,11 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
 
     # Store the info
     for i, item in enumerate(err_t):
+        # logging.debug(f"Discrepancy value: {item}")
         if np.abs(item) > tolerance:
             jumps["n"] += 1
             jumps["idx"].append(i)
+            # Convert the value in days
             jumps["value"].append(dt[i] / 86400)
             jumps["s_value"].append(dt[i])
 
