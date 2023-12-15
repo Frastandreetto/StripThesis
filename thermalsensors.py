@@ -227,13 +227,13 @@ class Thermal_Sensors:
         # Jumps detected
         else:
 
-            # [MD] Preparing Table caption
+            # [MD] Preparing Table Heading
             sampling_results["md"].append(
                 "| Data Name | # Jumps | &Delta;t Median [s] | Exp &Delta;t Median [s] | Tolerance "
                 "| 5th percentile | 95th percentile |\n"
                 "|:---------:|:-------:|:-------------------:|:-----------------------:|:---------:"
                 "|:--------------:|:---------------:|\n")
-            # [CSV] Preparing Table caption
+            # [CSV] Preparing Table Heading
             sampling_results["csv"].append(["Data Name", "# Jumps", "Delta t Median [s]", "Exp Delta t Median",
                                             "Tolerance", "5th percentile", "95th percentile"])
             sampling_results["csv"].append([""])

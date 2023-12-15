@@ -365,16 +365,42 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             writer = csv.writer(file)
             writer.writerows(csv_general)
         logging.info(f"#####\nCSV Report updated: Polarimeter {np} Sampling Table written.\n#####\n")
-        # ----------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
 
         # Looking for spikes in the dataset ----------------------------------------------------------------------------
+
+        # Output Spikes
         if spike_data:
             logging.info('Looking for spikes in the dataset.')
-            spike_warn.extend(p.Spike_Report(fft=False, nperseg=0))
+            spike_table = p.Spike_Report(fft=False, nperseg=0)
+            # [MD]
+            spike_warn.extend(spike_table["md"])
+            # [CSV]
+            csv_general = spike_table["csv"]
 
+            # [CSV] REPORT: write Polarimeter Spikes Table in the report -----------------------------------------------
+            with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                      'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_general)
+            logging.info(f"#####\nCSV Report updated: Polarimeter {np} Spikes Table written.\n#####\n")
+            # ----------------------------------------------------------------------------------------------------------
+
+        # FFT Spikes
         if spike_fft:
             logging.info('Looking for spikes in the FFT of the dataset.')
-            spike_warn.extend(p.Spike_Report(fft=True, nperseg=10 ** 6))
+            spike_table = p.Spike_Report(fft=True, nperseg=10 ** 6)
+            # [MD]
+            spike_warn.extend(spike_table["md"])
+            # [CSV]
+            csv_general = spike_table["csv"]
+
+            # [CSV] REPORT: write Polarimeter FFT Spikes Table in the report -------------------------------------------
+            with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                      'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_general)
+            logging.info(f"#####\nCSV Report updated: Polarimeter {np} FFT Spikes Table written.\n#####\n")
         # --------------------------------------------------------------------------------------------------------------
 
         # Preparing the Polarimeter for the analysis: normalization and data cleanse

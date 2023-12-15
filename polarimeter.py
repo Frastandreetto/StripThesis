@@ -745,18 +745,25 @@ class Polarimeter:
     # ------------------------------------------------------------------------------------------------------------------
     # SPIKE ANALYSIS
     # ------------------------------------------------------------------------------------------------------------------
-    def Spike_Report(self, fft: bool, nperseg: int) -> str:
+    def Spike_Report(self, fft: bool, nperseg: int) -> {}:
         """
-            Look up for 'spikes' in the DEM and PWR output of the Polarimeter and in their FFT.\n
-            Create a table in md language (basically a str) in which the spikes found are listed.
-            - **fft** (``bool``): if true, the code looks for spikes in the fft.
-            - **nperseg** (``int``): number of elements of the array on which the fft is calculated
+        Create a dictionary with the info of the spikes in Output and FFT of the Outputs.
+        The dictionary has two keys "md" and "csv" - that contain a list and a str with the info to create the report.
+
+        Look up for 'spikes' in the DEM and PWR output of the Polarimeter and in their FFT.\n
+        Create a table in md and CSV language in which the spikes found are listed.
+        - **fft** (``bool``): if true, the code looks for spikes in the fft.
+        - **nperseg** (``int``): number of elements of the array on which the fft is calculated
         """
         # Initializing a bool to see if the caption of the table is already in the report
         cap = False
-        # Initialize strings for the rows of the table
+
+        # [MD] Initialize strings for the rows of the table
         rows = ""
-        spike_tab = ""
+        md_spike_tab = ""
+        # [CSV] Initialize a result list
+        csv_spike_tab = []
+
         # Initialize list for x_data
         x_data = []
 
@@ -772,29 +779,50 @@ class Polarimeter:
                     threshold = 3
                     n_chunk = 10
                     data_type = "FFT"
+                    data_name = f"FFT {type}"
 
                 else:
                     y_data = self.data[type][exit]
                     threshold = 8
                     n_chunk = 10
                     data_type = type
+                    data_name = type
 
                 # Find and store spikes indexes
                 spike_idxs = fz.find_spike(y_data, data_type=data_type, threshold=threshold, n_chunk=n_chunk)
+
                 # No spikes detected
                 if len(spike_idxs) == 0:
-                    spike_tab += f"\nNo spikes detected in {type} {exit} Output.\n"
+                    msg = f"\nNo spikes detected in {data_name} {exit} Output.\n"
+                    logging.info(msg)
+
+                    # [MD]
+                    # md_spike_tab += msg
+
+                    # [CSV]
+                    # csv_spike_tab.append([""])
+                    # csv_spike_tab.append([msg])
+                    # csv_spike_tab.append([""])
+
                 # Spikes detected
                 else:
                     # Look for spikes in the dataset
                     if not fft:
                         # Create the caption for the table of the spikes in Output
                         if not cap:
-                            spike_tab += (
+
+                            # [MD] Storing Table Heading
+                            md_spike_tab += (
                                 "\n| Spike Number | Data Type | Exit "
                                 "| Gregorian Date | Julian Date [JHD]| Spike Value - Median [ADU]| MAD [ADU] |\n"
                                 "|:------------:|:---------:|:----:"
                                 "|:--------------:|:----------------:|:-------------------------:|:---------:|\n")
+
+                            # [CSV] Storing Table Heading
+                            csv_spike_tab.append([""])
+                            csv_spike_tab.append(["Spike Number", "Data Type", "Exit",
+                                                  "Gregorian Date", "Julian Date [JHD]",
+                                                  "Spike Value - Median [ADU]", "MAD [ADU]"])
                             cap = True
 
                         for idx, item in enumerate(spike_idxs):
@@ -807,31 +835,59 @@ class Polarimeter:
                             # Datetime object to a Julian date
                             julian_date = Time(greg_datetime).jd
 
-                            rows += f"|{idx + 1}|{type}|{exit}|{greg_date}|{julian_date}" \
+                            # [MD] Storing spikes information
+                            rows += f"|{idx + 1}|{data_name}|{exit}|{greg_date}|{julian_date}" \
                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}" \
                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n"
+
+                            # [CSV] Storing spikes information
+                            csv_spike_tab.append([f"{idx + 1}", f"{data_name}", f"{exit}",
+                                                  f"{greg_date}", f"{julian_date}",
+                                                  f"{np.round(y_data[item] - np.median(y_data), 6)}",
+                                                  f"{np.round(scs.median_abs_deviation(y_data), 6)}"])
 
                     # Spikes in the FFT
                     else:
                         # Select the more relevant spikes
                         spike_idxs = fz.select_spike(spike_idx=spike_idxs, s=y_data, freq=x_data)
+
+                        logging.warning(f"# Spikes found in {data_name} {exit}: {len(spike_idxs)}.\n\n")
+
                         # Create the caption for the table of the spikes in FFT
                         if not cap:
-                            spike_tab += (
+
+                            # [MD] Storing Table Heading
+                            md_spike_tab += (
                                 "\n| Spike Number | Data Type | Exit | Frequency Spike "
                                 "|Spike Value - Median [ADU]| MAD [ADU] |\n"
                                 "|:------------:|:---------:|:----:|:---------------:"
                                 "|:------------------------:|:---------:|\n")
+
+                            # [CSV] Storing Table Heading
+                            csv_spike_tab.append([""])
+                            csv_spike_tab.append(["Spike Number", "Data Type", "Exit", "Frequency Spike",
+                                                  "Spike Value - Median [ADU]", "MAD [ADU]"])
+
                             cap = True
 
                         for idx, item in enumerate(spike_idxs):
-                            rows += (f"|{idx + 1}|FFT {type}|{exit}"
+
+                            # [MD] Storing FFT spikes information
+                            rows += (f"|{idx + 1}|{data_name}|{exit}"
                                      f"|{np.round(x_data[item], 6)}"
                                      f"|{np.round(y_data[item] - np.median(y_data), 6)}"
                                      f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
-            if cap:
-                spike_tab += rows
 
+                            # [CSV] Storing FFT spikes information
+                            csv_spike_tab.append([f"{idx + 1}", f"{data_name}", f"{exit}",
+                                                  f"{np.round(x_data[item], 6)}",
+                                                  f"{np.round(y_data[item] - np.median(y_data), 6)}",
+                                                  f"{np.round(scs.median_abs_deviation(y_data), 6)}"])
+
+            if cap:
+                md_spike_tab += rows
+        # Initialize a result dict for the reports
+        spike_tab = {"md": md_spike_tab, "csv": csv_spike_tab}
         return spike_tab
 
     def spike_CSV(self) -> []:
