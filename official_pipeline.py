@@ -11,6 +11,7 @@ import os
 import shutil
 import sys
 
+from astropy.time import Time
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
 from rich.logging import RichHandler
@@ -256,39 +257,12 @@ def main():
     logging.info(args)
 
     ####################################################################################################################
-    # CHECKS & Tests
+    ####################################################################################################################
+    # CHECKS OF THE PARAMETERS
+    ####################################################################################################################
+    ####################################################################################################################
 
-    # Check if the dir provided by the user exists.
-    try:
-        Path(args.path_file)
-    except AttributeError:
-        logging.error('Modality not selected. Type -h for help!')
-        raise SystemExit(1)
-
-    if not Path(args.path_file).exists():
-        logging.error(f'The target directory {args.path_file} does not exist. '
-                      f'Please select a real location of the hdf5 file index.\n'
-                      'Note: no quotation marks needed.')
-        raise SystemExit(1)
-
-    # Check on datatime objects: start_datetime & end_datetime
-    if not fz.datetime_check(args.start_datetime):
-        logging.error('start_datetime: wrong datetime format.')
-        raise SystemExit(1)
-    if not fz.datetime_check(args.end_datetime):
-        logging.error('end_datetime: wrong datetime format.')
-        raise SystemExit(1)
-
-    # Check on datetime
-    # Consequentiality of the datetime
-    if args.end_datetime < args.start_datetime:
-        logging.error('end_datetime is before than start_datetime: wrong datetime values.')
-        raise SystemExit(1)
-    # Same datetime
-    if args.end_datetime == args.start_datetime:
-        logging.error('end_datetime is equal to start_datetime: wrong datetime values.')
-        raise SystemExit(1)
-
+    # TOML File --------------------------------------------------------------------------------------------------------
     # Check if the toml file provided by the user exists.
     try:
         Path(args.toml_file_path)
@@ -298,18 +272,59 @@ def main():
 
     if not Path(args.toml_file_path).exists():
         logging.error(f'The target directory {args.toml_file_path} does not exist. '
-                      f'Please select a real location of the toml file to start the pipelinr.\n')
+                      f'Please select a real location of the toml file to start the pipeline.\n\n')
+        raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Path of the Data Test directory ----------------------------------------------------------------------------------
+    # Check if the dir provided by the user exists.
+    try:
+        Path(args.path_file)
+    except AttributeError:
+        logging.error('Modality not selected. Type -h for help!\n\n')
         raise SystemExit(1)
 
-    # MODE A: check on EOA string
-    if args.subcommand == "tot":
-        # Create a set of E,O,A
-        args.even_odd_all = set(str(args.even_odd_all).upper())
-        if not args.even_odd_all.issubset({"E", "O", "A"}):
-            logging.error('Wrong data name: Please choose between the options: E, O, A, EO, EA, OA, EOA')
-            raise SystemExit(1)
+    except ValueError:
+        logging.error(f'The parameter {args.path_file} should be a string. Please check it again.\n'
+                      f'Type -h for help!\n\n')
+        raise SystemExit(1)
 
-    # MODE A and B: Check on the names of the polarimeters
+    if not Path(args.path_file).exists():
+        logging.error(f'The target directory {args.path_file} does not exist or does not contain the hdf5 file index.\n'
+                      f'Please select a real location of the hdf5 file index.\n'
+                      'Note: quotation marks are needed in the TOML file.\n\n')
+        raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Datetime ---------------------------------------------------------------------------------------------------------
+    # Check on the format of datatime objects: start_datetime & end_datetime
+    if not fz.datetime_check(args.start_datetime):
+        logging.error('start_datetime: wrong datetime format.\n\n')
+        raise SystemExit(1)
+    if not fz.datetime_check(args.end_datetime):
+        logging.error('end_datetime: wrong datetime format.\n\n')
+        raise SystemExit(1)
+
+    # Consequentiality of the datetime
+    if args.end_datetime < args.start_datetime:
+        logging.error('end_datetime is before than start_datetime: wrong datetime values.\n\n')
+        raise SystemExit(1)
+
+    # Same datetime
+    if args.end_datetime == args.start_datetime:
+        logging.error('end_datetime is equal to start_datetime: wrong datetime values.\n\n')
+        raise SystemExit(1)
+
+    # Check the minimal duration of the analysis: must be longer than 2 minutes to avoid crashes in the processing
+    if (Time(args.end_datetime) - Time(args.start_datetime)).sec < 120:
+        logging.error("The duration of the analysis is too short: please make sure that the difference between "
+                      "start_datetime and end_datetime is bigger than 120 seconds.\n"
+                      "This will avoid crashes during the analysis.\n\n")
+        raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Name Pol ---------------------------------------------------------------------------------------------------------
+    # Check the names of the polarimeters
     if args.subcommand == "tot" or args.subcommand == "pol_hk":
 
         # Case with all the polarimeter
@@ -330,29 +345,231 @@ def main():
         # Check the names of the polarimeters provided
         if not fz.name_check(name_pol):
             logging.error('The names of the polarimeters provided are not valid. Please check the parameter name_pol. '
-                          '\nThe names must be written as follows: \'B0 B1\'')
+                          '\nThe names must be written as follows: \'B0 B1\'.\n'
+                          'If you want to analyze all of them write \'all\'.\n\n')
             raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # MODE C: Check on the status value
+    ####################################################################################################################
+    # PARAMETERS OF THE TOTAL ANALYSIS
+    if args.subcommand == "tot":
+
+        # Thermal Sensors ----------------------------------------------------------------------------------------------
+        # Check if the parameter is a bool
+        if not isinstance(args.thermal_sensors, bool):
+            logging.error("The parameter thermal_sensors must be a bool. Please check it again.\n\n")
+            raise SystemExit(1)
+        # --------------------------------------------------------------------------------------------------------------
+
+        # Housekeeping Parameters --------------------------------------------------------------------------------------
+        # Check if the parameter is a bool
+        if not isinstance(args.housekeeping, bool):
+            logging.error("The parameter housekeeping must be a bool. Please check it again.\n\n")
+            raise SystemExit(1)
+        # --------------------------------------------------------------------------------------------------------------
+
+        # Scientific ---------------------------------------------------------------------------------------------------
+        # Check if the parameter is a bool
+        if not isinstance(args.scientific, bool):
+            logging.error("The parameter scientific must be a bool. Please check it again.\n\n")
+            raise SystemExit(1)
+        # --------------------------------------------------------------------------------------------------------------
+
+        # EOA string ---------------------------------------------------------------------------------------------------
+        # Check if the str is a combination of the E, O, A letters
+        # Create a set of E,O,A
+        args.even_odd_all = set(str(args.even_odd_all).upper())
+        if not args.even_odd_all.issubset({"E", "O", "A"}):
+            logging.error('Wrong Data Name: please choose between the options: E, O, A, EO, EA, OA, EOA.\n\n')
+            raise SystemExit(1)
+        # --------------------------------------------------------------------------------------------------------------
+
+        # Root Mean Square RMS -----------------------------------------------------------------------------------------
+        # Check if the parameter is a bool
+        if not isinstance(args.rms, bool):
+            logging.error("The parameter rms must be a bool. Please check it again.\n\n")
+            raise SystemExit(1)
+        # --------------------------------------------------------------------------------------------------------------
+
+        # Smoothing length ---------------------------------------------------------------------------------------------
+        # Check if the parameter is an int
+        if not isinstance(args.smooth, int):
+            logging.error("The parameter smooth must be an int. Please check it again.\n\n")
+            raise SystemExit(1)
+        # --------------------------------------------------------------------------------------------------------------
+
+        # Mobile Window length -----------------------------------------------------------------------------------------
+        # Check if the parameter is an int
+        if not isinstance(args.window, int):
+            logging.error("The parameter window must be an int. Please check it again.\n\n")
+            raise SystemExit(1)
+        # --------------------------------------------------------------------------------------------------------------
+    ####################################################################################################################
+
+    # FFT - SPECTRAL ANALYSIS
+    # Fast Fourier Transformed FFT -------------------------------------------------------------------------------------
+    # Check if the parameter is a bool
+    if args.subcommand == "tot" or args.subcommand == "thermal_hk":
+        if not isinstance(args.fourier, bool):
+            logging.error("The parameter fourier must be a bool. Please check it again.\n\n")
+            raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # nperseg (Number of points per segment) ---------------------------------------------------------------------------
+    # Check if the parameter is an int
+    if args.subcommand == "tot":
+        if not isinstance(args.nperseg, int):
+            logging.error("The parameter nperseg must be an int. Please check it again.\n\n")
+            raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # nperseg_thermal (Number of points per segment) -------------------------------------------------------------------
+    # Check if the parameter is an int
+    if args.subcommand == "tot" or args.subcommand == "thermal_hk":
+        if not isinstance(args.nperseg_thermal, int):
+            logging.error("The parameter nperseg_thermal must be an int. Please check it again.\n\n")
+            raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # SPIKES
+    # Spike Data -------------------------------------------------------------------------------------------------------
+    # Check if the parameter is a bool
+    if args.subcommand == "tot":
+        if not isinstance(args.spike_data, bool):
+            logging.error("The parameter spike_data must be a bool. Please check it again.\n\n")
+            raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Spike Thermal Sensors --------------------------------------------------------------------------------------------
+    # Check if the parameter is a bool
     if args.subcommand == "thermal_hk":
-        if args.status not in ([0, 1, 2]):
-            logging.error('Invalid status value. Please choose between the values 0 and 1 for a single analysis. '
-                          'Choose the value 2 to have both.')
+        if not isinstance(args.spike_ts, bool):
+            logging.error("The parameter spike_ts must be a bool. Please check it again.\n\n")
             raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
 
-    # Common Mode: Check if hk_sam_exp_med and hk_sam_tolerance are float
-    for item in args.hk_sam_exp_med:
-        if not isinstance(item, (int, float)):
-            logging.error(f'Invalid Sampling Median Value: {item}. Please choose a number (float or int).')
+    # Spike FFT --------------------------------------------------------------------------------------------------------
+    # Check if the parameter is a bool
+    if args.subcommand == "tot" or args.subcommand == "thermal_hk":
+        if not isinstance(args.spike_fft, bool):
+            logging.error("The parameter spike_fft must be a bool. Please check it again.\n\n")
             raise SystemExit(1)
-    for item in args.hk_sam_tolerance:
-        if not isinstance(item, (int, float)):
-            logging.error(f'Invalid Sampling Tolerance Value: {item}. Please choose a number (float or int).')
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Data Sampling Tolerance ------------------------------------------------------------------------------------------
+    # Check if the parameter is a float
+    if args.subcommand == "tot":
+        try:
+            args.sam_tolerance = float(args.sam_tolerance)
+        except ValueError:
+            logging.error("The parameter sam_tolerance must be a float. Please check it again.\n\n")
             raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Housekeeping Sampling Expected Median ----------------------------------------------------------------------------
+    # Check if the parameter is a float
+    if args.subcommand == "tot" or args.subcommand == "pol_hk":
+        for i in range(len(args.hk_sam_exp_med)):
+            try:
+                args.hk_sam_exp_med[i] = float(args.hk_sam_exp_med[i])
+            except ValueError:
+                logging.error("The 3 parameters of hk_sam_exp_med must be float. Please check them again.\n\n")
+                raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Housekeeping Sampling Tolerance ----------------------------------------------------------------------------------
+    # Check if the parameter is a float
+    if args.subcommand == "tot" or args.subcommand == "pol_hk":
+        for i in range(len(args.hk_sam_tolerance)):
+            try:
+                args.hk_sam_tolerance[i] = float(args.hk_sam_tolerance[i])
+            except ValueError:
+                logging.error("The 3 parameters of hk_sam_tolerance must be float. Please check them again.\n\n")
+                raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
 
     # Store the values into a dict
     hk_sam_exp_med = {"I": args.hk_sam_exp_med[0], "V": args.hk_sam_exp_med[1], "O": args.hk_sam_exp_med[2]}
     hk_sam_tolerance = {"I": args.hk_sam_tolerance[0], "V": args.hk_sam_tolerance[1], "O": args.hk_sam_tolerance[2]}
+
+    # Thermal Sensors Sampling Expected Median -------------------------------------------------------------------------
+    # Check if the parameter is a float
+    if args.subcommand == "tot" or args.subcommand == "thermal_hk":
+        try:
+            args.ts_sam_exp_med = float(args.ts_sam_exp_med)
+        except ValueError:
+            logging.error("The parameter ts_sam_exp_med must be a float. Please check it again.\n\n")
+            raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Thermal Sensors Sampling Tolerance -------------------------------------------------------------------------------
+    # Check if the parameter is a float
+    if args.subcommand == "tot" or args.subcommand == "thermal_hk":
+        try:
+            args.ts_sam_tolerance = float(args.ts_sam_tolerance)
+        except ValueError:
+            logging.error("The parameter ts_sam_tolerance must be a float. Please check it again.\n\n")
+            raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    ####################################################################################################################
+    # COMMON PARAMETERS
+
+    # Correlation Plot -------------------------------------------------------------------------------------------------
+    # Check if the parameter is a bool
+    if not isinstance(args.corr_plot, bool):
+        logging.error("The parameter corr_plot must be a bool. Please check it again.\n\n")
+        raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Correlation Matrix -----------------------------------------------------------------------------------------------
+    # Check if the parameter is a bool
+    if not isinstance(args.corr_mat, bool):
+        logging.error("The parameter corr_mat must be a bool. Please check it again.\n\n")
+        raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Correlation Threshold --------------------------------------------------------------------------------------------
+    # Check if the parameter is a float
+    try:
+        args.corr_t = float(args.corr_t)
+    except ValueError:
+        logging.error("The parameter corr_t must be a float. Please check it again.\n\n")
+        raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Cross Correlation Matrix -----------------------------------------------------------------------------------------
+    # Check if the parameter is a bool
+    if args.subcommand == "tot":
+        if not isinstance(args.cross_corr, bool):
+            logging.error("The parameter cross_corr must be a bool. Please check it again.\n\n")
+            raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Output Plot Directory --------------------------------------------------------------------------------------------
+    # Check if the parameter is a string
+    if not isinstance(args.output_plot_dir, str):
+        logging.error("The parameter output_plot_dir must be a str. Please check it again.\n\n")
+        raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    # Output Report Directory ------------------------------------------------------------------------------------------
+    # Check if the parameter is a string
+    if not isinstance(args.output_report_dir, str):
+        logging.error("The parameter output_report_dir must be a str. Please check it again.\n\n")
+        raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
+    ####################################################################################################################
+    # PARAMETERS OF THE THERMAL SENSORS
+
+    # Status -----------------------------------------------------------------------------------------------------------
+    if args.subcommand == "thermal_hk":
+        if args.status not in ([0, 1, 2]):
+            logging.error('Invalid status value. Please choose between the values 0 and 1 for a single analysis. '
+                          'Choose the value 2 to have both.\n\n')
+            raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
 
     ####################################################################################################################
     # Reports Requirements

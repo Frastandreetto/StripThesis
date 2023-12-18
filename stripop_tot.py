@@ -31,7 +31,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         fft: bool, nperseg: int, nperseg_thermal: int,
         spike_data: bool, spike_fft: bool,
         sam_tolerance: float,
-        hk_sam_exp_med: float, hk_sam_tolerance: float,
+        hk_sam_exp_med: [float, float, float], hk_sam_tolerance: [float, float, float],
         ts_sam_exp_med: float, ts_sam_tolerance: float,
         corr_plot: bool, corr_mat: bool, corr_t: float, cross_corr: bool,
         output_plot_dir: str, output_report_dir: str):
@@ -93,7 +93,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         ["GENERAL REPORT CSV"],
         [""],
         ["Path dataset file", "Start Date Time", "Start Date Time"],
-        [f"{path_file}", f"{fz.dir_format(start_datetime)}", f"{fz.dir_format(end_datetime)}"],
+        [f"{path_file}", f"{start_datetime}", f"{end_datetime}"],
         [""],
         ["N Polarimeters"],
         [f"{len(name_pol.split())}"],
@@ -688,7 +688,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         writer = csv.writer(file)
                         writer.writerows(csv_general)
                     logging.info(f"####################\n"
-                                 f"CSV Report updated: Polarimeter {np} correlations {n1} - {n2}.\n####################\n")
+                                 f"CSV Report updated: Polarimeter {np} correlations {n1} - {n2}.\n"
+                                 f"####################\n")
                     # ----------------------------------------------------------------------------------------------
 
         ################################################################################################################
