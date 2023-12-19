@@ -9,6 +9,7 @@
 import csv
 import json
 import logging
+
 import scipy.signal
 import warnings
 
@@ -387,6 +388,30 @@ def csv_to_json(csv_file_path: str, json_file_path):
     with open(json_file_path, 'w', encoding='utf-8') as json_file:
         json_string = json.dumps(json_array, indent=4)
         json_file.write(json_string)
+
+
+def merge_report(md_reports_path: str, total_report_path: str):
+    """
+    Merge together all the md report files into a single md report file
+    Parameter:\n
+    - md_reports_path (``str``): path of the md files that have to be merged
+    - total_report_path (``str``): path of the md file merged
+    """
+    # Ensure the output directory exists, create it if not
+    output_directory = Path(total_report_path).parent
+    output_directory.mkdir(parents=True, exist_ok=True)
+
+    # List all files in the directory
+    files = [f for f in Path(md_reports_path).iterdir() if f.suffix == '.md']
+
+    # Sort files based on the number at the beginning of their names
+    files_sorted = sorted(files, key=lambda x: (int(x.name.split('_')[0]), x.name))
+
+    # Create or overwrite the destination file
+    with open(total_report_path, 'w', encoding='utf-8') as outfile:
+        for file_path in files_sorted:
+            with file_path.open('r', encoding='utf-8') as infile:
+                outfile.write(infile.read() + '\n\n')
 
 
 def name_check(names: list) -> bool:
