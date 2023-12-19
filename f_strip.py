@@ -10,6 +10,7 @@ import csv
 import json
 import logging
 import scipy.signal
+import warnings
 
 from astropy.time import Time, TimeDelta
 from datetime import datetime
@@ -713,18 +714,43 @@ def data_plot(pol_name: str,
             # Title subplot
             axs[row, col].set_title(f'{exit}', size=15)
 
+            # Treat UserWarning as errors to catch them
+            warnings.simplefilter("error", UserWarning)
+
             # X-axis
             x_label = "Time [s]"
             if fft:
                 x_label = "Frequency [Hz]"
-                axs[row, col].set_xscale('log')
+
+                try:
+                    axs[row, col].set_xscale('log')
+                except ValueError as e:
+                    logging.warning(f"{e} "
+                                    f"Negative data found in Spectral Analysis (FFT): impossible to use log scale.\n\n")
+                    continue
+                except Exception as e:
+                    logging.warning(f"{e} "
+                                    f"Negative data found in Spectral Analysis (FFT): impossible to use log scale.\n\n")
+                    continue
+
             axs[row, col].set_xlabel(f"{x_label}", size=10)
 
             # Y-axis
             y_label = "Output [ADU]"
             if fft:
                 y_label = "Power Spectral Density [ADU**2/Hz]"
-                axs[row, col].set_yscale('log')
+
+                try:
+                    axs[row, col].set_yscale('log')
+                except ValueError as e:
+                    logging.warning(f"{e} "
+                                    f"Negative data found in Spectral Analysis (FFT): impossible to use log scale.\n\n")
+                    continue
+                except Exception as e:
+                    logging.warning(f"{e} "
+                                    f"Negative data found in Spectral Analysis (FFT): impossible to use log scale.\n\n")
+                    continue
+
             else:
                 if rms:
                     y_label = "RMS [ADU]"
