@@ -693,7 +693,7 @@ def main():
     ####################################################################################################################
     # Merge all the MD report into a single file
     fz.merge_report(md_reports_path=args.output_report_dir,
-                    total_report_path=f"{args.output_report_dir}/MD/"
+                    total_report_path=f"{args.output_report_dir}/"
                                       f"General_Report_{args.start_datetime}__{args.end_datetime}.md")
 
     ####################################################################################################################
