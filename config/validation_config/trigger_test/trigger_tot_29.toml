@@ -64,3 +64,5 @@ output_plot_dir='../plot'
 # Wrong Argument
 # NOT WORKING
 output_report_dir='../WRONG_REPORT_DIR/Reports'
+
+report_to_plot ='../..'

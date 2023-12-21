@@ -60,3 +60,4 @@ spike_fft="true"
 # Output dir for plots and reports
 output_plot_dir='../plot'
 output_report_dir='../plot/Reports'
+report_to_plot ='../..'

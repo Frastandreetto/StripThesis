@@ -65,3 +65,4 @@ spike_fft="true"
 output_plot_dir=123456789.0
 
 output_report_dir='../plot/Reports'
+report_to_plot ='../..'
