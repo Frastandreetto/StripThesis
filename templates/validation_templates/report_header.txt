@@ -9,7 +9,7 @@
 
 - Analysis date: `{{ analysis_date }}`
 
-- The plots of this analysis can be found at the following path: `{{ output_plot_dir }}`
+- The plots of this analysis can be found at the following path: `{{ report_to_plot }}`
 
 - The reports of this analysis can be found at the following path: `{{ output_report_dir }}`
 

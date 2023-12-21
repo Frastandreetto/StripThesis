@@ -34,7 +34,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         hk_sam_exp_med: [float, float, float], hk_sam_tolerance: [float, float, float],
         ts_sam_exp_med: float, ts_sam_tolerance: float,
         corr_plot: bool, corr_mat: bool, corr_t: float, cross_corr: bool,
-        output_plot_dir: str, output_report_dir: str):
+        output_plot_dir: str, output_report_dir: str,
+        report_to_plot: str):
     """
     Performs the analysis of one or more polarimeters producing a complete report.
     The analysis can include plots of: Even-Odd Output, Scientific Data, FFT, correlation and  Matrices.
@@ -70,8 +71,12 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             - **corr_t** (``float``): Floating point number used as lim sup for the correlation value
             between two dataset: if the value computed is higher than the threshold, a warning is produced.
             - **cross_corr** (``bool``): If true, compute the 55x55 correlation matrices between all the polarimeters.
-            - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
-            - **command_line** (`str`): Command line used to start the pipeline.
+            - **output_report_dir** (`str`): Path of the dir that contain the reports with the results of the analysis.
+            The starting point is the dir striptease.
+            - **output_plot_dir** (`str`): Path of the dir that contain the plots with the results of the analysis.
+            The starting point is the dir striptease.
+            - **report_to_plot** (`str`): Path of the dir that contain the plots with the results of the analysis.
+            The starting point is the dir that contains the Reports of the analysis.
     """
     logging.info('\nLoading dir and templates information...')
 
@@ -79,7 +84,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
     # Markdown REPORT --------------------------------------------------------------------------------------------------
     # Initializing the data-dict for the md report
-    report_data = {"output_plot_dir": output_plot_dir}
+    report_data = {"output_plot_dir": output_plot_dir, "report_to_plot": report_to_plot}
 
     # CSV REPORT -------------------------------------------------------------------------------------------------------
     # General Information about the whole procedure are collected in a csv file
@@ -228,7 +233,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             f'\nCross Correlation Matrices between all the polarimeters.')
         cross_corr_mat = fz_c.cross_corr_mat(path_file=path_file,
                                              start_datetime=start_datetime, end_datetime=end_datetime,
-                                             show=False, corr_t=corr_t)
+                                             show=False, corr_t=corr_t, plot_dir=output_plot_dir)
         corr_warn.extend(cross_corr_mat["md"])
         csv_general = cross_corr_mat["csv"]
 
@@ -484,6 +489,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     logging.info(f"\nOnce ready, I will put the EOA report into: {output_report_dir}.")
 
                     eoa_letters = fz.letter_combo(str(eoa))
+                    # At this moment eoa_letters is not used into report_eoa.txt -> Jinja2 treats the list as a str...
 
                     # Updating the report_data dict
                     report_data.update({"name_pol": np, "fft": fft, "rms": rms, "eoa_letters": eoa_letters})

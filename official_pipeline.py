@@ -132,10 +132,19 @@ def main():
     # Output directory of the plots
     common_parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
                                help='Path of the dir that will contain the plots of the analysis '
+                                    'starting from the dir striptease where the pipeline is run'
                                     '(default: %(default)s).', metavar='')
     # Output directory of the reports
     common_parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
                                help='Path of the dir that will contain the reports with the results of the analysis '
+                                    'starting from the dir striptease where the pipeline is run'
+                                    '(default: %(default)s).', metavar='')
+
+    # Report to plot path
+    common_parser.add_argument('--report_to_plot', '-r2p', type=str, default='../..',
+                               help='Path of the dir that will contain the plots of the analysis '
+                                    'starting from the specific sub-directory contained into "Reports", '
+                                    'the dir that contains the md reports '
                                     '(default: %(default)s).', metavar='')
 
     ####################################################################################################################
@@ -560,6 +569,13 @@ def main():
         raise SystemExit(1)
     # ------------------------------------------------------------------------------------------------------------------
 
+    # Report to Plot Directory -----------------------------------------------------------------------------------------
+    # Check if the parameter is a string
+    if not isinstance(args.report_to_plot, str):
+        logging.error("The parameter report_to_plot must be a str. Please check it again.\n\n")
+        raise SystemExit(1)
+    # ------------------------------------------------------------------------------------------------------------------
+
     ####################################################################################################################
     # PARAMETERS OF THE THERMAL SENSORS
 
@@ -580,9 +596,14 @@ def main():
     date_dir = fz.dir_format(f"{args.start_datetime}__{args.end_datetime}")
 
     # Creating the correct path for the PLOT dir: adding the date_dir
+
+    # 1) From the striptease directory
     args.output_plot_dir = f"{args.output_plot_dir}/{date_dir}"
     # Check if the dir exists. If not, it will be created.
     Path(args.output_plot_dir).mkdir(parents=True, exist_ok=True)
+
+    # 2) From the Report directory
+    args.report_to_plot = f"{args.report_to_plot}/{date_dir}"
 
     # Creating the correct path for the REPORT dir: adding the date_dir
     args.output_report_dir = f"{args.output_report_dir}/{date_dir}"
@@ -622,7 +643,8 @@ def main():
                     fft=args.fourier, nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
                     spike_data=args.spike_data, spike_fft=args.spike_fft,
                     corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t, cross_corr=args.cross_corr,
-                    output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
+                    output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir,
+                    report_to_plot=args.report_to_plot)
 
     elif args.subcommand == "pol_hk":
         logging.info('The housekeeping analysis is beginning...')
@@ -630,8 +652,10 @@ def main():
         strip_b.pol_hk(path_file=args.path_file, start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                        name_pol=args.name_pol,
                        hk_sam_exp_med=hk_sam_exp_med, hk_sam_tolerance=hk_sam_tolerance,
+                       corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t,
                        output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir,
-                       corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t)
+                       report_to_plot=args.report_to_plot
+                       )
 
     elif args.subcommand == "thermal_hk":
         # Thermal Sensors Analysis Operation
@@ -646,7 +670,8 @@ def main():
                                    ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
                                    spike_ts=args.spike_ts, spike_fft=args.spike_fft,
                                    corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
-                                   output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
+                                   output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir,
+                                   report_to_plot=args.report_to_plot)
         else:
             strip_c.thermal_hk(path_file=args.path_file,
                                start_datetime=args.start_datetime, end_datetime=args.end_datetime,
@@ -654,7 +679,8 @@ def main():
                                ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
                                spike_ts=args.spike_ts, spike_fft=args.spike_fft,
                                corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
-                               output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir)
+                               output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir,
+                               report_to_plot=args.report_to_plot)
 
     ####################################################################################################################
     # REPORT Production
@@ -669,7 +695,7 @@ def main():
         "command_line": command_line,
         "path_file": args.path_file,
         "analysis_date": str(f"{args.start_datetime} - {args.end_datetime}"),
-        "output_plot_dir": args.output_plot_dir,
+        "report_to_plot": args.report_to_plot,
         "output_report_dir": args.output_report_dir,
         "args_dict": args_dict
     }

@@ -24,7 +24,8 @@ logging.basicConfig(level="INFO", format='%(message)s',
 def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
            corr_plot: bool, corr_mat: bool, corr_t: float,
            hk_sam_exp_med: dict, hk_sam_tolerance: dict,
-           output_plot_dir: str, output_report_dir: str):
+           output_plot_dir: str, output_report_dir: str,
+           report_to_plot: str):
     """
     Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
         Parameters:
@@ -34,13 +35,17 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
             - **name_pol** (``str``): name of the polarimeter. If more than one, write them into ' ' separated by space.
             - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of HK
             - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
-            - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
-            - **command_line** (`str`): Command line used to start the pipeline.
+            - **output_report_dir** (`str`): Path of the dir that contain the reports with the results of the analysis.
+            The starting point is the dir striptease.
+            - **output_plot_dir** (`str`): Path of the dir that contain the plots with the results of the analysis.
+            The starting point is the dir striptease.
+            - **report_to_plot** (`str`): Path of the dir that contain the plots with the results of the analysis.
+            The starting point is the dir that contains the Reports of the analysis.
     """
     logging.info('\nLoading dir and templates information...')
 
     # Initializing the data-dict for the report
-    report_data = {"output_plot_dir": output_plot_dir}
+    report_data = {"output_plot_dir": output_plot_dir, "report_to_plot": report_to_plot}
 
     # root: location of the file.txt with the information to build the report
     root = "../striptease/templates/validation_templates"
@@ -133,7 +138,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         template_hk = env.get_template('report_hk.txt')
 
         # Report HK generation
-        filename = Path(f"{output_report_dir}/report_hk.md")
+        filename = Path(f"{output_report_dir}/4_report_hk.md")
         with open(filename, 'w') as outf:
             outf.write(template_hk.render(report_data))
 
@@ -150,7 +155,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         template_ts = env.get_template('report_warnings.txt')
 
         # Report generation
-        filename = Path(f"{output_report_dir}/report_hk_warnings.md")
+        filename = Path(f"{output_report_dir}/2_report_hk_warnings.md")
         with open(filename, 'w') as outf:
             outf.write(template_ts.render(report_data))
 

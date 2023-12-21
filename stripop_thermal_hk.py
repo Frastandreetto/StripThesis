@@ -26,7 +26,8 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                ts_sam_exp_med: float, ts_sam_tolerance: float,
                spike_ts: bool, spike_fft: bool,
                corr_t: float, corr_plot: bool, corr_mat: bool,
-               output_plot_dir: str, output_report_dir: str):
+               output_plot_dir: str, output_report_dir: str,
+               report_to_plot: str):
     """
     Performs the analysis of one or more polarimeters producing a complete report.
     The analysis can include plots of: Even-Odd Output, Scientific Data, FFT and correlation Matrices.
@@ -45,13 +46,17 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             - **spike_fft** (`bool`) If true, the code will look for spikes in FFT of the Thermal Sensors
             - **corr_t** (``float``): lim sup for the correlation value between two dataset:
              if the value computed is higher than the threshold, a warning is produced.
-             - **output_dir** (`str`): Path of the dir that will contain the reports with the results of the analysis.
-             - **command_line** (`str`): Command line used to start the pipeline.
+             - **output_report_dir** (`str`): Path of the dir that contain the reports with the results of the analysis.
+            The starting point is the dir striptease.
+            - **output_plot_dir** (`str`): Path of the dir that contain the plots with the results of the analysis.
+            The starting point is the dir striptease.
+            - **report_to_plot** (`str`): Path of the dir that contain the plots with the results of the analysis.
+            The starting point is the dir that contains the Reports of the analysis.
     """
     logging.info('\nLoading dir and templates information...')
 
     # Initializing the data-dict for the report
-    report_data = {"output_plot_dir": output_plot_dir}
+    report_data = {"output_plot_dir": output_plot_dir, "report_to_plot": report_to_plot}
 
     # root: location of the file.txt with the information to build the report
     root = "../striptease/templates/validation_templates"
@@ -161,7 +166,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     template_ts = env.get_template('report_thermals.txt')
 
     # Report TS generation
-    filename = Path(f"{output_report_dir}/report_ts_status_{status}.md")
+    filename = Path(f"{output_report_dir}/3_report_ts_status_{status}.md")
     with open(filename, 'w') as outf:
         outf.write(template_ts.render(report_data))
 
@@ -179,7 +184,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     template_ts = env.get_template('report_warnings.txt')
 
     # Report generation
-    filename = Path(f"{output_report_dir}/report_ts_warnings_{status}.md")
+    filename = Path(f"{output_report_dir}/2_report_ts_warnings_{status}.md")
     with open(filename, 'w') as outf:
         outf.write(template_ts.render(report_data))
 

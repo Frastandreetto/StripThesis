@@ -3,18 +3,18 @@
 {% for type in ["DEMODULATED", "TOTPOWER"] %}
 
 ### Output of the {{ type }} Scientific Data
-![LSPE-Strip Official img]({{ output_plot_dir }}/SCIDATA/{{ type }}/{{ name_pol}}__{{ type }}.png)
+![LSPE-Strip Official img]({{ report_to_plot }}/SCIDATA/{{ type }}/{{ name_pol}}__{{ type }}.png)
 
 ### RMS of the {{ type }} Scientific Data
-![LSPE-Strip Official img]({{ output_plot_dir }}/RMS/{{ type }}/{{ name_pol}}__RMS_{{ type }}.png)
+![LSPE-Strip Official img]({{ report_to_plot }}/RMS/{{ type }}/{{ name_pol}}__RMS_{{ type }}.png)
 
 {% if fft %}
 
 ### FFT of {{ type }} Scientific Data
-![LSPE-Strip Official img]({{ output_plot_dir }}/FFT/{{ type }}/{{ name_pol}}__FFT_{{ type }}.png)
+![LSPE-Strip Official img]({{ report_to_plot }}/FFT/{{ type }}/{{ name_pol}}__FFT_{{ type }}.png)
 
 ### FFT of RMS of {{ type }} Scientific Data
-![LSPE-Strip Official img]({{ output_plot_dir }}/FFT/RMS/{{ type }}/{{ name_pol}}__FFT_RMS_{{ type }}.png)
+![LSPE-Strip Official img]({{ report_to_plot }}/FFT/RMS/{{ type }}/{{ name_pol}}__FFT_RMS_{{ type }}.png)
 
 {% endif %}
 

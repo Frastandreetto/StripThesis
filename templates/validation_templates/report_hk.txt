@@ -9,6 +9,6 @@
 
 ### Output of the HK Parameters {{ item }}
 
-![LSPE-Strip Official img]({{ output_plot_dir }}/HK/HK_{{ item }}.png)
+![LSPE-Strip Official img]({{ report_to_plot }}/HK/HK_{{ item }}.png)
 
 {% endfor %}

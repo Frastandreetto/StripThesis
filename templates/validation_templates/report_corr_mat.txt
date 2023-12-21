@@ -4,5 +4,5 @@
 
 Correlation Matrix of {{ file[:-12]}}
 
-![LSPE-Strip Official img]({{ output_plot_dir }}/Correlation_Matrix/{{ file }})
+![LSPE-Strip Official img]({{ report_to_plot }}/Correlation_Matrix/{{ file }})
 {% endfor %}
