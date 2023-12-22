@@ -86,6 +86,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     # Initializing the data-dict for the md report
     report_data = {"output_plot_dir": output_plot_dir, "report_to_plot": report_to_plot}
 
+    # Initializing a boolean variable to create a new report file or to overwrite the old ones
+    first_report = True
+
     # CSV REPORT -------------------------------------------------------------------------------------------------------
     # General Information about the whole procedure are collected in a csv file
 
@@ -221,6 +224,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
             # Report TS generation
             filename = Path(f"{output_report_dir}/3_report_ts_status_{status}.md")
+
+            # Overwrite reports produced through the previous version of the pipeline
+            # Create a new white file where to write
             with open(filename, 'w') as outf:
                 outf.write(template_ts.render(report_data))
 
@@ -252,12 +258,15 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     logging.info("\nReady to analyze the Polarimeters now.")
     # Converting the string of polarimeters into a list
     name_pol = name_pol.split()
+
     # Repeating the analysis for all the polarimeters in the list
     for np in name_pol:
 
         # Messages for report and user
         # --------------------------------------------------------------------------------------------------------------
         msg = f'Parsing {np}'
+
+        # [CSV]
         csv_general = [
             [""],
             [f"{msg}"],
@@ -269,6 +278,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             writer = csv.writer(file)
             writer.writerows(csv_general)
         # -------------------------------------------------------------------------------------------------
+
+        # [MD]
+        # Updating the report_data dict
+        report_data.update({"pol_name": np})
 
         logging.warning(f'--------------------------------------------------------------------------------------'
                         f'\n{msg}\n')
@@ -342,7 +355,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 p.Plot_Housekeeping(hk_kind=hk_kind, show=False)
 
             # ----------------------------------------------------------------------------------------------------------
-            # REPORT Markdown HK
+            # [MD] REPORT HK
             # ----------------------------------------------------------------------------------------------------------
             logging.info(f"\nOnce ready, I will put the HK report into: {output_report_dir}.")
 
@@ -352,10 +365,19 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # Getting instructions to create the HK report
             template_hk = env.get_template('report_hk.txt')
 
-            # Report HK generation
+            # [MD] Report HK generation
             filename = Path(f"{output_report_dir}/4_report_hk.md")
-            with open(filename, 'w') as outf:
-                outf.write(template_hk.render(report_data))
+
+            # Overwrite reports produced through the previous version of the pipeline
+            if first_report:
+                # Create a new white file where to write
+                with open(filename, 'w') as outf:
+                    outf.write(template_hk.render(report_data))
+            # Avoid overwriting between following polarimeters
+            else:
+                # Append at the end of the file
+                with open(filename, 'a') as outf:
+                    outf.write(template_hk.render(report_data))
 
         ################################################################################################################
         # Scientific Output Analysis
@@ -495,12 +517,21 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     report_data.update({"name_pol": np, "fft": fft, "rms": rms, "eoa_letters": eoa_letters})
 
                     # Getting instructions to create the HK report
-                    template_hk = env.get_template('report_eoa.txt')
+                    template_eoa = env.get_template('report_eoa.txt')
 
-                    # Report HK generation
+                    # [MD] Report HK generation
                     filename = Path(f"{output_report_dir}/5_report_eoa.md")
-                    with open(filename, 'w') as outf:
-                        outf.write(template_hk.render(report_data))
+
+                    # Overwrite reports produced through the previous version of the pipeline
+                    if first_report:
+                        # Create a new white file where to write
+                        with open(filename, 'w') as outf:
+                            outf.write(template_eoa.render(report_data))
+                    # Avoid overwriting between following polarimeters
+                    else:
+                        # Append at the end of the file
+                        with open(filename, 'a') as outf:
+                            outf.write(template_eoa.render(report_data))
 
             ############################################################################################################
             # Scientific Data Analysis
@@ -559,12 +590,21 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     report_data.update({"name_pol": np, "fft": fft})
 
                     # Getting instructions to create the SCIDATA report
-                    template_hk = env.get_template('report_sci.txt')
+                    template_sci = env.get_template('report_sci.txt')
 
                     # Report SCIDATA generation
                     filename = Path(f"{output_report_dir}/6_report_sci.md")
-                    with open(filename, 'w') as outf:
-                        outf.write(template_hk.render(report_data))
+
+                    # Overwrite reports produced through the previous version of the pipeline
+                    if first_report:
+                        # Create a new white file where to write
+                        with open(filename, 'w') as outf:
+                            outf.write(template_sci.render(report_data))
+                    # Avoid overwriting between following polarimeters
+                    else:
+                        # Append at the end of the file
+                        with open(filename, 'a') as outf:
+                            outf.write(template_sci.render(report_data))
 
             ############################################################################################################
             # Correlation plots and matrices
@@ -821,6 +861,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  f"CSV Report updated: correlations {n1} - {n2}.\n####################\n")
                     # --------------------------------------------------------------------------------------------------
 
+        # Updating the bool first_report to False at the end of the first for cycle: from now on the info are appended
+        first_report = False
+
     ####################################################################################################################
     # Other Correlation plots and matrices: TS
     ####################################################################################################################
@@ -935,18 +978,20 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     if corr_plot:
         logging.info(f"\nOnce ready, I will put the CORR PLOT report into: {output_report_dir}.")
 
-        # Get png files name from the dir Correlation_Plot
-        png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Plot/")
-                     if file.lower().endswith('.png')]
+        # Get png files name from the dir Correlation_Plot sorted in alphabetic order
+        png_files = sorted([file for file in os.listdir(f"{output_plot_dir}/Correlation_Plot/")
+                            if file.lower().endswith('.png')])
         report_data.update({"png_files": png_files})
 
         # Getting instructions to create the CORR PLOT report
-        template_hk = env.get_template('report_corr_plot.txt')
+        template_cp = env.get_template('report_corr_plot.txt')
 
-        # Report CORR PLOT generation
+        # [MD] Report CORR PLOT generation
         filename = Path(f"{output_report_dir}/7_report_corr_plot.md")
+
+        # Overwrite reports produced through the previous version of the pipeline
         with open(filename, 'w') as outf:
-            outf.write(template_hk.render(report_data))
+            outf.write(template_cp.render(report_data))
 
     # ------------------------------------------------------------------------------------------------------
     # REPORT CORRELATION MATRIX
@@ -954,22 +999,24 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     if corr_mat:
         logging.info(f"\nOnce ready, I will put the CORR MATRIX report into: {output_report_dir}.")
 
-        # Get png files name from the dir Correlation_Matrix
-        png_files = [file for file in os.listdir(f"{output_plot_dir}/Correlation_Matrix/")
-                     if file.lower().endswith('.png')]
+        # Get png files name from the dir Correlation_Matrix sorted in alphabetic order
+        png_files = sorted([file for file in os.listdir(f"{output_plot_dir}/Correlation_Matrix/")
+                            if file.lower().endswith('.png')])
 
         report_data.update({"png_files": png_files})
 
         # Getting instructions to create the CORR MAT report
-        template_hk = env.get_template('report_corr_mat.txt')
+        template_cm = env.get_template('report_corr_mat.txt')
 
         # Report CORR MAT generation
         filename = Path(f"{output_report_dir}/8_report_corr_mat.md")
+
+        # Overwrite reports produced through the previous version of the pipeline
         with open(filename, 'w') as outf:
-            outf.write(template_hk.render(report_data))
+            outf.write(template_cm.render(report_data))
 
     # ------------------------------------------------------------------------------------------------------
-    # REPORT WARNINGS
+    # [MD] REPORT WARNINGS
     # ------------------------------------------------------------------------------------------------------
     # Updating the report_data dict for the warning report
     report_data.update({"t_warn": t_warn,
@@ -979,10 +1026,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         })
 
     # Getting instructions to create the head of the report
-    template_ts = env.get_template('report_warnings.txt')
+    template_w = env.get_template('report_warnings.txt')
 
     # Report generation
     filename = Path(f"{output_report_dir}/2_report_tot_warnings.md")
     with open(filename, 'w') as outf:
-        outf.write(template_ts.render(report_data))
+        outf.write(template_w.render(report_data))
+
     return
