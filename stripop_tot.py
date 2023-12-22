@@ -973,7 +973,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # ------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
-    # REPORT CORRELATION PLOT:
+    # [MD] REPORT CORRELATION PLOT:
     # ------------------------------------------------------------------------------------------------------------------
     if corr_plot:
         logging.info(f"\nOnce ready, I will put the CORR PLOT report into: {output_report_dir}.")
@@ -1004,6 +1004,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             if file.lower().endswith('.png')])
 
         report_data.update({"png_files": png_files})
+
+        # Get png files name from the dir Cross_Corr sorted in alphabetic order
+        png_cross_files = sorted([file for file in os.listdir(f"{output_plot_dir}/Cross_Corr/")
+                                  if file.lower().endswith('.png')])
+        report_data.update({"png_cross_files": png_cross_files})
 
         # Getting instructions to create the CORR MAT report
         template_cm = env.get_template('report_corr_mat.txt')
