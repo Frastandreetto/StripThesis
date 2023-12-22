@@ -229,6 +229,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # Create a new white file where to write
             with open(filename, 'w') as outf:
                 outf.write(template_ts.render(report_data))
+            logging.info("############################################################################################"
+                         "Thermal Sensors - Markdown Report Ready!\n\n")
 
     ####################################################################################################################
     # Multi Polarimeter Analysis
@@ -378,6 +380,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # Append at the end of the file
                 with open(filename, 'a') as outf:
                     outf.write(template_hk.render(report_data))
+
+            logging.info("############################################################################################"
+                         f"HK Parameters of Pol {np} - Markdown Report Ready!\n\n")
 
         ################################################################################################################
         # Scientific Output Analysis
@@ -533,6 +538,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         with open(filename, 'a') as outf:
                             outf.write(template_eoa.render(report_data))
 
+                    logging.info(
+                        "############################################################################################"
+                        f"Scientific Output EOA of Polarimeter {np} - Markdown Report Ready!\n\n")
+
             ############################################################################################################
             # Scientific Data Analysis
             ############################################################################################################
@@ -605,6 +614,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         # Append at the end of the file
                         with open(filename, 'a') as outf:
                             outf.write(template_sci.render(report_data))
+
+                    logging.info(
+                        "############################################################################################"
+                        f"Scientific Data of Polarimeter {np} - Markdown Report Ready!\n\n")
 
             ############################################################################################################
             # Correlation plots and matrices
@@ -993,6 +1006,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         with open(filename, 'w') as outf:
             outf.write(template_cp.render(report_data))
 
+        logging.info("############################################################################################"
+                     "Correlation Plots - Markdown Report Ready!\n\n")
     # ------------------------------------------------------------------------------------------------------
     # REPORT CORRELATION MATRIX
     # ------------------------------------------------------------------------------------------------------
@@ -1020,6 +1035,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         with open(filename, 'w') as outf:
             outf.write(template_cm.render(report_data))
 
+        logging.info("############################################################################################"
+                     "Correlation Matrix - Markdown Report Ready!\n\n")
     # ------------------------------------------------------------------------------------------------------
     # [MD] REPORT WARNINGS
     # ------------------------------------------------------------------------------------------------------
