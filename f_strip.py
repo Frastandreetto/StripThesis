@@ -140,7 +140,7 @@ def rolling_window(v, window: int):
     return np.lib.stride_tricks.as_strided(v, shape=shape, strides=strides)
 
 
-def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1):
+def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1) -> []:
     """
     Calculate the RMS of a vector using the rolling window
     Parameters:\n
@@ -153,12 +153,25 @@ def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1):
         even samples (*eoa=2*)\n
     - **begin**, **end** (``int``): interval of dataset that has to be considered
     """
+    rms = []
     if eoa == 0:
-        rms = np.std(rolling_window(data[exit][begin:end], window), axis=1)
+        try:
+            rms = np.std(rolling_window(data[exit][begin:end], window), axis=1)
+        except ValueError as e:
+            logging.warning(f"{e}. "
+                            f"Impossible to plot RMS.\n\n")
     elif eoa == 1:
-        rms = np.std(rolling_window(data[exit][begin + 1:end:2], window), axis=1)
+        try:
+            rms = np.std(rolling_window(data[exit][begin + 1:end:2], window), axis=1)
+        except ValueError as e:
+            logging.warning(f"{e}. "
+                            f"Impossible to plot RMS.\n\n")
     elif eoa == 2:
-        rms = np.std(rolling_window(data[exit][begin:end - 1:2], window), axis=1)
+        try:
+            rms = np.std(rolling_window(data[exit][begin:end - 1:2], window), axis=1)
+        except ValueError as e:
+            logging.warning(f"{e}. "
+                            f"Impossible to plot RMS.\n\n")
     else:
         logging.error("Wrong EOA value: it must be 0,1 or 2.")
         raise SystemExit(1)
@@ -594,50 +607,66 @@ def data_plot(pol_name: str,
         for exit in ["Q1", "Q2", "U1", "U2"]:
             # Setting the Y-scale uniform on the 2nd row
             if row == 1:
-                axs[row, col].sharey(axs[1, 0])
+                # Avoid UserWarning on y-axis log-scale
+                try:
+                    # Set the y-axis of the current plot as the first of the raw
+                    axs[row, col].sharey(axs[1, 0])
+                except ValueError as e:
+                    logging.warning(f"{e} "
+                                    f"Negative data found in Spectral Analysis (FFT): impossible to use log scale.\n\n")
+                    continue
+                except Exception as e:
+                    logging.warning(f"{e} "
+                                    f"Negative data found in Spectral Analysis (FFT): impossible to use log scale.\n\n")
+                    continue
 
             # ------------------------------------------------------------------------------------------------------
             # Demodulation: Scientific Data
             if demodulated:
-                # Creating a dict with the Scientific Data of an exit of a specific type and their new timestamps
-                sci_data = demodulation(dataset=dataset, timestamps=timestamps,
-                                        type=type, exit=exit, begin=begin, end=end)
-                if rms:
-                    # Calculate the RMS of the Scientific Data
-                    rms_sd = RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end)
+                try:
+                    # Creating a dict with the Scientific Data of an exit of a specific type and their new timestamps
+                    sci_data = demodulation(dataset=dataset, timestamps=timestamps,
+                                            type=type, exit=exit, begin=begin, end=end)
+                    if rms:
+                        # Calculate the RMS of the Scientific Data
+                        rms_sd = RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end)
 
-                    # Plot of FFT of the RMS of the SciData DEMODULATED/TOTPOWER -----------------------------------
-                    if fft:
-                        f, s = scipy.signal.welch(rms_sd, fs=50, nperseg=min(len(rms_sd), nperseg), scaling="spectrum")
-                        axs[row, col].plot(f[f < 25.], s[f < 25.],
-                                           linewidth=0.2, marker=".", color="mediumvioletred",
-                                           label=f"{name_plot[3:]}")
+                        # Plot of FFT of the RMS of the SciData DEMODULATED/TOTPOWER -----------------------------------
+                        if fft:
+                            f, s = scipy.signal.welch(rms_sd, fs=50, nperseg=min(len(rms_sd), nperseg),
+                                                      scaling="spectrum")
+                            axs[row, col].plot(f[f < 25.], s[f < 25.],
+                                               linewidth=0.2, marker=".", color="mediumvioletred",
+                                               label=f"{name_plot[3:]}")
 
-                    # Plot of RMS of the SciData DEMODULATED/TOTPOWER ----------------------------------------------
+                        # Plot of RMS of the SciData DEMODULATED/TOTPOWER ----------------------------------------------
+                        else:
+                            # Smoothing of the rms of the SciData. Smooth_len=1 -> No smoothing
+                            rms_sd = mob_mean(rms_sd, smooth_len=smooth_len)
+
+                            axs[row, col].plot(sci_data["times"][begin:len(rms_sd) + begin], rms_sd,
+                                               color="mediumvioletred", label=f"{name_plot[3:]}")
+
                     else:
-                        # Smoothing of the rms of the SciData. Smooth_len=1 -> No smoothing
-                        rms_sd = mob_mean(rms_sd, smooth_len=smooth_len)
+                        # Plot of the FFT of the SciData DEMODULATED/TOTPOWER ------------------------------------------
+                        if fft:
+                            f, s = scipy.signal.welch(sci_data["sci_data"][exit][begin:end], fs=50,
+                                                      nperseg=min(len(sci_data["sci_data"][exit][begin:end]), nperseg),
+                                                      scaling="spectrum")
+                            axs[row, col].plot(f[f < 25.], s[f < 25.],
+                                               linewidth=0.2, marker=".", color="mediumpurple",
+                                               label=f"{name_plot[3:]}")
 
-                        axs[row, col].plot(sci_data["times"][begin:len(rms_sd) + begin], rms_sd,
-                                           color="mediumvioletred", label=f"{name_plot[3:]}")
+                        # Plot of the SciData DEMODULATED/TOTPOWER -----------------------------------------------------
+                        else:
+                            # Smoothing of the SciData  Smooth_len=1 -> No smoothing
+                            y = mob_mean(sci_data["sci_data"][exit][begin:end], smooth_len=smooth_len)
+                            axs[row, col].plot(sci_data["times"][begin:len(y) + begin], y,
+                                               color="mediumpurple", label=f"{name_plot[3:]}")
 
-                else:
-                    # Plot of the FFT of the SciData DEMODULATED/TOTPOWER ------------------------------------------
-                    if fft:
-                        f, s = scipy.signal.welch(sci_data["sci_data"][exit][begin:end], fs=50,
-                                                  nperseg=min(len(sci_data["sci_data"][exit][begin:end]), nperseg),
-                                                  scaling="spectrum")
-                        axs[row, col].plot(f[f < 25.], s[f < 25.],
-                                           linewidth=0.2, marker=".", color="mediumpurple",
-                                           label=f"{name_plot[3:]}")
-
-                    # Plot of the SciData DEMODULATED/TOTPOWER -----------------------------------------------------
-                    else:
-                        # Smoothing of the SciData  Smooth_len=1 -> No smoothing
-                        y = mob_mean(sci_data["sci_data"][exit][begin:end], smooth_len=smooth_len)
-                        axs[row, col].plot(sci_data["times"][begin:len(y) + begin], y,
-                                           color="mediumpurple", label=f"{name_plot[3:]}")
-
+                except ValueError as e:
+                    logging.warning(f"{e}. Impossible to process {name_plot}.\n\n")
+                    pass
             # ------------------------------------------------------------------------------------------------------
             # Output
             else:
@@ -647,92 +676,103 @@ def data_plot(pol_name: str,
                     logging.error("No plot can be printed if even, odd, all values are all 0.")
                     raise SystemExit(1)
                 else:
-                    if rms:
-                        rms_even = []
-                        rms_odd = []
-                        rms_all = []
-                        # Calculate the RMS of the Scientific Output: Even, Odd, All
-                        if even:
-                            rms_even = RMS(dataset[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
-                        if odd:
-                            rms_odd = RMS(dataset[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
-                        if all:
-                            rms_all = RMS(dataset[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
-
-                        # Plot of FFT of the RMS of the Output DEM/PWR ---------------------------------------------
-                        if fft:
+                    try:
+                        if rms:
+                            rms_even = []
+                            rms_odd = []
+                            rms_all = []
+                            # Calculate the RMS of the Scientific Output: Even, Odd, All
                             if even:
-                                f, s = scipy.signal.welch(rms_even, fs=50, nperseg=min(len(rms_even), nperseg),
-                                                          scaling="spectrum")
-                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
-                                                   linewidth=0.2, marker=".", alpha=even, label=f"Even samples")
+                                rms_even = RMS(dataset[type], window=window, exit=exit, eoa=2, begin=begin, end=end)
                             if odd:
-                                f, s = scipy.signal.welch(rms_odd, fs=50, nperseg=min(len(rms_odd), nperseg),
-                                                          scaling="spectrum")
-                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
-                                                   linewidth=0.2, marker=".", alpha=odd, label=f"Odd samples")
+                                rms_odd = RMS(dataset[type], window=window, exit=exit, eoa=1, begin=begin, end=end)
                             if all:
-                                f, s = scipy.signal.welch(rms_all, fs=100, nperseg=min(len(rms_all), nperseg),
-                                                          scaling="spectrum")
-                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
-                                                   linewidth=0.2, marker=".", alpha=all, label="All samples")
+                                rms_all = RMS(dataset[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
 
-                        # Plot of RMS of the Output DEM/PWR --------------------------------------------------------
-                        else:
-                            if even:
-                                axs[row, col].plot(timestamps[begin:end - 1:2][:-window - smooth_len + 1],
-                                                   mob_mean(rms_even, smooth_len=smooth_len)[:-1],
-                                                   color="royalblue", alpha=even, label="Even Output")
-                            if odd:
-                                axs[row, col].plot(timestamps[begin + 1:end:2][:-window - smooth_len + 1],
-                                                   mob_mean(rms_odd, smooth_len=smooth_len)[:-1],
-                                                   color="crimson", alpha=odd, label="Odd Output")
-                            if all != 0:
-                                axs[row, col].plot(timestamps[begin:end][:-window - smooth_len + 1],
-                                                   mob_mean(rms_all, smooth_len=smooth_len)[:-1],
-                                                   color="forestgreen", alpha=all, label="All Output")
+                            # Plot of FFT of the RMS of the Output DEM/PWR ---------------------------------------------
+                            if fft:
+                                if even:
+                                    f, s = scipy.signal.welch(rms_even, fs=50, nperseg=min(len(rms_even), nperseg),
+                                                              scaling="spectrum")
+                                    axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
+                                                       linewidth=0.2, marker=".", alpha=even, label=f"Even samples")
+                                if odd:
+                                    f, s = scipy.signal.welch(rms_odd, fs=50, nperseg=min(len(rms_odd), nperseg),
+                                                              scaling="spectrum")
+                                    axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
+                                                       linewidth=0.2, marker=".", alpha=odd, label=f"Odd samples")
+                                if all:
+                                    f, s = scipy.signal.welch(rms_all, fs=100, nperseg=min(len(rms_all), nperseg),
+                                                              scaling="spectrum")
+                                    axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
+                                                       linewidth=0.2, marker=".", alpha=all, label="All samples")
+
+                            # Plot of RMS of the Output DEM/PWR --------------------------------------------------------
+                            else:
+                                if even:
+                                    axs[row, col].plot(timestamps[begin:end - 1:2][:-window - smooth_len + 1],
+                                                       mob_mean(rms_even, smooth_len=smooth_len)[:-1],
+                                                       color="royalblue", alpha=even, label="Even Output")
+                                if odd:
+                                    axs[row, col].plot(timestamps[begin + 1:end:2][:-window - smooth_len + 1],
+                                                       mob_mean(rms_odd, smooth_len=smooth_len)[:-1],
+                                                       color="crimson", alpha=odd, label="Odd Output")
+
+                                if all != 0:
+                                    axs[row, col].plot(timestamps[begin:end][:-window - smooth_len + 1],
+                                                       mob_mean(rms_all, smooth_len=smooth_len)[:-1],
+                                                       color="forestgreen", alpha=all, label="All Output")
+
+                    except ValueError as e:
+                        logging.warning(f"{e}. Impossible to process {name_plot}. \n\n")
+                        pass
 
                     else:
-                        # Plot of the FFT of the Output DEM/PWR ----------------------------------------------------
-                        if fft:
-                            if even:
-                                f, s = scipy.signal.welch(dataset[type][exit][begin:end - 1:2], fs=50,
-                                                          nperseg=min(len(dataset[type][exit][begin:end - 1:2]),
-                                                                      nperseg),
-                                                          scaling="spectrum")
-                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
-                                                   linewidth=0.2, marker=".", alpha=even, label="Even samples")
-                            if odd:
-                                f, s = scipy.signal.welch(dataset[type][exit][begin + 1:end:2], fs=50,
-                                                          nperseg=min(len(dataset[type][exit][begin + 1:end:2]),
-                                                                      nperseg),
-                                                          scaling="spectrum")
-                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
-                                                   linewidth=0.2, marker=".", alpha=odd, label="Odd samples")
-                            if all:
-                                f, s = scipy.signal.welch(dataset[type][exit][begin:end], fs=100,
-                                                          nperseg=min(len(dataset[type][exit][begin:end]), nperseg),
-                                                          scaling="spectrum")
-                                axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
-                                                   linewidth=0.2, marker=".", alpha=all, label="All samples")
+                        try:
+                            # Plot of the FFT of the Output DEM/PWR ----------------------------------------------------
+                            if fft:
+                                if even:
+                                    f, s = scipy.signal.welch(dataset[type][exit][begin:end - 1:2], fs=50,
+                                                              nperseg=min(len(dataset[type][exit][begin:end - 1:2]),
+                                                                          nperseg),
+                                                              scaling="spectrum")
+                                    axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
+                                                       linewidth=0.2, marker=".", alpha=even, label="Even samples")
+                                if odd:
+                                    f, s = scipy.signal.welch(dataset[type][exit][begin + 1:end:2], fs=50,
+                                                              nperseg=min(len(dataset[type][exit][begin + 1:end:2]),
+                                                                          nperseg),
+                                                              scaling="spectrum")
+                                    axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
+                                                       linewidth=0.2, marker=".", alpha=odd, label="Odd samples")
+                                if all:
+                                    f, s = scipy.signal.welch(dataset[type][exit][begin:end], fs=100,
+                                                              nperseg=min(len(dataset[type][exit][begin:end]), nperseg),
+                                                              scaling="spectrum")
+                                    axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
+                                                       linewidth=0.2, marker=".", alpha=all, label="All samples")
 
-                        # Plot of the Output DEM/PWR ---------------------------------------------------------------
-                        else:
-                            if even != 0:
-                                axs[row, col].plot(timestamps[begin:end - 1:2][:- smooth_len],
-                                                   mob_mean(dataset[type][exit][begin:end - 1:2],
-                                                            smooth_len=smooth_len)[:-1],
-                                                   color="royalblue", alpha=even, label="Even Output")
-                            if odd != 0:
-                                axs[row, col].plot(timestamps[begin + 1:end:2][:- smooth_len],
-                                                   mob_mean(dataset[type][exit][begin + 1:end:2],
-                                                            smooth_len=smooth_len)[:-1],
-                                                   color="crimson", alpha=odd, label="Odd Output")
-                            if all != 0:
-                                axs[row, col].plot(timestamps[begin:end][:- smooth_len],
-                                                   mob_mean(dataset[type][exit][begin:end],
-                                                            smooth_len=smooth_len)[:-1],
-                                                   color="forestgreen", alpha=all, label="All Output")
+                            # Plot of the Output DEM/PWR ---------------------------------------------------------------
+                            else:
+                                if even != 0:
+                                    axs[row, col].plot(timestamps[begin:end - 1:2][:- smooth_len],
+                                                       mob_mean(dataset[type][exit][begin:end - 1:2],
+                                                                smooth_len=smooth_len)[:-1],
+                                                       color="royalblue", alpha=even, label="Even Output")
+                                if odd != 0:
+                                    axs[row, col].plot(timestamps[begin + 1:end:2][:- smooth_len],
+                                                       mob_mean(dataset[type][exit][begin + 1:end:2],
+                                                                smooth_len=smooth_len)[:-1],
+                                                       color="crimson", alpha=odd, label="Odd Output")
+                                if all != 0:
+                                    axs[row, col].plot(timestamps[begin:end][:- smooth_len],
+                                                       mob_mean(dataset[type][exit][begin:end],
+                                                                smooth_len=smooth_len)[:-1],
+                                                       color="forestgreen", alpha=all, label="All Output")
+
+                        except ValueError as e:
+                            logging.warning(f"{e}. Impossible to process {name_plot}.\n\n")
+                            pass
 
             # Subplots properties ----------------------------------------------------------------------------------
 
@@ -740,7 +780,7 @@ def data_plot(pol_name: str,
             axs[row, col].set_title(f'{exit}', size=15)
 
             # Treat UserWarning as errors to catch them
-            warnings.simplefilter("error", UserWarning)
+            warnings.simplefilter("ignore", UserWarning)
 
             # X-axis
             x_label = "Time [s]"
@@ -796,7 +836,11 @@ def data_plot(pol_name: str,
 
     path = f'../plot/{path_dir}/'
     Path(path).mkdir(parents=True, exist_ok=True)
-    fig.savefig(f'{path}{name_file}.png')
+    try:
+        fig.savefig(f'{path}{name_file}.png')
+    except ValueError as e:
+        logging.warning(f"{e}. Impossible to save the pictures.\n\n")
+        pass
 
     # If true, show the plot on video
     if show:
