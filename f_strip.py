@@ -397,6 +397,11 @@ def csv_to_json(csv_file_path: str, json_file_path):
             # add this python dict to json array
             json_array.append(row)
 
+    # Check if the Json Path exists, if not it is created
+    json_dir = json_file_path[:-60]
+    logging.info(json_dir)
+    Path(json_dir).mkdir(parents=True, exist_ok=True)
+
     # convert python json_array to JSON String and write to file
     with open(json_file_path, 'w', encoding='utf-8') as json_file:
         json_string = json.dumps(json_array, indent=4)
@@ -414,8 +419,8 @@ def merge_report(md_reports_path: str, total_report_path: str):
     output_directory = Path(total_report_path).parent
     output_directory.mkdir(parents=True, exist_ok=True)
 
-    # List all files in the directory
-    files = [f for f in Path(md_reports_path).iterdir() if f.suffix == '.md']
+    # List all files .md that start with a number in the directory
+    files = [f for f in Path(md_reports_path).iterdir() if f.suffix == '.md' and f.name[0].isdigit()]
 
     # Sort files based on the number at the beginning of their names
     files_sorted = sorted(files, key=lambda x: (int(x.name.split('_')[0]), x.name))

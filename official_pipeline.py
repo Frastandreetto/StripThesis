@@ -343,8 +343,7 @@ def main():
                              "I0 I1 I2 I3 I4 I5 I6 "
                              "G0 G1 G2 G3 G4 G5 G6 "
                              "O0 O1 O2 O3 O4 O5 O6 "
-                             # "R0 R1 R2 R3 R4 R5 R6 "
-                             "R0 R2 R3 R4 R5 R6 "
+                             "R0 R1 R2 R3 R4 R5 R6 "
                              "V0 V1 V2 V3 V4 V5 V6 "
                              "W1 W2 W3 W4 W5 W6 "
                              "Y0 Y1 Y2 Y3 Y4 Y5 Y6")
@@ -717,10 +716,13 @@ def main():
     ####################################################################################################################
     # MD REPORT MERGING
     ####################################################################################################################
-    # Merge all the MD report into a single file
-    fz.merge_report(md_reports_path=args.output_report_dir,
-                    total_report_path=f"{args.output_report_dir}/"
-                                      f"General_Report_{args.start_datetime}__{args.end_datetime}.md")
+    if args.subcommand == "tot":
+        logging.info(f"Merging all MD reports into: General_Report_{args.start_datetime}__{args.end_datetime}.md\n"
+                     f"Enjoy!\n\n")
+        # Merge all the MD report into a single file
+        fz.merge_report(md_reports_path=args.output_report_dir,
+                        total_report_path=f"{args.output_report_dir}/"
+                                          f"General_Report_{args.start_datetime}__{args.end_datetime}.md")
 
     ####################################################################################################################
     # JSON PRODUCTION

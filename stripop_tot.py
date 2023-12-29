@@ -100,7 +100,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     csv_general = [
         ["GENERAL REPORT CSV"],
         [""],
-        ["Path dataset file", "Start Date Time", "Start Date Time"],
+        ["Path dataset file", "Start Date Time", "End Date Time"],
         [f"{path_file}", f"{start_datetime}", f"{end_datetime}"],
         [""],
         ["N Polarimeters"],
@@ -229,7 +229,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # Create a new white file where to write
             with open(filename, 'w') as outf:
                 outf.write(template_ts.render(report_data))
-            logging.info("############################################################################################"
+            logging.info("###########################################################################################\n"
                          "Thermal Sensors - Markdown Report Ready!\n\n")
 
     ####################################################################################################################
@@ -300,7 +300,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             pass
         else:
             logging.warning('--------------------------------------------------------------------------------------'
-                            '\nHousekeeping Analysis.\nLoading HK.')
+                            f'\nHousekeeping Analysis of {np}.\nLoading HK.')
             # Loading the HK
             p.Load_HouseKeeping()
 
@@ -381,7 +381,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 with open(filename, 'a') as outf:
                     outf.write(template_hk.render(report_data))
 
-            logging.info("############################################################################################"
+            logging.info("###########################################################################################\n"
                          f"HK Parameters of Pol {np} - Markdown Report Ready!\n\n")
 
         ################################################################################################################
@@ -392,21 +392,21 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         '\nScientific Analysis. \nLoading Scientific Outputs.')
         p.Load_Pol()
 
-        # Holes: Analyzing Scientific Output Sampling ------------------------------------------------------------------
+        # Holes: Analyzing Scientific Output Sampling --------------------------------------------------------------
         csv_general = p.Pol_Sampling_Table(sam_tolerance=sam_tolerance)
         sampling_warn.extend(p.warnings["sampling_warning"])
-        # --------------------------------------------------------------------------------------------------------------
+        # ----------------------------------------------------------------------------------------------------------
 
-        # [CSV] REPORT: write Polarimeter Sampling Table (Jumps) in the report -----------------------------------------
+        # [CSV] REPORT: write Polarimeter Sampling Table (Jumps) in the report -------------------------------------
         with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
         logging.info(f"####################\n"
                      f"CSV Report updated: Polarimeter {np} Sampling Table written.\n####################\n")
-        # --------------------------------------------------------------------------------------------------------------
+        # ----------------------------------------------------------------------------------------------------------
 
-        # Looking for spikes in the dataset ----------------------------------------------------------------------------
+        # Looking for spikes in the dataset ------------------------------------------------------------------------
 
         # Output Spikes
         if spike_data:
@@ -417,14 +417,14 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # [CSV]
             csv_general = spike_table["csv"]
 
-            # [CSV] REPORT: write Polarimeter Spikes Table in the report -----------------------------------------------
+            # [CSV] REPORT: write Polarimeter Spikes Table in the report -------------------------------------------
             with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
             logging.info(f"####################\n"
                          f"CSV Report updated: Polarimeter {np} Spikes Table written.\n####################\n")
-            # ----------------------------------------------------------------------------------------------------------
+            # ------------------------------------------------------------------------------------------------------
 
         # FFT Spikes
         if spike_fft:
@@ -435,14 +435,14 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # [CSV]
             csv_general = spike_table["csv"]
 
-            # [CSV] REPORT: write Polarimeter FFT Spikes Table in the report -------------------------------------------
+            # [CSV] REPORT: write Polarimeter FFT Spikes Table in the report ---------------------------------------
             with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
             logging.info(f"####################\n"
                          f"CSV Report updated: Polarimeter {np} FFT Spikes Table written.\n####################\n")
-        # --------------------------------------------------------------------------------------------------------------
+        # ----------------------------------------------------------------------------------------------------------
 
         # Preparing the Polarimeter for the analysis: normalization and data cleanse
         logging.info('Preparing the Polarimeter.')
@@ -454,13 +454,13 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             logging.info(f'Plotting {type} Outputs.')
             p.Plot_Output(type=type, begin=0, end=-1, show=False)
 
-            ############################################################################################################
+            ########################################################################################################
             # Even Odd All Analysis
-            ############################################################################################################
+            ########################################################################################################
             if eoa == ' ':
                 pass
             else:
-                logging.warning(f'-------------------------------------------------------------------------------------'
+                logging.warning(f'---------------------------------------------------------------------------------'
                                 f'\nEven-Odd-All Analysis. Data type: {type}.')
                 combos = fz.eoa_values(eoa)
                 for combo in combos:
@@ -489,7 +489,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                          show=False)
 
                         if fft:
-                            logging.warning("--------------------------------------------------------------------------"
+                            logging.warning("----------------------------------------------------------------------"
                                             "\nSpectral Analysis Even-Odd-All")
                             # Plotting Even Odd All FFT
                             logging.info(f'Plotting Even Odd All FFT. Type {type}.')
@@ -503,20 +503,21 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                 # Plotting Even Odd All FFT of the RMS
                                 logging.info(f'Plotting Even Odd All FFT of the RMS. Type {type}.')
                                 fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                             start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                             start_datetime=start_datetime, end_datetime=end_datetime,
+                                             begin=0, end=-1,
                                              type=type, even=combo[0], odd=combo[1], all=combo[2],
                                              demodulated=False, rms=True, fft=True,
                                              window=window, smooth_len=smooth, nperseg=nperseg,
                                              show=False)
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 # REPORT EOA OUTPUT
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 # Produce the report only the second time: when all the plots are ready
                 if type == "PWR":
                     logging.info(f"\nOnce ready, I will put the EOA report into: {output_report_dir}.")
 
                     eoa_letters = fz.letter_combo(str(eoa))
-                    # At this moment eoa_letters is not used into report_eoa.txt -> Jinja2 treats the list as a str...
+                    # Now eoa_letters is not used into report_eoa.txt -> Jinja2 treats the list as a str...
 
                     # Updating the report_data dict
                     report_data.update({"name_pol": np, "fft": fft, "rms": rms, "eoa_letters": eoa_letters})
@@ -539,17 +540,17 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             outf.write(template_eoa.render(report_data))
 
                     logging.info(
-                        "############################################################################################"
+                        "##########################################################################################\n"
                         f"Scientific Output EOA of Polarimeter {np} - Markdown Report Ready!\n\n")
 
-            ############################################################################################################
+            ########################################################################################################
             # Scientific Data Analysis
-            ############################################################################################################
+            ########################################################################################################
             if not scientific:
                 pass
             else:
                 # Plot of Scientific Data
-                logging.warning("--------------------------------------------------------------------------------------"
+                logging.warning("----------------------------------------------------------------------------------"
                                 "\nScientific Data Analysis.")
                 logging.info(f'\nPlot of Scientific Data. Type {type}.')
                 fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
@@ -570,7 +571,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                 # Plot of FFT of Scientific Data
                 if fft:
-                    logging.warning("----------------------------------------------------------------------------------"
+                    logging.warning("------------------------------------------------------------------------------"
                                     "\nSpectral Analysis Scientific Data.")
                     logging.info(f'Plot of FFT of Scientific Data. Type {type}.')
                     fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
@@ -589,9 +590,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                      window=window, smooth_len=smooth, nperseg=nperseg,
                                      show=False)
 
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 # REPORT SCIENTIFIC DATA
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 # Produce the report only the second time: when all the plots are ready
                 if type == "PWR":
                     logging.info(f"\nOnce ready, I will put the SCIENTIFIC DATA report into: {output_report_dir}.")
@@ -616,26 +617,26 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             outf.write(template_sci.render(report_data))
 
                     logging.info(
-                        "############################################################################################"
+                        "##########################################################################################\n"
                         f"Scientific Data of Polarimeter {np} - Markdown Report Ready!\n\n")
 
-            ############################################################################################################
+            ########################################################################################################
             # Correlation plots and matrices
             # Scientific Output
-            ############################################################################################################
+            ########################################################################################################
             # Output Self correlations
             # Output vs TS
             # Output vs HK
-            ############################################################################################################
+            ########################################################################################################
             if corr_plot or corr_mat:
                 # List used to contain all possible data combinations to calculate correlations
                 possible_combos = []
-                logging.warning(f'-------------------------------------------------------------------------------------'
+                logging.warning(f'---------------------------------------------------------------------------------'
                                 f'\nCorrelation Analysis. Type {type}.\n')
 
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 # Scientific Output Self correlation
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 # Collecting all possible combinations of Output correlations
                 possible_combos.extend([
                     # Output self correlation
@@ -643,9 +644,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                      {}, [], "Self_Corr", "Output [ADU]")
                 ])
 
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 # Scientific Output vs TS
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 if not thermal_sensors:
                     pass
                 else:
@@ -667,9 +668,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                              f"TS_{status}", "Temperature [K]")
                         ])
 
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 # Output vs HK
-                # ------------------------------------------------------------------------------------------------------
+                # --------------------------------------------------------------------------------------------------
                 if not housekeeping:
                     pass
                 else:
@@ -695,9 +696,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # u -> unit of measure
                 for d1, t1, n1, u1, d2, t2, n2, u2 in possible_combos:
 
-                    # --------------------------------------------------------------------------------------------------
+                    # ----------------------------------------------------------------------------------------------
                     # Correlation Plot
-                    # --------------------------------------------------------------------------------------------------
+                    # ----------------------------------------------------------------------------------------------
                     if corr_plot:
                         logging.warning(
                             f'---------------------------------------------------------------------------------'
@@ -719,9 +720,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         # [CSV] Collecting correlation warnings
                         csv_general = correlation_warnings["csv"]
 
-                    # --------------------------------------------------------------------------------------------------
+                    # ----------------------------------------------------------------------------------------------
                     # Correlation Matrix
-                    # --------------------------------------------------------------------------------------------------
+                    # ----------------------------------------------------------------------------------------------
                     if corr_mat:
                         logging.warning(
                             f'---------------------------------------------------------------------------------'
@@ -884,12 +885,12 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # List used to contain all possible TS data combinations to calculate correlations
         possible_combos = []
 
-        # ----------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
         # TS Correlations
         # TS 0 vs TS 1
         # TS 0 self correlation
         # TS 1 self correlation
-        # ----------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
         if not thermal_sensors:
             pass
         else:
@@ -1006,7 +1007,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         with open(filename, 'w') as outf:
             outf.write(template_cp.render(report_data))
 
-        logging.info("############################################################################################"
+        logging.info("############################################################################################\n"
                      "Correlation Plots - Markdown Report Ready!\n\n")
     # ------------------------------------------------------------------------------------------------------
     # REPORT CORRELATION MATRIX
@@ -1018,12 +1019,16 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         png_files = sorted([file for file in os.listdir(f"{output_plot_dir}/Correlation_Matrix/")
                             if file.lower().endswith('.png')])
 
+        # Adding Correlation Matrix png files
         report_data.update({"png_files": png_files})
+        # Adding Cross Correlation Bool
+        report_data.update({"cross": cross_corr})
+        if cross_corr:
 
-        # Get png files name from the dir Cross_Corr sorted in alphabetic order
-        png_cross_files = sorted([file for file in os.listdir(f"{output_plot_dir}/Cross_Corr/")
-                                  if file.lower().endswith('.png')])
-        report_data.update({"png_cross_files": png_cross_files})
+            # Get png files name from the dir Cross_Corr sorted in alphabetic order
+            png_cross_files = sorted([file for file in os.listdir(f"{output_plot_dir}/Cross_Corr/")
+                                      if file.lower().endswith('.png')])
+            report_data.update({"png_cross_files": png_cross_files})
 
         # Getting instructions to create the CORR MAT report
         template_cm = env.get_template('report_corr_mat.txt')
@@ -1035,7 +1040,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         with open(filename, 'w') as outf:
             outf.write(template_cm.render(report_data))
 
-        logging.info("############################################################################################"
+        logging.info("############################################################################################\n"
                      "Correlation Matrix - Markdown Report Ready!\n\n")
     # ------------------------------------------------------------------------------------------------------
     # [MD] REPORT WARNINGS
