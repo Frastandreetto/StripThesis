@@ -109,6 +109,13 @@ def main():
     common_parser.add_argument('--ts_sam_tolerance', '-ts_st', type=float, default=1.,
                                help='the acceptance sampling tolerances of the Thermal Sensors (default: %(default)s).',
                                metavar='')
+    # Spikes -----------------------------------------------------------------------------------------------------------
+    # Spikes Data
+    common_parser.add_argument('--spike_data', '-sd', action="store_true",
+                               help='If true, the code will look for spikes in Sci-data and TS measures')
+    # Spikes FFT
+    common_parser.add_argument('--spike_fft', '-sf', action="store_true",
+                               help='If true, the code will look for spikes in FFT of Sci-data and TS measures')
 
     # Correlation Parameters -------------------------------------------------------------------------------------------
     # Correlation Plot
@@ -211,12 +218,6 @@ def main():
     parser_A.add_argument('--nperseg_thermal', '-nps_th', type=int, default=256,
                           help='int value that defines the number of elements of the array of thermal measures'
                                'on which the fft is calculated (default: %(default)s).', metavar='')
-    # Spikes Sci-data
-    parser_A.add_argument('--spike_data', '-sd', action="store_true",
-                          help='If true, the code will look for spikes in Sci-data')
-    # Spikes FFT
-    parser_A.add_argument('--spike_fft', '-sf', action="store_true",
-                          help='If true, the code will look for spikes in FFT')
 
     ####################################################################################################################
     # MODALITY B: POL_HK
@@ -253,12 +254,6 @@ def main():
     parser_C.add_argument('--status', '-stat', type=int, default=2, choices=[0, 1, 2],
                           help='int value that defines the status of the multiplexer of the TS to analyze: 0 or 1. '
                                'If it is set on 2, both states will be analyzed (default: %(default)s).')
-    # Spikes TS
-    parser_C.add_argument('--spike_ts', '-s_ts', action="store_true",
-                          help='If true, the code will look for spikes in Thermal Sensors')
-    # Spikes FFT TS
-    parser_C.add_argument('--spike_fft', '-sf_ts', action="store_true",
-                          help='If true, the code will look for spikes in FFT of the Thermal Sensors')
 
     ####################################################################################################################
     # Call .parse_args() on the parser to get the Namespace object that contains all the user’s arguments.
@@ -440,29 +435,20 @@ def main():
     # ------------------------------------------------------------------------------------------------------------------
 
     # SPIKES
-    # Spike Data -------------------------------------------------------------------------------------------------------
-    # Check if the parameter is a bool
-    if args.subcommand == "tot":
+    if args.subcommand == "tot" or args.subcommand == "thermal_hk":
+        # Spike Data -------------------------------------------------------------------------------------------------
+        # Check if the parameter is a bool
         if not isinstance(args.spike_data, bool):
             logging.error("The parameter spike_data must be a bool. Please check it again.\n\n")
             raise SystemExit(1)
-    # ------------------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
 
-    # Spike Thermal Sensors --------------------------------------------------------------------------------------------
-    # Check if the parameter is a bool
-    if args.subcommand == "thermal_hk":
-        if not isinstance(args.spike_ts, bool):
-            logging.error("The parameter spike_ts must be a bool. Please check it again.\n\n")
-            raise SystemExit(1)
-    # ------------------------------------------------------------------------------------------------------------------
-
-    # Spike FFT --------------------------------------------------------------------------------------------------------
-    # Check if the parameter is a bool
-    if args.subcommand == "tot" or args.subcommand == "thermal_hk":
+        # Spike FFT ----------------------------------------------------------------------------------------------------
+        # Check if the parameter is a bool
         if not isinstance(args.spike_fft, bool):
             logging.error("The parameter spike_fft must be a bool. Please check it again.\n\n")
             raise SystemExit(1)
-    # ------------------------------------------------------------------------------------------------------------------
+        # ------------------------------------------------------------------------------------------------------------------
 
     # Data Sampling Tolerance ------------------------------------------------------------------------------------------
     # Check if the parameter is a float
@@ -667,8 +653,8 @@ def main():
                                    start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                    status=status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
                                    ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
-                                   spike_ts=args.spike_ts, spike_fft=args.spike_fft,
-                                   corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
+                                   spike_data=args.spike_data, spike_fft=args.spike_fft,
+                                   corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t,
                                    output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir,
                                    report_to_plot=args.report_to_plot)
         else:
@@ -676,8 +662,8 @@ def main():
                                start_datetime=args.start_datetime, end_datetime=args.end_datetime,
                                status=args.status, fft=args.fourier, nperseg_thermal=args.nperseg_thermal,
                                ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
-                               spike_ts=args.spike_ts, spike_fft=args.spike_fft,
-                               corr_t=args.corr_t, corr_plot=args.corr_plot, corr_mat=args.corr_mat,
+                               spike_data=args.spike_data, spike_fft=args.spike_fft,
+                               corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t,
                                output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir,
                                report_to_plot=args.report_to_plot)
 
@@ -713,10 +699,11 @@ def main():
     with open(filename, 'w') as outf:
         outf.write(header_template.render(header_report_data))
 
-    ####################################################################################################################
-    # MD REPORT MERGING
-    ####################################################################################################################
+    # Final operations on Reports
     if args.subcommand == "tot":
+        ################################################################################################################
+        # MD REPORT MERGING
+        ################################################################################################################
         logging.info(f"Merging all MD reports into: General_Report_{args.start_datetime}__{args.end_datetime}.md\n"
                      f"Enjoy!\n\n")
         # Merge all the MD report into a single file
@@ -724,14 +711,14 @@ def main():
                         total_report_path=f"{args.output_report_dir}/"
                                           f"General_Report_{args.start_datetime}__{args.end_datetime}.md")
 
-    ####################################################################################################################
-    # JSON PRODUCTION
-    ####################################################################################################################
-    # Convert the CSV Report File into a JSON Report File
-    fz.csv_to_json(csv_file_path=f"{args.output_report_dir}/CSV/"
-                                 f"General_Report_{args.start_datetime}__{args.end_datetime}.csv",
-                   json_file_path=f"{args.output_report_dir}/JSON/"
-                                  f"General_Report_{args.start_datetime}__{args.end_datetime}.json")
+        ################################################################################################################
+        # JSON PRODUCTION
+        ################################################################################################################
+        # Convert the CSV Report File into a JSON Report File
+        fz.csv_to_json(csv_file_path=f"{args.output_report_dir}/CSV/"
+                                     f"General_Report_{args.start_datetime}__{args.end_datetime}.csv",
+                       json_file_path=f"{args.output_report_dir}/JSON/"
+                                      f"General_Report_{args.start_datetime}__{args.end_datetime}.json")
 
 
 if __name__ == "__main__":

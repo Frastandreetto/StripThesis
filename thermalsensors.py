@@ -374,7 +374,6 @@ class Thermal_Sensors:
 
             for group in self.ts_names.keys():
                 for sensor_name in self.ts_names[group]:
-
                     # [MD] Filling the table with values
                     md_table += (f"|{sensor_name}|{self.status}|{group}|"
                                  f"{round(results[calib]['max'][sensor_name], 4)}|"
@@ -464,7 +463,8 @@ class Thermal_Sensors:
                 # Choose the length of the data segment (between 10**4 and nperseg provided) on which calculate the fft
                 # Changing this parameter allow to reach lower freq in the plot: the limInf of the x-axis is fs/nperseg.
                 f, s = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][sensor_name],
-                                          fs=fs, nperseg=min(int(fs * 10 ** 4), self.nperseg_thermal))
+                                          fs=fs, nperseg=min(int(fs * 10 ** 4), self.nperseg_thermal,
+                                                             len(self.ts["thermal_data"]["calibrated"][sensor_name])))
                 # Plot the periodogram (fft)
                 axs[i].plot(f[f < 25.], s[f < 25.],
                             linewidth=0.2, label=f"{sensor_name}", marker=".", markerfacecolor=color, markersize=4)
@@ -492,18 +492,21 @@ class Thermal_Sensors:
     # ------------------------------------------------------------------------------------------------------------------
     # SPIKE ANALYSIS
     # ------------------------------------------------------------------------------------------------------------------
-    def Spike_Report(self, fft: bool, ts_sam_exp_med: int) -> str:
+    def Spike_Report(self, fft: bool, ts_sam_exp_med: int) -> {}:
         """
             Look up for 'spikes' in the TS output of Strip or in their FFT.\n
-            Create a table in md language (basically a str) in which the spikes found are listed.
+            Create a dictionary containing two tables in which the spikes found are listed:
+             1. in MD language (basically a str)
+             2. in CSV language (a list)
+             Parameters:
             - **fft** (``bool``): if true, the code looks for spikes in the fft.
             - **nperseg** (``int``): number of elements of the array on which the fft is calculated
         """
-        # Initializing a bool to see if the caption of the table is already in the report
-        cap = False
-        # Initialize strings for the rows of the table
-        rows = ""
-        spike_tab = ""
+        # Initialize a string to contain the md table
+        md_table = " "
+        # Initialize a list to contain the csv table
+        csv_table = []
+
         # Initialize list for x_data
         x_data = []
 
@@ -519,71 +522,99 @@ class Thermal_Sensors:
                 threshold = 3
                 n_chunk = 10
                 data_type = "FFT"
-                logging.info("Till here it's ok. ")
 
             else:
-                logging.info("1. Do I get here?")
                 y_data = self.ts["thermal_data"]["calibrated"][name]
-                logging.info(f"{len(y_data)}")
                 threshold = 3
                 n_chunk = 5
                 data_type = "TS"
 
+            logging.info(f"Parsing: {data_type} of {name}")
             # Find and store spikes indexes
-            logging.info("2. Do I get here?")
             spike_idxs = fz.find_spike(y_data, data_type=data_type,
                                        threshold=threshold, n_chunk=min(n_chunk, len(y_data)))
             # Spikes detected
             if not spike_idxs:
-                logging.info(f"3. Do I get here? No spikes in {name}.\n")
+                logging.info(f"No spikes in {name}: {data_type}.\n")
             else:
-                logging.info("3. Do I get here? I found spikes")
-                # Spikes in the dataset
+                logging.info(f"Spikes found in {name}: {data_type}\n")
+
+                # Spikes in the TS dataset
                 if not fft:
-                    logging.info(f"Entering the dataset because fft is {fft}")
-                    # Create the caption for the table of the spikes in Output
-                    if not cap:
-                        logging.info("Putting the tab")
-                        spike_tab += (
-                            "\n| Spike Number | Data Type | Sensor Name "
-                            "| Gregorian Date | Julian Date [JHD]| Spike Value - Median [ADU]| MAD [ADU] |\n"
-                            "|:------------:|:---------:|:----:"
-                            "|:--------------:|:----------------:|:-------------------------:|:---------:|\n")
-                        cap = True
+
+                    # Create the heading for the table of the spikes in TS Output
+                    # [MD] Heading of the table
+                    md_table += (
+                        "\n| Spike Number | Data Type | Sensor Name "
+                        "| Gregorian Date | Julian Date [JHD]| Spike Value - Median [ADU]| MAD [ADU] |\n"
+                        "|:------------:|:---------:|:----:"
+                        "|:--------------:|:----------------:|:-------------------------:|:---------:|\n")
+                    # [CSV] Heading of the table
+                    csv_table.append([""])
+                    csv_table.append(["Spike Number", "Data Type", "Sensor Name",
+                                      "Gregorian Date", "Julian Date [JHD]",
+                                      "Spike Value - Median [ADU]", "MAD [ADU]"
+                                      ])
+                    csv_table.append([""])
 
                     for idx, item in enumerate(spike_idxs):
                         # Calculate the Gregorian date in which the spike happened
                         greg_date = fz.date_update(start_datetime=self.gdate[0],
                                                    n_samples=item, sampling_frequency=ts_sam_exp_med / 60, ms=True)
-                        # Gregorian date string to a datetime object
+                        # Convert the Gregorian date string to a datetime object
                         greg_datetime = datetime.strptime(f"{greg_date}000",
                                                           "%Y-%m-%d %H:%M:%S.%f")
-                        # Datetime object to a Julian date
+                        # Convert the Datetime object to a Julian date
                         julian_date = Time(greg_datetime).jd
-                        logging.info(f"no data, no mean: {name}\n")
-                        rows += (f"|{idx + 1}|{data_type}|{name}"
-                                 f"|{greg_date}|{julian_date}"
-                                 f"|{np.round(y_data[item] - np.median(y_data), 6)}"
-                                 f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
+
+                        # [MD] Fill the table with TS values
+                        md_table += (f"|{idx + 1}|{data_type}|{name}"
+                                     f"|{greg_date}|{julian_date}"
+                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}"
+                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|"
+                                     f"\n")
+
+                        # [CSV] Fill the table with TS values
+                        csv_table.append([f"{idx + 1}", f"{data_type}", f"{name}",
+                                          f"{greg_date}", f"{julian_date}",
+                                          f"{np.round(y_data[item] - np.median(y_data), 6)}",
+                                          f"{np.round(scs.median_abs_deviation(y_data), 6)}"
+                                          ])
                 # Spikes in the FFT
                 else:
                     # Select the more relevant spikes
                     spike_idxs = fz.select_spike(spike_idx=spike_idxs, s=y_data, freq=x_data)
-                    # Create the caption for the table of the spikes in FFT
-                    if not cap:
-                        spike_tab += (
-                            "\n| Spike Number | Data Type | Sensor Name | Frequency Spike "
-                            "|Spike Value - Median [ADU]| MAD [ADU] |\n"
-                            "|:------------:|:---------:|:----:|:---------------:"
-                            "|:------------------------:|:---------:|\n")
-                        cap = True
-                    # Fill the table with the values
+
+                    # Create the heading for the table of the spikes in TS FFT
+                    # [MD] Heading of the table
+                    md_table += (
+                        "\n| Spike Number | Data Type | Sensor Name | Frequency Spike "
+                        "|Spike Value - Median [ADU]| MAD [ADU] |\n"
+                        "|:------------:|:---------:|:----:|:---------------:"
+                        "|:------------------------:|:---------:|\n")
+
+                    # [CSV] Heading of the table
+                    csv_table.append([""])
+                    csv_table.append(["Spike Number", "Data Type", "Sensor Name",
+                                      "Frequency Spike", "Spike Value - Median [ADU]", "MAD [ADU]"
+                                      ])
+                    csv_table.append([""])
+
                     for idx, item in enumerate(spike_idxs):
-                        rows += (f"|{idx + 1}|FFT TS|{name}"
-                                 f"|{np.round(x_data[item], 6)}"
-                                 f"|{np.round(y_data[item] - np.median(y_data), 6)}"
-                                 f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
-        if cap:
-            spike_tab += rows
+
+                        # [MD] Fill the table with the FFT values
+                        md_table += (f"|{idx + 1}|FFT TS|{name}"
+                                     f"|{np.round(x_data[item], 6)}"
+                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}"
+                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
+
+                        # [CSV] Fill the table with FFT values
+                        csv_table.append([f"{idx + 1}", "FFT TS", f"{name}",
+                                          f"{np.round(x_data[item], 6)}",
+                                          f"{np.round(y_data[item] - np.median(y_data), 6)}",
+                                          f"{np.round(scs.median_abs_deviation(y_data), 6)}"
+                                          ])
+        # Fill the dictionary with the two tables: MD and CSV
+        spike_tab = {"md": md_table, "csv": csv_table}
 
         return spike_tab
