@@ -143,7 +143,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     if not thermal_sensors:
         pass
     else:
-        logging.info('\nReady to analyze the Thermal Sensors.')
+        logging.info('\nReady to analyze the Thermal Sensors.\n')
         for status in [0, 1]:
             TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime, end_datetime=end_datetime,
                                     status=status, nperseg_thermal=nperseg_thermal)
@@ -159,6 +159,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # [CSV] Storing TS sampling warnings
             csv_general = sampling_table["csv"]
             # ----------------------------------------------------------------------------------------------------------
+
+            # INSERT SPIKE RESEARCH
 
             # Normalizing TS measures
             logging.info(f'Normalizing TS. Status {status}')
@@ -1010,7 +1012,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         logging.info("############################################################################################\n"
                      "Correlation Plots - Markdown Report Ready!\n\n")
     # ------------------------------------------------------------------------------------------------------
-    # REPORT CORRELATION MATRIX
+    # [MD] REPORT CORRELATION MATRIX
     # ------------------------------------------------------------------------------------------------------
     if corr_mat:
         logging.info(f"\nOnce ready, I will put the CORR MATRIX report into: {output_report_dir}.")

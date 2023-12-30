@@ -153,6 +153,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         correlation_matrix = np.corrcoef(x, y)
         # Extract the correlation coefficient between the two datasets from the matrix
         correlation_value = correlation_matrix[0, 1]
+
+        logging.info("High correlations found will be listed below.\n\n")
         # Print a warning if the correlation value overcomes the threshold, then store it for the report
         if np.abs(correlation_value) > corr_t:
             warn_msg = (f"Found high correlation value: {round(correlation_value, 4)}"
@@ -280,7 +282,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
 
             # Initialize an empty DataFrame for correlations
             correlation_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns)
-            logging.info("Done.\n")
+            logging.info("Done.\nHigh correlations found will be listed below.\n\n")
             # ----------------------------------------------------------------------------------------------------------
             # Calculate Self Correlations
             if self_correlation:

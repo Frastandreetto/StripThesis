@@ -286,7 +286,7 @@ def find_spike(v, data_type: str, threshold=4.4, n_chunk=10) -> []:
                 spike_idx = [i for i in spike_idx if v[i] > v[i - 1] and v[i] > v[i + 1]]
 
     if len(spike_idx) > 0:
-        logging.warning("Found Spike!\n")
+        logging.warning(f"Found Spike in {data_type}!\n")
 
     return spike_idx
 
@@ -398,7 +398,8 @@ def csv_to_json(csv_file_path: str, json_file_path):
             json_array.append(row)
 
     # Check if the Json Path exists, if not it is created
-    json_dir = json_file_path[:-60]
+    # Note: 61 is the number of characters of the path of the date_dir + the json dir
+    json_dir = json_file_path[:61]
     logging.info(json_dir)
     Path(json_dir).mkdir(parents=True, exist_ok=True)
 
