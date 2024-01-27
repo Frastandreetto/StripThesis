@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-# This program is used to run the new version of the pipeline for functional verification of LSPE-STRIP (2023) using
+# This program is used to run the new version of the pipeline for functional verification of LSPE-STRIP (2024) using
 # TOML files passed by the command line
-# September 29th 2023, Brescia (Italy)
+
+# September 29th 2023, Brescia (Italy) - January 27th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import argparse
@@ -15,14 +16,17 @@ import toml
 def load_toml_config(toml_file_path):
     """
         Load the arguments of a TOML file into a dict.
-        Parameters:\n
+
+            Parameters:\n
         - **toml_file_path** (`str`): path to the TOML configuration file
     """
     try:
+        # Open the TOML file to read the instructions
         with open(toml_file_path, 'r') as toml_file:
             # Loading the arguments from the toml_file
             config = toml.load(toml_file)
         return config
+    # If the file is not found an empty dict is returned
     except FileNotFoundError:
         return {}
 
@@ -46,7 +50,7 @@ def main():
     # Build the command to call the pipeline
     command = [
         'python',  # Use the Python interpreter
-        'official_pipeline.py',  # Name of the first program
+        'official_pipeline.py',  # Name of the program
     ]
 
     # Counter for the positional arguments
@@ -61,7 +65,7 @@ def main():
             n_pos_arg = 4
 
         if pos_arg < n_pos_arg:
-            # Positional arguments
+            # Positional arguments added to the command
             command.extend([f'{value}'])
             pos_arg += 1
         else:
@@ -69,9 +73,10 @@ def main():
             if value == "false":
                 pass
             elif value == "true":
+                # Boolean flags added to the command
                 command.extend(['--' + key])
             else:
-                # command.extend([f'--{key}={value}'])
+                # Other flags added to the command
                 command.extend(['--' + key, f"{value}"])
 
     # Execute the pipeline with the specified arguments

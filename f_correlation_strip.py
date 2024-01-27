@@ -1,18 +1,18 @@
-#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
+
 # This file contains the main correlation functions used in the new version of the pipeline
 # for functional verification of LSPE-STRIP (2023)
-# September 19th 2023, Delft (Netherlands)
+
+# September 19th 2023, Delft (Netherlands) - January 27th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import logging
+import numpy as np
+import pandas as pd
+import seaborn as sn
 
 from matplotlib import pyplot as plt
 from pathlib import Path
-
-import numpy as np
-import pandas as pd
-import seaborn as sn  # This should be added to requirements.txt
 
 # MyLibraries & MyModules
 import polarimeter as pol
@@ -24,7 +24,9 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                      corr_t=0.4, plot_dir='../plot') -> []:
     """
         Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
-        Parameters:\n
+        Return a dictionary of warnings that highlight which data are highly correlated.
+
+            Parameters:\n
         - **array1**, **array2** (``array``): arrays ([]) of n1 and n2 elements
         - **dict1**, **dict2** (``dict``): dictionaries ({}) with N1, N2 keys
         - **time1**, **time2** (``array``): arrays ([]) of timestamps: not necessary if the dataset have same length.
@@ -35,10 +37,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
-        - **corr_t** (``int``): if it is overcome by the correlation value of a plot, a warning is produced.\n
+        - **corr_t** (``int``): LimSup for the corr value between two dataset: if overcome a warning is produced.
         - **plot_dir** (``str``): path where the plots are organized in directories and saved.
-
-        Return a dictionary of warnings that highlight which data are highly correlated.
     """
     # [MD] Initialize a correlation list
     md_correlation = []
@@ -409,18 +409,19 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
 def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
                     start_datetime: str, show=False, corr_t=0.4, plot_dir='../plot') -> []:
     """
-       Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
+        Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
+        Return a list of warnings that highlight which data are highly correlated.
 
-       Parameters:\n
-       - **dict1**, **dict2** (``array``): dataset
-       - **data_name** (``str``): name of the dataset. Used for the title of the figure and to save the png.
-       - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
-       - **show** (``bool``):\n
-            *True* -> show the plot and save the figure\n
-            *False* -> save the figure only
-       - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced\n
-       - **plot_dir** (``str``): path where the plots are organized in directories and saved.
-       Return a list of warnings that highlight which data are highly correlated.
+            Parameters:\n
+        - **dict1**, **dict2** (``array``): dataset
+        - **data_name** (``str``): name of the dataset. Used for the title of the figure and to save the png.
+        - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
+        - **show** (``bool``):\n
+            - *True* -> show the plot and save the figure\n
+            - *False* -> save the figure only
+        - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced\n
+        - **plot_dir** (``str``): path where the plots are organized in directories and saved.
+
     """
     # Creating the name of the data: used for the fig title and to save the png
     data_name = f"{data_name1}-{data_name2}"
@@ -537,18 +538,18 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
 def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=False, corr_t=0.4,
                    plot_dir='../plot') -> {}:
     """
-    Plot 55x55 matrices of every data-kind DEM/PWR of every exit combination: Q1, Q2, U1, U2.
-    Parameters:\n
-    - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
-    - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
-    - **end_datetime** (``str``): end date of dataset. Used for the title of the figure and to save the png.
-    - **show** (``bool``):\n
-            *True* -> show the plot and save the figure\n
-            *False* -> save the figure only
-       - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced\n
-       - **plot_dir** (``str``): path where the plots are organized in directories and saved.
-       Return a dict of warnings that highlight which data are highly correlated.
+        Plot 55x55 matrices of every data-kind DEM/PWR of every exit combination: Q1, Q2, U1, U2.
+        Return a dict of warnings that highlight which data are highly correlated.
 
+            Parameters:\n
+        - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
+        - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
+        - **end_datetime** (``str``): end date of dataset. Used for the title of the figure and to save the png.
+        - **show** (``bool``):\n
+                - *True* -> show the plot and save the figure\n
+                - *False* -> save the figure only
+        - **corr_t** (``int``): if it is overcome by one of the values of the matrix a warning is produced\n
+        - **plot_dir** (``str``): path where the plots are organized in directories and saved.
     """
     # [MD] Initializing a list to collect the warnings
     md_war = []

@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
 # This file contains the function "tot" that operates a complete analysis of a provided group of polarimeters.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
-# August 14th 2023, Brescia (Italy)
+
+# August 14th 2023, Brescia (Italy) - January 27th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import csv
@@ -37,66 +37,63 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         output_plot_dir: str, output_report_dir: str,
         report_to_plot: str):
     """
-    Performs the analysis of one or more polarimeters producing a complete report.
-    The analysis can include plots of: Even-Odd Output, Scientific Data, FFT, correlation and  Matrices.
-    The reports produced include also info about the state of the housekeeping parameters and the thermal sensors.
+        Performs the analysis of one or more polarimeters producing a complete report.
+        The analysis can include plots of: Even-Odd Output, Scientific Data, FFT, correlation and  Matrices.
+        The reports produced include also info about the state of the housekeeping parameters and the thermal sensors.
 
-        Parameters:
-            - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
-            - **start_datetime** (``str``): start time
-            - **end_datetime** (``str``): end time
-            - **name_pol** (``str``): name of the polarimeter. If more than one, write them into ' ' separated by space.
-            - **eoa** (``str``): states which data analyze. Even samples (e), odd samples (o), all samples (a).
-            - **smooth** (``int``): Smoothing length used to flatter the data. smooth=1 equals no smooth.
-            - **window** (``int``): Integer number used to convert the array of the data into a matrix
-            with a number "window" of elements per row and then calculate the RMS on every row.
-            window=1 equals no conversion.
-            - **scientific** (``bool``): If true, compute the double demodulation and analyze the scientific data.
-            - **rms** (``bool``): If true, compute the rms on the scientific output and data.
-            - **thermal_sensors** (``bool``): If true, the code analyzes the Thermal Sensors of Strip.
-            - **housekeeping** (``bool``): If true, the code analyzes the Housekeeping parameters of the Polarimeters.
-            - **fft** (``bool``): If true, the code computes the power spectra of the scientific data.
-            - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
-            - **nperseg_thermal** (``int``): int value that defines the number of elements of thermal measures
-            on which the fft is calculated.
-            - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
-            - **spike_fft** (``bool``): If true, the code will look for spikes in FFT.
-            - **sam_tolerance** (``float``): the acceptance sampling tolerances of the Scientific Output.
-            - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS.
-            - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS.
-            - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of hk.
-            - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O.
-            - **corr_plot** (``bool``): If true, compute the correlation plot of the even-odd and scientific data.
-            - **corr_mat** (``bool``): If true, compute the correlation matrices of the even-odd and scientific data.
-            - **corr_t** (``float``): Floating point number used as lim sup for the correlation value
-            between two dataset: if the value computed is higher than the threshold, a warning is produced.
-            - **cross_corr** (``bool``): If true, compute the 55x55 correlation matrices between all the polarimeters.
-            - **output_report_dir** (`str`): Path of the dir that contain the reports with the results of the analysis.
-            The starting point is the dir striptease.
-            - **output_plot_dir** (`str`): Path of the dir that contain the plots with the results of the analysis.
-            The starting point is the dir striptease.
-            - **report_to_plot** (`str`): Path of the dir that contain the plots with the results of the analysis.
-            The starting point is the dir that contains the Reports of the analysis.
+            Parameters:
+
+        - **path_file** (``str``): location of the data file and hdf5 file index (without the name of the file)
+        - **start_datetime** (``str``): start time
+        - **end_datetime** (``str``): end time
+        - **name_pol** (``str``): name of the polarimeter. If more than one, write them into ' ' separated by space.
+
+            Other Flags:
+
+        - **eoa** (``str``): states which scientific data analyze. Even samples (e), odd samples (o), all samples (a).
+        - **smooth** (``int``): Smoothing length used to flatter the data. smooth=1 equals no smooth.
+        - **window** (``int``): Used to convert the array of the data into a matrix with "window" elements per row.
+        - **scientific** (``bool``): If true, compute the double demodulation and analyze the scientific data.
+        - **rms** (``bool``): If true, compute the rms on the scientific output and data.
+        - **thermal_sensors** (``bool``): If true, the code analyzes the Thermal Sensors of Strip.
+        - **housekeeping** (``bool``): If true, the code analyzes the Housekeeping parameters of the Polarimeters.
+        - **fft** (``bool``): If true, the code computes the power spectra of the scientific data.
+        - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
+        - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
+        - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
+        - **spike_fft** (``bool``): If true, the code will look for spikes in FFT.
+        - **sam_tolerance** (``float``): the acceptance sampling tolerances of the Scientific Output.
+        - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS.
+        - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS.
+        - **hk_sam_exp_med** (``dict``): the exp sampling delta between two consecutive timestamps of hk.
+        - **hk_sam_tolerance** (``dict``): the acceptance sampling tolerances of the hk parameters: I,V,O.
+        - **corr_plot** (``bool``): If true, compute the correlation plot of the even-odd and scientific data.
+        - **corr_mat** (``bool``): If true, compute the correlation matrices of the even-odd and scientific data.
+        - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
+        - **cross_corr** (``bool``): If true, compute the 55x55 correlation matrices between all the polarimeters.
+        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
+        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
     """
     logging.info('\nLoading dir and templates information...')
 
     # REPORTS ----------------------------------------------------------------------------------------------------------
 
-    # Markdown REPORT --------------------------------------------------------------------------------------------------
+    # [MD] Markdown REPORT ---------------------------------------------------------------------------------------------
     # Initializing the data-dict for the md report
     report_data = {"output_plot_dir": output_plot_dir, "report_to_plot": report_to_plot}
 
     # Initializing a boolean variable to create a new report file or to overwrite the old ones
     first_report = True
 
-    # CSV REPORT -------------------------------------------------------------------------------------------------------
+    # [CSV] REPORT -----------------------------------------------------------------------------------------------------
     # General Information about the whole procedure are collected in a csv file
 
     # csv_output_dir := directory that contains the csv reports
     csv_output_dir = f"{output_report_dir}/CSV"
     Path(csv_output_dir).mkdir(parents=True, exist_ok=True)
 
-    # Heading of the csv file
+    # [CSV] Heading of the csv file
     csv_general = [
         ["GENERAL REPORT CSV"],
         [""],
@@ -159,14 +156,65 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # [CSV] Storing TS sampling warnings
             csv_general = sampling_table["csv"]
             # ----------------------------------------------------------------------------------------------------------
+            # [CSV] REPORT: write TS sampling in the report ------------------------------------------------------------
+            with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                      'a', newline='') as file:
+                writer = csv.writer(file)
+                writer.writerows(csv_general)
+            logging.info("####################\n"
+                         "CSV Report updated: TS Sampling Table written.\n####################\n")
+            # ----------------------------------------------------------------------------------------------------------
 
-            # INSERT SPIKE RESEARCH
+            ############################################################################################################
+            # TS SPIKE RESEARCH
+            ############################################################################################################
+            spike_warn = []
+            csv_general = []
+
+            # Looking for spikes in the TS Dataset
+            if spike_data:
+                logging.info('Looking for spikes in the Thermal dataset.')
+                # Collect the spike Table for TS Output
+                spike_table = TS.Spike_Report(fft=False, ts_sam_exp_med=ts_sam_exp_med)
+                # [MD]
+                spike_warn.extend(spike_table["md"])
+                # [CSV]
+                csv_general.append(spike_table["csv"])
+
+                # [CSV] REPORT: write TS Dataset spikes ----------------------------------------------------------------
+                with open(f'{csv_output_dir}/General_Report_{start_datetime}__{end_datetime}.csv',
+                          'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerows(csv_general)
+                logging.info("####################\n"
+                             "CSV Report updated: TS Dataset spikes written.\n####################\n")
+                # ------------------------------------------------------------------------------------------------------
+
+            # Looking for spikes in the FFT of TS Dataset
+            if spike_fft:
+                logging.info('Looking for spikes in the FFT of the Thermal dataset.')
+                # Collect the spike Table for TS FFT
+                spike_table = TS.Spike_Report(fft=True, ts_sam_exp_med=ts_sam_exp_med)
+                # [MD]
+                spike_warn.extend(spike_table["md"])
+                # [CSV]
+                csv_general.append(spike_table["csv"])
+
+                # [CSV] REPORT: write TS FFT spikes --------------------------------------------------------------------
+                with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+                          'a', newline='') as file:
+                    writer = csv.writer(file)
+                    writer.writerows(csv_general)
+                logging.info("####################\n"
+                             "CSV Report updated: TS FFT spikes written.\n####################\n")
+                # ------------------------------------------------------------------------------------------------------
+            ############################################################################################################
 
             # Normalizing TS measures
             logging.info(f'Normalizing TS. Status {status}')
             _ = TS.Norm_TS()
 
-            # TS Time warnings ----------------------------------------------------------------------------------------
+            # TS Time warnings -----------------------------------------------------------------------------------------
             # [MD]
             t_warn.extend(TS.warnings["time_warning"])
             # [CSV]
@@ -204,13 +252,14 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                          "CSV Report updated: TS Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
-            # Plots of all TS
+            # Plots of all TS measures
             logging.info(f'Plotting all TS measures for status {status} of the multiplexer.')
             TS.Plot_TS()
 
             # Fourier's analysis if asked
             if fft:
                 logging.info(f'Plotting the FFT of all the TS measures for status {status} of the multiplexer.')
+                # Plot of the FFT of all TS measures
                 TS.Plot_FFT_TS()
 
             # ----------------------------------------------------------------------------------------------------------
@@ -237,6 +286,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     ####################################################################################################################
     # Multi Polarimeter Analysis
     ####################################################################################################################
+    # Cross Correlation Matrices (55x55 matrix)
     if cross_corr:
         logging.warning(
             f'-------------------------------------------------------------------------------------'
@@ -244,7 +294,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         cross_corr_mat = fz_c.cross_corr_mat(path_file=path_file,
                                              start_datetime=start_datetime, end_datetime=end_datetime,
                                              show=False, corr_t=corr_t, plot_dir=output_plot_dir)
+        # [MD] Storing high correlation values
         corr_warn.extend(cross_corr_mat["md"])
+        # [CSV] Storing high correlation values
         csv_general = cross_corr_mat["csv"]
 
         # [CSV] write Cross Correlations results in the report ---------------------------------------------------------
@@ -471,8 +523,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         # Do nothing
                         pass
                     else:
-                        # Plotting Even Odd All Outputs
+                        # Showing which plots will be produced
                         logging.info(f'\nEven = {combo[0]}, Odd = {combo[1]}, All = {combo[2]}.')
+
+                        # Plot of Even-Odd-All Outputs
                         logging.info(f'Plotting Even Odd All Outputs. Type {type}.')
                         fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                                      start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
@@ -480,6 +534,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                      demodulated=False, rms=False, fft=False,
                                      window=window, smooth_len=smooth, nperseg=nperseg,
                                      show=False)
+
+                        # Plot of Even-Odd-All RMS
                         if rms:
                             # Plotting Even Odd All Outputs RMS
                             logging.info(f'Plotting Even Odd All Outputs RMS. Type {type}.')
@@ -490,6 +546,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                          window=window, smooth_len=smooth, nperseg=nperseg,
                                          show=False)
 
+                        # Plot of FFT of Even-Odd-All Outputs
                         if fft:
                             logging.warning("----------------------------------------------------------------------"
                                             "\nSpectral Analysis Even-Odd-All")
@@ -501,6 +558,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                          demodulated=False, rms=False, fft=True,
                                          window=window, smooth_len=smooth, nperseg=nperseg,
                                          show=False)
+
+                            # Plot of FFT of RMS of Even-Odd-All Outputs
                             if rms:
                                 # Plotting Even Odd All FFT of the RMS
                                 logging.info(f'Plotting Even Odd All FFT of the RMS. Type {type}.')
@@ -511,6 +570,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                              demodulated=False, rms=True, fft=True,
                                              window=window, smooth_len=smooth, nperseg=nperseg,
                                              show=False)
+
                 # --------------------------------------------------------------------------------------------------
                 # REPORT EOA OUTPUT
                 # --------------------------------------------------------------------------------------------------
@@ -519,7 +579,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     logging.info(f"\nOnce ready, I will put the EOA report into: {output_report_dir}.")
 
                     eoa_letters = fz.letter_combo(str(eoa))
-                    # Now eoa_letters is not used into report_eoa.txt -> Jinja2 treats the list as a str...
+                    # Note: the current version of the MD reports don't use eoa_letters
+                    # report_eoa.txt -> Jinja2 treats the list as a str.
 
                     # Updating the report_data dict
                     report_data.update({"name_pol": np, "fft": fft, "rms": rms, "eoa_letters": eoa_letters})
@@ -551,18 +612,20 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             if not scientific:
                 pass
             else:
-                # Plot of Scientific Data
                 logging.warning("----------------------------------------------------------------------------------"
                                 "\nScientific Data Analysis.")
                 logging.info(f'\nPlot of Scientific Data. Type {type}.')
+
+                # Plot of Scientific Data
                 fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                              start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
                              type=type, even=1, odd=1, all=1,
                              demodulated=True, rms=False, fft=False,
                              window=window, smooth_len=smooth, nperseg=nperseg,
                              show=False)
+
+                # Plot of RMS of Scientific Data
                 if rms:
-                    # Plot of RMS of Scientific Data
                     logging.info(f'Plot of RMS of Scientific Data. Type {type}.')
                     fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                                  start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
@@ -582,8 +645,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  demodulated=True, rms=False, fft=True,
                                  window=window, smooth_len=smooth, nperseg=nperseg,
                                  show=False)
+
+                    # Plot of FFT of the RMS of Scientific Data
                     if rms:
-                        # Plot of FFT of the RMS of Scientific Data
                         logging.info(f'Plot of FFT of the RMS of Scientific Data. Type {type}.')
                         fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
                                      start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
@@ -931,7 +995,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # Produce all correlation plots and matrix using all the combinations
             for d1, t1, n1, u1, d2, t2, n2, u2 in possible_combos:
 
+                # ------------------------------------------------------------------------------------------------------
                 # Correlation Plot
+                # ------------------------------------------------------------------------------------------------------
                 if corr_plot:
                     logging.warning(
                         f'---------------------------------------------------------------------------------'
@@ -958,7 +1024,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     # [CSV] Collecting correlation warnings
                     csv_general = correlation_warnings["csv"]
 
+                # ------------------------------------------------------------------------------------------------------
                 # Correlation Matrix
+                # ------------------------------------------------------------------------------------------------------
                 if corr_mat:
                     logging.warning(
                         f'---------------------------------------------------------------------------------'
@@ -989,7 +1057,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # ------------------------------------------------------------------------------------------------------
 
     # ------------------------------------------------------------------------------------------------------------------
-    # [MD] REPORT CORRELATION PLOT:
+    # [MD] REPORT CORRELATION PLOT
     # ------------------------------------------------------------------------------------------------------------------
     if corr_plot:
         logging.info(f"\nOnce ready, I will put the CORR PLOT report into: {output_report_dir}.")
@@ -1011,6 +1079,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
         logging.info("############################################################################################\n"
                      "Correlation Plots - Markdown Report Ready!\n\n")
+
     # ------------------------------------------------------------------------------------------------------
     # [MD] REPORT CORRELATION MATRIX
     # ------------------------------------------------------------------------------------------------------

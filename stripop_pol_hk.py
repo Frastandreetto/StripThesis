@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-import csv
+
 # This file contains the function "pol_hk" that operates an analysis of the Thermal Sensors (TS) of Strip.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
-# August 18th 2023, Brescia (Italy)
+
+# August 18th 2023, Brescia (Italy) - January 27th 2024, Bologna (Italy)
 
 # Libraries & Modules
+import csv
 import logging
 
 from jinja2 import Environment, FileSystemLoader
@@ -27,33 +28,35 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
            output_plot_dir: str, output_report_dir: str,
            report_to_plot: str):
     """
-    Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
-        Parameters:
-            - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
-            - **start_datetime** (``str``): start time
-            - **end_datetime** (``str``): end time
-            - **name_pol** (``str``): name of the polarimeter. If more than one, write them into ' ' separated by space.
-            - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of HK
-            - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
-            - **output_report_dir** (`str`): Path of the dir that contain the reports with the results of the analysis.
-            The starting point is the dir striptease.
-            - **output_plot_dir** (`str`): Path of the dir that contain the plots with the results of the analysis.
-            The starting point is the dir striptease.
-            - **report_to_plot** (`str`): Path of the dir that contain the plots with the results of the analysis.
-            The starting point is the dir that contains the Reports of the analysis.
+        Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
+
+            Parameters:
+
+        - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
+        - **start_datetime** (``str``): start time
+        - **end_datetime** (``str``): end time
+        - **name_pol** (``str``): name of the polarimeter. If more than one, write them into ' ' separated by space.
+
+            Other Flags:
+
+        - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of HK
+        - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
+        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
+        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
     """
     logging.info('\nLoading dir and templates information...\n')
 
     # REPORTS ----------------------------------------------------------------------------------------------------------
 
-    # Markdown REPORT --------------------------------------------------------------------------------------------------
+    # [MD] Markdown REPORT ---------------------------------------------------------------------------------------------
     # Initializing the data-dict for the report
     report_data = {"output_plot_dir": output_plot_dir, "report_to_plot": report_to_plot}
 
     # Initializing a boolean variable to create a new report file or to overwrite the old ones
     first_report = True
 
-    # CSV REPORT -------------------------------------------------------------------------------------------------------
+    # [CSV] REPORT -----------------------------------------------------------------------------------------------------
     # HK Information about the whole procedure are collected in a csv file
 
     # csv_output_dir := directory that contains the csv reports
@@ -144,7 +147,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
 
         # HK Sampling warnings -------------------------------------------------------------------------------------
         HK_sampling_table = p.HK_Sampling_Table(sam_exp_med=hk_sam_exp_med, sam_tolerance=hk_sam_tolerance)
-        # [MD]
+        # [MD] Storing HK sampling table
         sampling_warn.extend(HK_sampling_table["md"])
         # [CSV] Storing HK sampling table
         csv_general = HK_sampling_table["csv"]
@@ -155,9 +158,9 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         problematic_hk = p.Norm_HouseKeeping()
 
         # HK Time warnings -----------------------------------------------------------------------------------------
-        # [MD]
+        # [MD] Storing problematic HK (time warnings)
         t_warn.extend(p.warnings["time_warning"])
-        # [CSV]
+        # [CSV] Storing problematic HK
         csv_general.append(problematic_hk)
         # ----------------------------------------------------------------------------------------------------------
 

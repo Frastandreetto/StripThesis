@@ -1,11 +1,12 @@
-#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
-import csv
+
 # This file contains the function "thermal_hk" that operates an analysis of the Thermal Sensors (TS) of Strip.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
-# August 18th 2023, Brescia (Italy)
+
+# August 18th 2023, Brescia (Italy) - January 27th 2024, Bologna (Italy)
 
 # Libraries & Modules
+import csv
 import logging
 import os
 
@@ -30,46 +31,46 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                output_plot_dir: str, output_report_dir: str,
                report_to_plot: str):
     """
-    Performs the analysis of one or more polarimeters producing a complete report.
-    The analysis can include plots of: Even-Odd Output, Scientific Data, FFT and correlation Matrices.
-    The reports produced include also info about the state of the housekeeping parameters and the thermal sensors.
+        Performs the analysis of one or more polarimeters producing a complete report.
+        The analysis can include plots of: Even-Odd Output, Scientific Data, FFT and correlation Matrices.
+        The reports produced include also info about the state of the housekeeping parameters and the thermal sensors.
 
         Parameters:
-            - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
-            - **start_datetime** (``str``): start time
-            - **end_datetime** (``str``): end time
-            - **status** (``int``): status of the multiplexer of the TS to analyze: 0, 1 or 2 (which stands for both).
-            - **fft** (``bool``): If true, the code will compute the power spectra of the TS.
-            - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
-            - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS
-            - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS
-            - **spike_data** (`bool`): If true, the code will look for spikes in Thermal Sensors
-            - **spike_fft** (`bool`) If true, the code will look for spikes in FFT of the Thermal Sensors
-            - **corr_t** (``float``): lim sup for the correlation value between two dataset:
-             if the value computed is higher than the threshold, a warning is produced.
-             - **output_report_dir** (`str`): Path of the dir that contain the reports with the results of the analysis.
-            The starting point is the dir striptease.
-            - **output_plot_dir** (`str`): Path of the dir that contain the plots with the results of the analysis.
-            The starting point is the dir striptease.
-            - **report_to_plot** (`str`): Path of the dir that contain the plots with the results of the analysis.
-            The starting point is the dir that contains the Reports of the analysis.
+
+        - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
+        - **start_datetime** (``str``): start time
+        - **end_datetime** (``str``): end time
+
+            Other Flags:
+
+        - **status** (``int``): status of the multiplexer of the TS to analyze: 0, 1 or 2 (which stands for both 0 & 1).
+        - **fft** (``bool``): If true, the code computes the power spectra of the scientific data.
+        - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
+        - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS.
+        - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS.
+        - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
+        - **spike_fft** (``bool``): If true, the code will look for spikes in FFT.
+        - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
+        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
+        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
     """
     logging.info('\nLoading dir and templates information...')
 
     # REPORTS ----------------------------------------------------------------------------------------------------------
 
-    # Markdown REPORT --------------------------------------------------------------------------------------------------
+    # [MD] Markdown REPORT ---------------------------------------------------------------------------------------------
     # Initializing the data-dict for the md report
     report_data = {"output_plot_dir": output_plot_dir, "report_to_plot": report_to_plot}
 
-    # CSV REPORT -------------------------------------------------------------------------------------------------------
+    # [CSV] REPORT -----------------------------------------------------------------------------------------------------
     # General Information about the whole procedure are collected in a csv file
 
     # csv_output_dir := directory that contains the csv reports
     csv_output_dir = f"{output_report_dir}/CSV"
     Path(csv_output_dir).mkdir(parents=True, exist_ok=True)
 
-    # Heading of the csv file
+    # [CSV] Heading of the csv file
     csv_general = [
         ["THERMAL SENSORS REPORT CSV"],
         [""],
@@ -117,6 +118,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
 
     logging.info('\nReady to analyze the Thermal Sensors.\n')
     for stat in status:
+        # Creating the TS
         TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime, end_datetime=end_datetime,
                                 status=stat, nperseg_thermal=nperseg_thermal)
 
@@ -138,7 +140,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             writer.writerows(csv_general)
         logging.info("####################\n"
                      "CSV Report updated: TS Sampling Table written.\n####################\n")
-        # ----------------------------------------------------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
 
         ################################################################################################################
         # SPIKE RESEARCH

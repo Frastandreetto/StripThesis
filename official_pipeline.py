@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 # This file contains the new LSPE-Strip official pipeline for functional verification.
 # It includes different analysis modalities: total analysis, housekeeping analysis and thermal analysis
-# July 23rd 2023, Brescia (Italy) - ...
+# July 23rd 2023, Brescia (Italy) -
 
 # Libraries & Modules
 import argparse
@@ -25,37 +25,92 @@ import stripop_thermal_hk as strip_c
 
 def main():
     """
-        Pipeline that can be used in three different operative modalities:
+        Pipeline for the functional verification of the LSPE-Strip instrument.
+        This pipeline can be used in three different operative modalities:
 
-        A) "tot" -> Performs the analysis of one or more polarimeters producing a complete report.
+        A) "tot"
+        -> Performs the analysis of one or more polarimeters producing a complete report.
         The analysis can include plots of: Even-Odd Output, Scientific Data, FFT, correlation and Matrices.
         The reports produced include also info about the state of the housekeeping parameters and the thermal sensors.
 
             Parameters:
-                - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
-                - **start_datetime** (``str``): start time
-                - **end_datetime** (``str``): end time
-                - **name_pol** (``str``): name of the polarimeter. If more than one write them spaced into ' '.
 
-        B) "pol_hk" -> Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
+        - **path_file** (``str``): location of the data file and hdf5 file index (without the name of the file)
+        - **start_datetime** (``str``): start time
+        - **end_datetime** (``str``): end time
+        - **name_pol** (``str``): name of the polarimeter. If more than one write them spaced into ' '.
+
+            Other Flags:
+
+        - **eoa** (``str``): states which scientific data analyze. Even samples (e), odd samples (o), all samples (a).
+        - **smooth** (``int``): Smoothing length used to flatter the data. smooth=1 equals no smooth.
+        - **window** (``int``): Used to convert the array of the data into a matrix with "window" elements per row.
+        - **scientific** (``bool``): If true, compute the double demodulation and analyze the scientific data.
+        - **rms** (``bool``): If true, compute the rms on the scientific output and data.
+        - **thermal_sensors** (``bool``): If true, the code analyzes the Thermal Sensors of Strip.
+        - **housekeeping** (``bool``): If true, the code analyzes the Housekeeping parameters of the Polarimeters.
+        - **fft** (``bool``): If true, the code computes the power spectra of the scientific data.
+        - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
+        - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
+        - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
+        - **spike_fft** (``bool``): If true, the code will look for spikes in FFT.
+        - **sam_tolerance** (``float``): the acceptance sampling tolerances of the Scientific Output.
+        - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS.
+        - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS.
+        - **hk_sam_exp_med** (``dict``): the exp sampling delta between two consecutive timestamps of hk.
+        - **hk_sam_tolerance** (``dict``): the acceptance sampling tolerances of the hk parameters: I,V,O.
+        - **corr_plot** (``bool``): If true, compute the correlation plot of the even-odd and scientific data.
+        - **corr_mat** (``bool``): If true, compute the correlation matrices of the even-odd and scientific data.
+        - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
+        - **cross_corr** (``bool``): If true, compute the 55x55 correlation matrices between all the polarimeters.
+        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
+        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
+
+        B) "pol_hk"
+        -> Performs only the analysis of the Housekeeping parameters of the polarimeter(s) provided.
 
             Parameters:
-                - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
-                - **start_datetime** (``str``): start time
-                - **end_datetime** (``str``): end time
-                - **name_pol** (``str``): name of the polarimeter. If more than one write them spaced into ' '.
 
-        C) "thermal_hk" -> Performs only the analysis of the thermal sensors of Strip.
+        - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
+        - **start_datetime** (``str``): start time
+        - **end_datetime** (``str``): end time
+        - **name_pol** (``str``): name of the polarimeter. If more than one write them spaced into ' '.
+
+            Other Flags:
+
+        - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of HK
+        - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
+        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
+        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
+
+        C) "thermal_hk"
+        -> Performs only the analysis of the thermal sensors of Strip.
 
             Parameters:
-            - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
-            - **start_datetime** (``str``): start time
-            - **end_datetime** (``str``): end time
-            - **status** (``int``): status of the multiplexer of the TS to analyze: 0, 1 or 2 (which stands for both).
-            - **fft** (``bool``): If true, the code will compute the power spectra of the TS.
-            - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
-            - **corr_t** (``float``): lim sup for the correlation value between two dataset:
-             if the value computed is higher than the threshold, a warning is produced.
+
+        - **path_file** (``str``): location of the data file, it is indeed the location of the hdf5 file's index
+        - **start_datetime** (``str``): start time
+        - **end_datetime** (``str``): end time
+
+            Other Flags:
+
+        - **status** (``int``): status of the multiplexer of the TS to analyze: 0, 1 or 2 (which stands for both 0 & 1).
+        - **fft** (``bool``): If true, the code computes the power spectra of the scientific data.
+        - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
+        - **ts_sam_exp_med** (``float``): the exp sampling delta between two consecutive timestamps of TS.
+        - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS.
+        - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
+        - **spike_fft** (``bool``): If true, the code will look for spikes in FFT.
+        - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
+        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
+        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
+
+        Final Note: During the spectral analysis the average of all periodograms is computed to produce the spectrogram.
+        Changing the nperseg parameter allow to reach lower frequencies in the FFT plot:
+        in particular, the limInf of the x-axis is fs/nperseg.
 
     """
     # Use the module logging to produce nice messages on the shell
@@ -129,11 +184,11 @@ def main():
     # Correlation Threshold
     common_parser.add_argument('--corr_t', '-ct', type=float, default=0.4,
                                help='Floating point number used as lim sup for the corr value between two dataset: '
-                                    'if the value computed is higher than the threshold, a warning is produced '
+                                    'if the corr value is higher than the threshold, a warning is produced and stored. '
                                     '(default: %(default)s).', metavar='')
     # Cross Correlation
     common_parser.add_argument('--cross_corr', '-cc', action="store_true",
-                               help='If true, compute the 55x55 corr matr between the exits of all polarimeters.')
+                               help='If true, compute the 55x55 corr matrices between the exits of all polarimeters.')
 
     # Output parameters ------------------------------------------------------------------------------------------------
     # Output directory of the plots
@@ -240,7 +295,7 @@ def main():
 
     # Create the parser for the command C: "thermal_hk"
     parser_C = subparsers.add_parser('thermal_hk', parents=[common_parser],
-                                     help="C) Analyzes the thermal sensors of LSPE-Strip.")
+                                     help="C) Analyzes the Thermal Sensors of LSPE-Strip.")
 
     # Flags (optional)
     # FFT
@@ -426,7 +481,7 @@ def main():
             raise SystemExit(1)
     # ------------------------------------------------------------------------------------------------------------------
 
-    # nperseg_thermal (Number of points per segment) -------------------------------------------------------------------
+    # nperseg_thermal (Number of points per segment of TS measures) ----------------------------------------------------
     # Check if the parameter is an int
     if args.subcommand == "tot" or args.subcommand == "thermal_hk":
         if not isinstance(args.nperseg_thermal, int):
@@ -605,7 +660,7 @@ def main():
     output_file_path = os.path.join(args.output_report_dir, toml_file_name)
 
     try:
-        # Copy the file
+        # Copy the file in the output dir
         shutil.copy(args.toml_file_path, output_file_path)
         logging.info(f"TOML file copied successfully to {output_file_path}\n")
     except FileNotFoundError:

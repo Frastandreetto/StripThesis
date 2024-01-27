@@ -1,15 +1,14 @@
-#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2023)
-# October 29th 2022, Brescia (Italy)
+
+# October 29th 2022, Brescia (Italy) - January 27th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import csv
 import json
 import logging
-
 import scipy.signal
 import warnings
 
@@ -28,18 +27,19 @@ import scipy.ndimage as scn
 
 def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
     """
-    Create a new file .csv and write the caption of a tabular\n
-    Parameters:\n
-    - **pol_name** (``str``): Name of the polarimeter
-    - **file_name** (``str``): Name of the file to create and in which insert the caption\n
-    - **output_dir** (``str``): Name of the dir where the csv file must be saved
-    This specific function creates a tabular that collects the jumps in the dataset (JT).
+        Create a new file .csv and write the caption of a tabular\n
+            Parameters:\n
+        - **pol_name** (``str``): Name of the polarimeter
+        - **file_name** (``str``): Name of the file to create and in which insert the caption\n
+        - **output_dir** (``str``): Name of the dir where the csv file must be saved
+        This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
     new_file_name = f"JT_{pol_name}_{file_name}.csv"
     cap = [["# Jump", "Jump value [JHD]", "Jump value [s]", "Gregorian Date", "JHD Date"]]
 
     path = f'../plot/{output_dir}/Time_Jump/'
     Path(path).mkdir(parents=True, exist_ok=True)
+    # Open the file to append the heading
     with open(f"{path}/{new_file_name}", 'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(cap)
@@ -49,14 +49,17 @@ def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
 
 def pol_list(path_dataset: Path) -> list:
     """
-    Create a list of the polarimeters present in the datafile\n
-    Parameters:\n
-    - **path_dataset** (Path comprehensive of the name of the dataset file)
+        Create a list of the polarimeters present in the datafile\n
+            Parameters:\n
+        - **path_dataset** (Path comprehensive of the name of the dataset file)
     """
     d = DataFile(path_dataset)
+    # Read the Datafile
     d.read_file_metadata()
+    # Initialize a list to collect pol names
     pols = []
     for cur_pol in sorted(d.polarimeters):
+        # Append pol names to the list
         pols.append(f"{cur_pol}")
     return pols
 
@@ -64,10 +67,10 @@ def pol_list(path_dataset: Path) -> list:
 @njit  # optimize calculations
 def mean_cons(v):
     """
-    Calculate consecutive means of an array.\n
-    Parameters:\n
-    - **v** is an array-like object-like object\n
-    The mean on each couple of samples of even-odd index is computed.
+        Calculate consecutive means of an array.\n
+            Parameters:\n
+        - **v** is an array-like object-like object\n
+        The mean on each couple of samples of even-odd index is computed.
     """
     n = (len(v) // 2) * 2
     mean = (v[0:n:2] + v[1:n + 1:2]) / 2
@@ -77,10 +80,10 @@ def mean_cons(v):
 @njit
 def diff_cons(v):
     """
-    Calculate consecutive difference of an array.\n
-    Parameters:\n
-    - **v** is an array-like object\n
-    The difference between each sample of even-odd index is computed.
+        Calculate consecutive difference of an array.\n
+            Parameters:\n
+        - **v** is an array-like object\n
+        The difference between each sample of even-odd index is computed.
     """
     n = (len(v) // 2) * 2
     diff = (v[0:n:2] - v[1:n + 1:2])
@@ -90,33 +93,38 @@ def diff_cons(v):
 @njit
 def mob_mean(v, smooth_len: int):
     """
-    Calculate a mobile mean on a number of elements given by smooth_len, used to smooth plots.\n
-    Parameters:\n
-    - **v** is an array-like object
-    - **smooth_len** (int): number of elements on which the mobile mean is calculated
+        Calculate a mobile mean on a number of elements given by smooth_len, used to smooth plots.\n
+            Parameters:\n
+        - **v** is an array-like object
+        - **smooth_len** (int): number of elements on which the mobile mean is calculated
     """
     m = np.zeros(len(v) - smooth_len + 1)
     for i in np.arange(len(m)):
+        # Compute the mean on a number smooth_len of elements, than move forward the window by 1 element in the array
         m[i] = np.mean(v[i:i + smooth_len])
     return m
 
 
 def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0, end=-1) -> Dict[str, Any]:
     """
-    Demodulation\n
-    Calculate the double demodulation at 50Hz of the dataset provided\n
-    Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data\n
-    Parameters:\n
-    - **dataset** (``dict``): dictionary ({}) containing the dataset with the output of a polarimeter
-    - **timestamps** (``list``): list ([]) containing the Timestamps of the output of a polarimeter
-    - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*\n
-    - **type** (``str``) of data *"DEM"* or *"PWR"*
-    - **begin**, **end** (``int``): interval of dataset that has to be considered
+        Demodulation\n
+        Calculate the double demodulation at 50Hz of the dataset provided\n
+        Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data\n
+            Parameters:\n
+        - **dataset** (``dict``): dictionary ({}) containing the dataset with the output of a polarimeter
+        - **timestamps** (``list``): list ([]) containing the Timestamps of the output of a polarimeter
+        - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*\n
+        - **type** (``str``) of data *"DEM"* or *"PWR"*
+        - **begin**, **end** (``int``): interval of dataset that has to be considered
     """
+    # Calculate consecutive mean of the Timestamps
     times = mean_cons(timestamps)
     data = {}
+
+    # Calculate consecutive mean of PWR Outputs -> Get TOTAL POWER Scientific Data
     if type == "PWR":
         data[exit] = mean_cons(dataset[type][exit][begin:end])
+    # Calculate consecutive differences of DEM Outputs -> Get DEMODULATED Scientific Data
     if type == "DEM":
         data[exit] = diff_cons(dataset[type][exit][begin:end])
 
@@ -127,13 +135,13 @@ def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0,
 @njit
 def rolling_window(v, window: int):
     """
-    Rolling Window Function\n
-    Parameters:\n
-    -  **v** is an array-like object
-    - **window** (int)
-    Return a matrix with:\n
-    - A number of element per row fixed by the parameter window
-    - The first element of the row j is the j element of the vector
+        Rolling Window Function\n
+            Parameters:\n
+        -  **v** is an array-like object
+        - **window** (int)
+        Return a matrix with:\n
+        - A number of element per row fixed by the parameter window
+        - The first element of the row j is the j element of the vector
     """
     shape = v.shape[:-1] + (v.shape[-1] - window + 1, window)
     strides = v.strides + (v.strides[-1],)
@@ -142,16 +150,16 @@ def rolling_window(v, window: int):
 
 def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1) -> []:
     """
-    Calculate the RMS of a vector using the rolling window
-    Parameters:\n
-    - **data** is a dictionary with four keys (exits) of a particular type *"DEM"* or *"PWR"*
-    - **window**: number of elements on which the RMS is calculated
-    - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*
-    - **eoa** (``int``): flag in order to calculate RMS for\n
-        all samples (*eoa=0*), can be used for Demodulated and Total Power scientific data (50Hz)\n
-        odd samples (*eoa=1*)\n
-        even samples (*eoa=2*)\n
-    - **begin**, **end** (``int``): interval of dataset that has to be considered
+        Calculate the RMS of a vector using the rolling window\n
+            Parameters:\n
+        - **data** is a dictionary with four keys (exits) of a particular type *"DEM"* or *"PWR"*
+        - **window**: number of elements on which the RMS is calculated
+        - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*
+        - **eoa** (``int``): flag in order to calculate RMS for:\n
+            - all samples (*eoa=0*), can be used for Demodulated and Total Power scientific data (50Hz)\n
+            - odd samples (*eoa=1*)\n
+            - even samples (*eoa=2*)\n
+        - **begin**, **end** (``int``): interval of dataset that has to be considered
     """
     rms = []
     if eoa == 0:
@@ -159,19 +167,19 @@ def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1) -> []:
             rms = np.std(rolling_window(data[exit][begin:end], window), axis=1)
         except ValueError as e:
             logging.warning(f"{e}. "
-                            f"Impossible to plot RMS.\n\n")
+                            f"Impossible to compute RMS.\n\n")
     elif eoa == 1:
         try:
             rms = np.std(rolling_window(data[exit][begin + 1:end:2], window), axis=1)
         except ValueError as e:
             logging.warning(f"{e}. "
-                            f"Impossible to plot RMS.\n\n")
+                            f"Impossible to compute RMS.\n\n")
     elif eoa == 2:
         try:
             rms = np.std(rolling_window(data[exit][begin:end - 1:2], window), axis=1)
         except ValueError as e:
             logging.warning(f"{e}. "
-                            f"Impossible to plot RMS.\n\n")
+                            f"Impossible to compute RMS.\n\n")
     else:
         logging.error("Wrong EOA value: it must be 0,1 or 2.")
         raise SystemExit(1)
@@ -180,12 +188,12 @@ def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1) -> []:
 
 def EOA(even: int, odd: int, all: int) -> str:
     """
-    Parameters:\n
-    - **even**, **odd**, **all** (``int``)
-    If the variables are different from zero, this returns a string that contains the corresponding letters:\n
-    "E" for even (``int``)\n
-    "O" for odd (``int``)\n
-    "A" for all (``int``)\n
+        Parameters:\n
+        - **even**, **odd**, **all** (``int``)
+        If the variables are different from zero, this returns a string that contains the corresponding letters:\n
+        - "E" for even (``int``)\n
+        - "O" for odd (``int``)\n
+        - "A" for all (``int``)\n
     """
     eoa = ""
     if even != 0:
@@ -199,11 +207,12 @@ def EOA(even: int, odd: int, all: int) -> str:
 
 def eoa_values(eoa_str: str) -> []:
     """
-    Parameters:\n
-    - **eoa_str** (``str``): string of 0,1,2 or 3 letters from a combination of the letters e, o and a
-    Return a list in which each element is a tuple of 3 values.
-    Those values can be 0 or 1 depending on the letters (e, o, a) provided.
-    Note that if a letter is present in the eoa_str, then that letter will assume both value 0 and 1. Only 0 otherwise.
+        Return a list in which each element is a tuple of 3 values.
+        Those values can be 0 or 1 depending on the letters (e, o, a) provided.
+        Note: if a letter is present in the eoa_str, then that letter will assume both value 0 and 1. Only 0 otherwise.
+
+            Parameters:\n
+        - **eoa_str** (``str``): string of 0,1,2 or 3 letters from a combination of the letters e, o and a
     """
     # Initialize a dictionary with 0 values for e,o,a keys
     eoa_dict = {"E": [0], "O": [0], "A": [0]}
@@ -225,9 +234,10 @@ def eoa_values(eoa_str: str) -> []:
 
 def letter_combo(in_str: str) -> []:
     """
-    Parameters:\n
-    - **in_str** (``str``): generic string of max 3 letters
-    Return a list in which each element is a combination of E,O,A letters.
+        Return a list in which each element is a combination of E,O,A letters.
+
+        Parameters:\n
+        - **in_str** (``str``): generic string of max 3 letters
     """
     result = []
 
@@ -242,12 +252,13 @@ def find_spike(v, data_type: str, threshold=4.4, n_chunk=10) -> []:
     """
         Look up for 'spikes' in a given array.\n
         Calculate the median and the mad and uses those to discern spikes.
-        Parameters:\n
+
+            Parameters:\n
         - **v** is an array-like object
         - **type** (str): if "DEM" look for spikes in two sub arrays (even and odd output) if "FFT" select only spike up
         - **threshold** (int): value used to discern what a spike is
         - **n_chunk** (int): n of blocks in which v is divided. On every block the median is computed to find spikes.
-        """
+    """
     # Initialize a spike list to collect the indexes of the problematic samples
     spike_idx = []
     # Number of steps of the algorithm
@@ -293,11 +304,12 @@ def find_spike(v, data_type: str, threshold=4.4, n_chunk=10) -> []:
 
 def select_spike(spike_idx: list, s: list, freq: list) -> []:
     """
-    Select the most relevant spikes in an array of FFT data
-    Parameters\n
-    - **spike_idx** (``list``): is an array-like object containing the indexes of the spikes present in the s array\n
-    - **s** (``list``): is an array-like object that contains spikes\n
-    - **freq** (``list``): is an array-like object that contains the frequency corresponding to the s values\n
+        Select the most relevant spikes in an array of FFT data
+
+            Parameters:\n
+        - **spike_idx** (``list``): is an array-like object containing the indexes of the spikes present in the s array
+        - **s** (``list``): is an array-like object that contains spikes
+        - **freq** (``list``): is an array-like object that contains the frequency corresponding to the s values
     """
     # Select only the most "significant" spikes
     idx_sel = []
@@ -314,18 +326,19 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
     """
         Find the 'jumps' in a given Time astropy object: the samples should be consequential with a fixed growth rate.
         Hence, their consecutive differences should have an expected median within a certain tolerance.
-        Parameters:\n
+
+            Parameters:\n
         - **v** is a Time object from astropy => i.e. Polarimeter.times\n
-        - **exp_med** (``float``) is the expected median (in seconds) of the TimeDelta
-        between two consecutive values of v
-        - **tolerance** (``float``) is the threshold # of seconds over which a TimeDelta is considered as an error\n
-        Return:\n
+        - **exp_med** (``float``) expected median (in seconds) of the TimeDelta between two consecutive values of v
+        - **tolerance** (``float``) threshold number of seconds over which a TimeDelta is considered as an error\n
+
+            Return:\n
         - **jumps** a dictionary containing three keys:
-            - **n** (``int``) is the number of jumps found
-            - **idx** (``int``) index of the jump in the array
-            - **value** (``float``) is the value of the jump in JHD
-            - **s_value** (``float``) is the value of the jump in seconds
-            - **median_ok** (``bool``) True if there is no jump in the vector, False otherwise
+        - **n** (``int``) is the number of jumps found
+        - **idx** (``int``) index of the jump in the array
+        - **value** (``float``) is the value of the jump in JHD
+        - **s_value** (``float``) is the value of the jump in seconds
+        - **median_ok** (``bool``) True if there is no jump in the vector, False otherwise
     """
     # Create a TimeDelta object from the Time object given in input
     dt = (v[1:] - v[:-1]).sec  # type: TimeDelta
@@ -348,6 +361,7 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
     value = []
     s_value = []
     n = 0
+
     # Initializing the dict with the information about time jumps
     jumps = {"n": n, "idx": idx, "value": value, "s_value": s_value,
              "median": med_dt, "exp_med": exp_med, "tolerance": tolerance, "median_ok": median_ok,
@@ -368,9 +382,10 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
 
 def dir_format(old_string: str) -> str:
     """
-    Take a string a return a new string changing white spaces into underscores, ":" into "-" and removing ".000"
-    Parameters:\n
-    old_string (``str``)
+        Take a string and return a new string changing white spaces into underscores, ":" into "-" and removing ".000"
+
+            Parameters:\n
+        - **old_string** (``str``)
     """
     new_string = old_string.replace(" ", "_")
     new_string = new_string.replace(".000", "")
@@ -380,10 +395,11 @@ def dir_format(old_string: str) -> str:
 
 def csv_to_json(csv_file_path: str, json_file_path):
     """
-    Convert a csv file into a json file
-    Parameters:\n
-    - csv_file_path (``str``): path of the csv file that have to be converted
-    - json_file_path (``str``): path of the json file converted
+        Convert a csv file into a json file.
+
+            Parameters:\n
+        - **csv_file_path** (``str``): path of the csv file that have to be converted
+        - **json_file_path** (``str``): path of the json file converted
     """
     json_array = []
 
@@ -411,10 +427,11 @@ def csv_to_json(csv_file_path: str, json_file_path):
 
 def merge_report(md_reports_path: str, total_report_path: str):
     """
-    Merge together all the md report files into a single md report file
-    Parameter:\n
-    - md_reports_path (``str``): path of the md files that have to be merged
-    - total_report_path (``str``): path of the md file merged
+        Merge together all the md report files into a single md report file.
+
+            Parameters:\n
+        - **md_reports_path** (``str``): path of the md files that have to be merged
+        - **total_report_path** (``str``): path of the md file merged
     """
     # Ensure the output directory exists, create it if not
     output_directory = Path(total_report_path).parent
@@ -436,8 +453,9 @@ def merge_report(md_reports_path: str, total_report_path: str):
 def name_check(names: list) -> bool:
     """
         Check if the names of the polarimeters in the list are wrong: not the same as the polarimeters of Strip.
-        Parameters:\n
-        - names (``list``): list of the names of the polarimeters
+
+            Parameters:\n
+        - **names** (``list``): list of the names of the polarimeters
     """
     for n in names:
         # Check if the letter corresponds to one of the tiles of Strip
@@ -466,8 +484,9 @@ def name_check(names: list) -> bool:
 def datetime_check(date_str: str) -> bool:
     """
         Check if the string is in datatime format "YYYY-MM-DD hh:mm:ss" or not.
-        Parameters:\n
-        - date (``str``): string with the datetime
+
+            Parameters:\n
+        - **date** (``str``): string with the datetime
     """
     date_format = "%Y-%m-%d %H:%M:%S"
     try:
@@ -481,11 +500,12 @@ def date_update(start_datetime: str, n_samples: int, sampling_frequency: int, ms
     """
     Calculates and returns the new Gregorian date in which the analysis begins, given a number of samples that
     must be skipped from the beginning of the dataset.
-    Parameters:\n
+
+        Parameters:\n
     - **start_datetime** (``str``): start time of the dataset
     - **n_samples** (``int``) number of samples that must be skipped\n
     - **sampling_freq** (``int``): number of data collected per second
-    -**ms** (``bool``): if True the new Gregorian date has also milliseconds
+    - **ms** (``bool``): if True the new Gregorian date has also milliseconds
     """
     # Convert the str in a Time object: Julian Date MJD
     jdate = Time(start_datetime).mjd
@@ -505,8 +525,8 @@ def date_update(start_datetime: str, n_samples: int, sampling_frequency: int, ms
 def same_length(array1, array2) -> []:
     """
         Check if the two array are of the same length. If not, the longer becomes as long as the smaller
-        Parameters:\n
-        - array1, array2 (``array``): data arrays.
+            Parameters:\n
+        - **array1**, **array2** (``array``): data arrays.
     """
     l1 = len(array1)
     l2 = len(array2)
@@ -526,16 +546,17 @@ def data_plot(pol_name: str,
               window: int, smooth_len: int, nperseg: int,
               show: bool):
     """
-    Generic function that create a Plot of the dataset provided.\n
-    Parameters:
-        -**pol_name** (``str``): name of the polarimeter we want to analyze
-        - **dataset** (``dict``): dictionary ({}) containing the dataset with the output of a polarimeter
-        - **timestamps** (``list``): list ([]) containing the Timestamps of the output of a polarimeter
+        Generic function that create a Plot of the dataset provided.\n
+
+            Parameters:
+        - **pol_name** (``str``): name of the polarimeter we want to analyze
+        - **dataset** (``dict``): dictionary containing the dataset with the output of a polarimeter
+        - **timestamps** (``list``): list containing the Timestamps of the output of a polarimeter
         - **start_datetime** (``str``): start time
         - **end_datetime** (``str``): end time
         - **begin**, **end** (``int``): interval of dataset that has to be considered\n
 
-        - **type** (``str``) of data *"DEM"* or *"PWR"*\n
+        - **type** (``str``): defines the scientific output, *"DEM"* or *"PWR"*\n
         - **even**, **odd**, **all** (int): used to set the transparency of the dataset (0=transparent, 1=visible)\n
 
         - **demodulated** (``bool``): if true, demodulated data are computed, if false even-odd-all output are plotted
