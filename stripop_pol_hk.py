@@ -38,8 +38,8 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         - **name_pol** (``str``): name of the polarimeter. If more than one, write them into ' ' separated by space.
 
             Other Flags:
-        - **corr_plot** (``bool``): If true, compute the correlation plot of the even-odd and scientific data.
-        - **corr_mat** (``bool``): If true, compute the correlation matrices of the even-odd and scientific data.
+        - **corr_plot** (``bool``): If true, compute the correlation plot of the HK.
+        - **corr_mat** (``bool``): If true, compute the correlation matrices of the HK.
         - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
         - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of HK
         - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O

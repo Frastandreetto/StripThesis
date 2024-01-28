@@ -81,6 +81,9 @@ def main():
 
             Other Flags:
 
+        - **corr_plot** (``bool``): If true, compute the correlation plot of the HK.
+        - **corr_mat** (``bool``): If true, compute the correlation matrices of the HK.
+        - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
         - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of HK
         - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
         - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
@@ -105,6 +108,8 @@ def main():
         - **ts_sam_tolerance** (``float``): the acceptance sampling tolerances of the TS.
         - **spike_data** (``bool``): If true, the code will look for spikes in Sci-data.
         - **spike_fft** (``bool``): If true, the code will look for spikes in FFT.
+        - **corr_plot** (``bool``): If true, compute the correlation plot of the TS.
+        - **corr_mat** (``bool``): If true, compute the correlation matrices of the TS.
         - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
         - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
         - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
