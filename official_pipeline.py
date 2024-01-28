@@ -168,19 +168,19 @@ def main():
                                metavar='')
     # Spikes -----------------------------------------------------------------------------------------------------------
     # Spikes Data
-    common_parser.add_argument('--spike_data', '-sd', action="store_true",
+    common_parser.add_argument('--spike_data', '-sd', action="store_true", default=False,
                                help='If true, the code will look for spikes in Sci-data and TS measures')
     # Spikes FFT
-    common_parser.add_argument('--spike_fft', '-sf', action="store_true",
+    common_parser.add_argument('--spike_fft', '-sf', action="store_true", default=False,
                                help='If true, the code will look for spikes in FFT of Sci-data and TS measures')
 
     # Correlation Parameters -------------------------------------------------------------------------------------------
     # Correlation Plot
-    common_parser.add_argument('--corr_plot', '-cp', action="store_true",
+    common_parser.add_argument('--corr_plot', '-cp', action="store_true", default=False,
                                help='If true, the code will compute the correlation plots '
                                     'of the even-odd and scientific data.')
     # Correlation Matrices
-    common_parser.add_argument('--corr_mat', '-cm', action="store_true",
+    common_parser.add_argument('--corr_mat', '-cm', action="store_true", default=False,
                                help='If true, the code will compute the correlation matrices '
                                     'of the even-odd and scientific data.')
     # Correlation Threshold
@@ -189,7 +189,7 @@ def main():
                                     'if the corr value is higher than the threshold, a warning is produced and stored. '
                                     '(default: %(default)s).', metavar='')
     # Cross Correlation
-    common_parser.add_argument('--cross_corr', '-cc', action="store_true",
+    common_parser.add_argument('--cross_corr', '-cc', action="store_true", default=False,
                                help='If true, compute the 55x55 corr matrices between the exits of all polarimeters.')
 
     # Output parameters ------------------------------------------------------------------------------------------------
@@ -325,16 +325,27 @@ def main():
 
     # TOML File --------------------------------------------------------------------------------------------------------
     # Check if the toml file provided by the user exists.
+
+    # Initialize a bool to True -> We are using a toml file to run the pipeline
+    toml_usage = True
     try:
         Path(args.toml_file_path)
+
+    except TypeError:
+        logging.warning('Running the code from the command line without TOML files.')
+        # We are not using the toml file to run the pipeline
+        toml_usage = False
+        pass
+
     except AttributeError:
         logging.error('Modality not selected. Type -h for help!')
         raise SystemExit(1)
 
-    if not Path(args.toml_file_path).exists():
-        logging.error(f'The target directory {args.toml_file_path} does not exist. '
-                      f'Please select a real location of the toml file to start the pipeline.\n\n')
-        raise SystemExit(1)
+    if toml_usage:
+        if not Path(args.toml_file_path).exists():
+            logging.error(f'The target directory {args.toml_file_path} does not exist. '
+                          f'Please select a real location of the toml file to start the pipeline.\n\n')
+            raise SystemExit(1)
     # ------------------------------------------------------------------------------------------------------------------
 
     # Path of the Data Test directory ----------------------------------------------------------------------------------
@@ -353,7 +364,8 @@ def main():
     if not Path(args.path_file).exists():
         logging.error(f'The target directory {args.path_file} does not exist or does not contain the hdf5 file index.\n'
                       f'Please select a real location of the hdf5 file index.\n'
-                      'Note: quotation marks are needed in the TOML file.\n\n')
+                      'Note: Do not add the name of the parameter: just write the path!\n'
+                      'Also: quotation marks are needed in the TOML file.\n\n')
         raise SystemExit(1)
     # ------------------------------------------------------------------------------------------------------------------
 
@@ -656,19 +668,21 @@ def main():
     # TOML Information
     # Saving the TOML file used to start the pipeline in the report directory
 
-    # Extract the TOML file name from the input path
-    toml_file_name = os.path.basename(args.toml_file_path)
-    # Construct the output file path by joining the output directory with the file name
-    output_file_path = os.path.join(args.output_report_dir, toml_file_name)
+    if toml_usage:
+        # Extract the TOML file name from the input path
+        toml_file_name = os.path.basename(args.toml_file_path)
 
-    try:
-        # Copy the file in the output dir
-        shutil.copy(args.toml_file_path, output_file_path)
-        logging.info(f"TOML file copied successfully to {output_file_path}\n")
-    except FileNotFoundError:
-        logging.error(f"The file {args.toml_file_path} does not exist.\n")
-    except Exception as e:
-        logging.error(f"An error occurred: {e}\n")
+        # Construct the output file path by joining the output directory with the file name
+        output_file_path = os.path.join(args.output_report_dir, toml_file_name)
+
+        try:
+            # Copy the file in the output dir
+            shutil.copy(args.toml_file_path, output_file_path)
+            logging.info(f"TOML file copied successfully to {output_file_path}\n")
+        except FileNotFoundError:
+            logging.error(f"The file {args.toml_file_path} does not exist.\n")
+        except Exception as e:
+            logging.error(f"An error occurred: {e}\n")
 
     ####################################################################################################################
     # Operations: A-B-C
