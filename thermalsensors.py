@@ -2,7 +2,7 @@
 
 # This file contains the Class Thermal_Sensors
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
-# August 15th 2023, Brescia (Italy) - January 27th 2024, Bologna (Italy)
+# August 15th 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
 
 # Libraries & Modules
 import logging
@@ -58,8 +58,8 @@ class Thermal_Sensors:
         self.date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
 
         self.status = status
-        # List containing the names of the TS divided in the two states: "0" and "1".
-        # The TS in each state are divided in groups that suggest their positions on Strip or their functions.
+        # Dict containing the names of the TS divided in the two states: "0" and "1".
+        # The TS in each state are divided in groups whose names suggest their positions on Strip or their functions.
         if self.status == 0:
             self.ts_names = {
                 "TILES": ["TS-CX4-Module-G", "TS-CX6-Module-O", "TS-CX2-Module-V"],
@@ -189,7 +189,7 @@ class Thermal_Sensors:
     def TS_Sampling_Table(self, sam_exp_med: float, sam_tolerance: float) -> {}:
         """
         Create a dictionary with the info of the Thermal Sensors sampling.
-        The dictionary has two keys "md" and "csv" - each contains a list with the info to create the relative report
+        The dictionary has two keys "md" and "csv" - each containing a list with the info to create the relative report
         The current code produces a table with the following information:
         1. TS name
         2. Number of sampling jumps
@@ -199,8 +199,8 @@ class Thermal_Sensors:
         6. The 95th percentile.
 
             Parameters:\n
-        - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive Timestamps of the hk
-        - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
+        - **sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive Timestamps of the TS
+        - **sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the TS
         """
 
         # [MD] Initialize a result list to contain the md table

@@ -3,7 +3,7 @@
 # This file contains the function "pol_hk" that operates an analysis of the Thermal Sensors (TS) of Strip.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
 
-# August 18th 2023, Brescia (Italy) - January 27th 2024, Bologna (Italy)
+# August 18th 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
 
 # Libraries & Modules
 import csv

@@ -1,9 +1,9 @@
 # -*- encoding: utf-8 -*-
 
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
-# updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2023)
+# updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2024)
 
-# October 29th 2022, Brescia (Italy) - January 27th 2024, Bologna (Italy)
+# October 29th 2022, Brescia (Italy) - January 31st 2024, Bologna (Italy)
 
 # Libraries & Modules
 import csv
@@ -67,9 +67,9 @@ def pol_list(path_dataset: Path) -> list:
 @njit  # optimize calculations
 def mean_cons(v):
     """
-        Calculate consecutive means of an array.\n
+        Calculate consecutive means between the elements of an array.\n
             Parameters:\n
-        - **v** is an array-like object-like object\n
+        - **v** is an array-like object\n
         The mean on each couple of samples of even-odd index is computed.
     """
     n = (len(v) // 2) * 2
@@ -80,10 +80,10 @@ def mean_cons(v):
 @njit
 def diff_cons(v):
     """
-        Calculate consecutive difference of an array.\n
+        Calculate consecutive difference between the elements of an array.\n
             Parameters:\n
         - **v** is an array-like object\n
-        The difference between each sample of even-odd index is computed.
+        The difference between each couple of samples of even-odd index is computed.
     """
     n = (len(v) // 2) * 2
     diff = (v[0:n:2] - v[1:n + 1:2])
@@ -139,7 +139,7 @@ def rolling_window(v, window: int):
             Parameters:\n
         -  **v** is an array-like object
         - **window** (int)
-        Return a matrix with:\n
+        Accepts a vector and return a matrix with:\n
         - A number of element per row fixed by the parameter window
         - The first element of the row j is the j element of the vector
     """
@@ -155,7 +155,7 @@ def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1) -> []:
         - **data** is a dictionary with four keys (exits) of a particular type *"DEM"* or *"PWR"*
         - **window**: number of elements on which the RMS is calculated
         - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*
-        - **eoa** (``int``): flag in order to calculate RMS for:\n
+        - **eoa** (``int``): flag used to calculate RMS for:\n
             - all samples (*eoa=0*), can be used for Demodulated and Total Power scientific data (50Hz)\n
             - odd samples (*eoa=1*)\n
             - even samples (*eoa=2*)\n
@@ -190,7 +190,7 @@ def EOA(even: int, odd: int, all: int) -> str:
     """
         Parameters:\n
         - **even**, **odd**, **all** (``int``)
-        If the variables are different from zero, this returns a string that contains the corresponding letters:\n
+        If these variables are different from zero, this function returns a string with the corresponding letters:\n
         - "E" for even (``int``)\n
         - "O" for odd (``int``)\n
         - "A" for all (``int``)\n
@@ -333,12 +333,12 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
         - **tolerance** (``float``) threshold number of seconds over which a TimeDelta is considered as an error\n
 
             Return:\n
-        - **jumps** a dictionary containing three keys:
-        - **n** (``int``) is the number of jumps found
-        - **idx** (``int``) index of the jump in the array
-        - **value** (``float``) is the value of the jump in JHD
-        - **s_value** (``float``) is the value of the jump in seconds
-        - **median_ok** (``bool``) True if there is no jump in the vector, False otherwise
+        - **jumps** a dictionary containing five keys:
+            - **n** (``int``) is the number of jumps found
+            - **idx** (``int``) index of the jump in the array
+            - **value** (``float``) is the value of the jump in JHD
+            - **s_value** (``float``) is the value of the jump in seconds
+            - **median_ok** (``bool``) True if there is no jump in the vector, False otherwise
     """
     # Create a TimeDelta object from the Time object given in input
     dt = (v[1:] - v[:-1]).sec  # type: TimeDelta
@@ -503,7 +503,7 @@ def date_update(start_datetime: str, n_samples: int, sampling_frequency: int, ms
 
         Parameters:\n
     - **start_datetime** (``str``): start time of the dataset
-    - **n_samples** (``int``) number of samples that must be skipped\n
+    - **n_samples** (``int``): number of samples that must be skipped\n
     - **sampling_freq** (``int``): number of data collected per second
     - **ms** (``bool``): if True the new Gregorian date has also milliseconds
     """

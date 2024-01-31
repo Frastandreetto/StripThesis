@@ -1,9 +1,9 @@
 # -*- encoding: utf-8 -*-
 
 # This file contains the main correlation functions used in the new version of the pipeline
-# for functional verification of LSPE-STRIP (2023)
+# for functional verification of LSPE-STRIP (2024)
 
-# September 19th 2023, Delft (Netherlands) - January 27th 2024, Bologna (Italy)
+# September 19th 2023, Delft (Netherlands) - January 31st 2024, Bologna (Italy)
 
 # Libraries & Modules
 import logging
@@ -24,12 +24,12 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                      corr_t=0.4, plot_dir='../plot') -> []:
     """
         Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
-        Return a dictionary of warnings that highlight which data are highly correlated.
+        Return a dictionary of warnings that highlights which data are highly correlated.
 
             Parameters:\n
-        - **array1**, **array2** (``array``): arrays ([]) of n1 and n2 elements
+        - **array1**, **array2** (``list``): arrays ([]) of n1 and n2 elements
         - **dict1**, **dict2** (``dict``): dictionaries ({}) with N1, N2 keys
-        - **time1**, **time2** (``array``): arrays ([]) of timestamps: not necessary if the dataset have same length.
+        - **time1**, **time2** (``list``): arrays ([]) of timestamps: not necessary if the dataset have same length.
         - **data_name1**, **data_name2** (``str``): names of the dataset. Used for titles, labels and to save the png.
         - **measure_unit1**, **measure_unit2** (``str``): measure units. Used for labels in the plots.
         - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
@@ -37,7 +37,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
-        - **corr_t** (``int``): LimSup for the corr value between two dataset: if overcome a warning is produced.
+        - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
         - **plot_dir** (``str``): path where the plots are organized in directories and saved.
     """
     # [MD] Initialize a correlation list
@@ -413,8 +413,9 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
         Return a list of warnings that highlight which data are highly correlated.
 
             Parameters:\n
-        - **dict1**, **dict2** (``array``): dataset
-        - **data_name** (``str``): name of the dataset. Used for the title of the figure and to save the png.
+        - **dict1**, **dict2** (dict): dataset
+        - **data_name1**, **data_name2** (``str``): name of the dataset.
+        Used for the title of the figure and to save the png.
         - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
         - **show** (``bool``):\n
             - *True* -> show the plot and save the figure\n

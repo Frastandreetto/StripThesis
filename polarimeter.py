@@ -4,8 +4,7 @@
 # Part of this code was used in Francesco Andreetto's bachelor thesis (2020) and master thesis (2023).
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
 
-# November 1st 2022, Brescia (Italy) - January 27th 2024, Bologna (Italy)
-
+# November 1st 2022, Brescia (Italy) - January 31st 2024, Bologna (Italy)
 # Libraries & Modules
 import logging
 import numpy as np
@@ -127,7 +126,7 @@ class Polarimeter:
 
     def Load_Times(self, range: []):
         """
-        Load the times in the polarimeter and put to 0 the STRIP Sampling Frequency.
+        Load the Timestamps in the polarimeter and put to 0 the STRIP Sampling Frequency.
         Useful to calculate quickly the STRIP Sampling Frequency in the further steps without loading the whole Pol.
 
             Parameters:\n
@@ -166,7 +165,7 @@ class Polarimeter:
 
     def Clip_Values(self):
         """
-        Data cleansing: scientific data with value zero at the beginning and at the end are removed from the dataset
+        Data cleansing: Scientific Outputs with value zero at the beginning and at the end are removed from the dataset
         Control that a channel doesn't turn on before the others (maybe unuseful)
         """
         begin_zerovalues_idx = 0
@@ -213,7 +212,7 @@ class Polarimeter:
 
     def Norm(self, norm_mode: int):
         """
-        Timestamp Normalization\n
+        Timestamps Normalization\n
         Parameters:\n **norm_mode** (``int``) can be set in two ways:
         0) the output is expressed in function of the number of samples
         1) the output is expressed in function of the time in s from the beginning of the experience
@@ -234,6 +233,12 @@ class Polarimeter:
         Prepare the polarimeter in two steps:\n
             1. Calculate Strip Sampling Frequency
             2. Normalize timestamps
+
+                Parameters:\n
+            **norm_mode** (``int``) can be set in two ways:
+                0) the output is expressed in function of the number of samples
+                1) the output is expressed in function of the time in s from the beginning of the experience
+                2) the output is expressed in function of the number of the Julian Date JHD
         """
         self.norm_mode = norm_mode
 
