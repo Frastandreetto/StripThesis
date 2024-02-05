@@ -102,7 +102,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     gen_warn = []
 
     # root: location of the file.txt with the information to build the report
-    root = "/templates/validation_templates"
+    root = "templates/validation_templates"
     templates_dir = Path(root)
 
     # Creating the Jinja2 environment
