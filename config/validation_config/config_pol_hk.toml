@@ -31,6 +31,6 @@ corr_mat= "true"
 corr_t=0.4
 
 # Output dir for plots and reports
-output_plot_dir='../plot'
-output_report_dir='../plot/Reports'
+output_plot_dir='../Data_Results'
+output_report_dir='../Data_Results/Reports'
 report_to_plot ='../..'
