@@ -32,7 +32,7 @@ logging.basicConfig(level="INFO", format='%(message)s',
 ########################################################################################################
 class Polarimeter:
 
-    def __init__(self, name_pol: str, path_file: str, start_datetime: str, end_datetime: str):
+    def __init__(self, name_pol: str, path_file: str, start_datetime: str, end_datetime: str, output_plot_dir: str):
         """
         Constructor
 
@@ -41,6 +41,7 @@ class Polarimeter:
                 - **path_file** (``str``): location of the data file and hdf5 file index (without the name of the file)
                 - **start_datetime** (``str``): start time
                 - **end_datetime** (``str``): end time
+                - **output_plot_dir** (``str``): output directory of the plots
         """
         # Store the name of the polarimeter
         self.name = name_pol
@@ -59,6 +60,8 @@ class Polarimeter:
         # Directory where to save all plot for a given analysis
         self.date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
         # Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+        # Output directory of the plots
+        self.output_plot_dir = output_plot_dir
 
         # Dictionary for scientific Analysis
         self.times = []  # type: List[float]
@@ -657,7 +660,7 @@ class Polarimeter:
         name_file = f"{self.name}_HK_{hk_kind}"
 
         # Creating the directory path
-        path = f'../Data_Results/{self.date_dir}/HK/'
+        path = f'{self.output_plot_dir}/{self.date_dir}/HK/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{name_file}.png')
 
@@ -699,7 +702,7 @@ class Polarimeter:
             ax.set_ylabel(f"Output {type} [ADU]", size=15)
         plt.tight_layout()
 
-        path = f"../Data_Results/{self.date_dir}/OUTPUT/"
+        path = f"{self.output_plot_dir}/{self.date_dir}/OUTPUT/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}.png', dpi=400)
         if show:
@@ -736,7 +739,7 @@ class Polarimeter:
         axs[1].set_ylabel("$\Delta$ t [s]")
         axs[1].set_ylim(-1.0, 1.0)
 
-        path = f'../Data_Results/{self.date_dir}/Timestamps_Jump_Analysis/'
+        path = f'{self.output_plot_dir}/{self.date_dir}/Timestamps_Jump_Analysis/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_Timestamps.png')
         if show:

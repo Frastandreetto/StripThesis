@@ -56,6 +56,6 @@ spike_data="true"
 spike_fft="true"
 
 # Output dir for plots and reports
-output_plot_dir='../Data_Results'
-output_report_dir='../Data_Results/Reports'
+output_plot_dir='../RESULTS/PIPELINE'
+output_report_dir='../RESULTS/PIPELINE/Reports'
 report_to_plot ='../..'

@@ -31,7 +31,9 @@ logging.basicConfig(level="INFO", format='%(message)s',
 ########################################################################################################
 class Thermal_Sensors:
 
-    def __init__(self, path_file: str, start_datetime: str, end_datetime: str, status: int, nperseg_thermal: int):
+    def __init__(self, path_file: str, start_datetime: str, end_datetime: str, status: int, output_plot_dir: str,
+                 nperseg_thermal: int,
+                 ):
         """
         Constructor
 
@@ -40,6 +42,7 @@ class Thermal_Sensors:
                 - **start_datetime** (``str``): start time
                 - **end_datetime** (``str``): end time
                 - **status** (``int``): status of the multiplexer of the TS to analyze: 0, 1 or 2 (for both 0 and 1).
+                - **output_plot_dir** (``str``): output directory of the plots
                 - **nperseg_thermal** (``int``): number of elements of thermal measures on which the fft is calculated.
                 Then the average of all periodograms is computed to produce the spectrogram.
                 Changing this parameter allow to reach lower frequencies in the FFT plot:
@@ -56,6 +59,8 @@ class Thermal_Sensors:
         self.gdate = [Time(start_datetime), Time(end_datetime)]
         # Directory where to save all plot for a given analysis
         self.date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
+        # Output directory of the plots
+        self.output_plot_dir = output_plot_dir
 
         self.status = status
         # Dict containing the names of the TS divided in the two states: "0" and "1".
@@ -445,7 +450,7 @@ class Thermal_Sensors:
                 axs[i].legend(prop={'size': 9}, loc=7)
 
         # Procedure to save the png of the plot in the correct dir
-        path = f"../Data_Results/{self.date_dir}/Thermal_Output/"
+        path = f"{self.output_plot_dir}/{self.date_dir}/Thermal_Output/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}Thermal_status_{self.status}.png')
 
@@ -500,7 +505,7 @@ class Thermal_Sensors:
                 axs[i].legend(prop={'size': 9}, loc=7)
 
         # Procedure to save the png of the plot in the correct dir
-        path = f"../Data_Results/{self.date_dir}/Thermal_Output/FFT/"
+        path = f"{self.output_plot_dir}/{self.date_dir}/Thermal_Output/FFT/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}FFT_Thermal_status_{self.status}.png', dpi=600)
 
