@@ -37,7 +37,7 @@ def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
     new_file_name = f"JT_{pol_name}_{file_name}.csv"
     cap = [["# Jump", "Jump value [JHD]", "Jump value [s]", "Gregorian Date", "JHD Date"]]
 
-    path = f'../plot/{output_dir}/Time_Jump/'
+    path = f'../Data_Results/{output_dir}/Time_Jump/'
     Path(path).mkdir(parents=True, exist_ok=True)
     # Open the file to append the heading
     with open(f"{path}/{new_file_name}", 'a', newline='') as file:
@@ -861,7 +861,7 @@ def data_plot(pol_name: str,
 
     logging.debug(f"Title plot: {name_plot}, name file: {name_file}, name dir: {path_dir}")
 
-    path = f'../plot/{path_dir}/'
+    path = f'../Data_Results/{path_dir}/'
     Path(path).mkdir(parents=True, exist_ok=True)
     try:
         fig.savefig(f'{path}{name_file}.png')

@@ -657,7 +657,7 @@ class Polarimeter:
         name_file = f"{self.name}_HK_{hk_kind}"
 
         # Creating the directory path
-        path = f'../plot/{self.date_dir}/HK/'
+        path = f'../Data_Results/{self.date_dir}/HK/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{name_file}.png')
 
@@ -699,7 +699,7 @@ class Polarimeter:
             ax.set_ylabel(f"Output {type} [ADU]", size=15)
         plt.tight_layout()
 
-        path = f"../plot/{self.date_dir}/OUTPUT/"
+        path = f"../Data_Results/{self.date_dir}/OUTPUT/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_{type}.png', dpi=400)
         if show:
@@ -736,7 +736,7 @@ class Polarimeter:
         axs[1].set_ylabel("$\Delta$ t [s]")
         axs[1].set_ylim(-1.0, 1.0)
 
-        path = f'../plot/{self.date_dir}/Timestamps_Jump_Analysis/'
+        path = f'../Data_Results/{self.date_dir}/Timestamps_Jump_Analysis/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{self.name}_Timestamps.png')
         if show:

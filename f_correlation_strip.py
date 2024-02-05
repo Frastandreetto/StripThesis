@@ -21,7 +21,7 @@ import polarimeter as pol
 def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: [], time2: [],
                      data_name1: str, data_name2: str, measure_unit1: str, measure_unit2: str,
                      start_datetime: str, show=False,
-                     corr_t=0.4, plot_dir='../plot') -> []:
+                     corr_t=0.4, plot_dir='../Data_Results') -> []:
     """
         Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
         Return a dictionary of warnings that highlights which data are highly correlated.
@@ -407,7 +407,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
 
 
 def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
-                    start_datetime: str, show=False, corr_t=0.4, plot_dir='../plot') -> []:
+                    start_datetime: str, show=False, corr_t=0.4, plot_dir='../Data_Results') -> []:
     """
         Plot a 4x4 Correlation Matrix of two generic dictionaries (also of one with itself).\n
         Return a list of warnings that highlight which data are highly correlated.
@@ -537,7 +537,7 @@ def correlation_mat(dict1: {}, dict2: {}, data_name1: str, data_name2: str,
 
 
 def cross_corr_mat(path_file: str, start_datetime: str, end_datetime: str, show=False, corr_t=0.4,
-                   plot_dir='../plot') -> {}:
+                   plot_dir='../Data_Results') -> {}:
     """
         Plot 55x55 matrices of every data-kind DEM/PWR of every exit combination: Q1, Q2, U1, U2.
         Return a dict of warnings that highlight which data are highly correlated.

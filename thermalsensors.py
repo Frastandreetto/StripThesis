@@ -445,7 +445,7 @@ class Thermal_Sensors:
                 axs[i].legend(prop={'size': 9}, loc=7)
 
         # Procedure to save the png of the plot in the correct dir
-        path = f"../plot/{self.date_dir}/Thermal_Output/"
+        path = f"../Data_Results/{self.date_dir}/Thermal_Output/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}Thermal_status_{self.status}.png')
 
@@ -500,7 +500,7 @@ class Thermal_Sensors:
                 axs[i].legend(prop={'size': 9}, loc=7)
 
         # Procedure to save the png of the plot in the correct dir
-        path = f"../plot/{self.date_dir}/Thermal_Output/FFT/"
+        path = f"../Data_Results/{self.date_dir}/Thermal_Output/FFT/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}FFT_Thermal_status_{self.status}.png', dpi=600)
 

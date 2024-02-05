@@ -199,12 +199,12 @@ def main():
 
     # Output parameters ------------------------------------------------------------------------------------------------
     # Output directory of the plots
-    common_parser.add_argument('--output_plot_dir', '-opd', type=str, default='../plot',
+    common_parser.add_argument('--output_plot_dir', '-opd', type=str, default='../Data_Results',
                                help='Path of the dir that will contain the plots of the analysis '
                                     'starting from the dir striptease where the pipeline is run'
                                     '(default: %(default)s).', metavar='')
     # Output directory of the reports
-    common_parser.add_argument('--output_report_dir', '-ord', type=str, default='../plot/Reports',
+    common_parser.add_argument('--output_report_dir', '-ord', type=str, default='../Data_Results/Reports',
                                help='Path of the dir that will contain the reports with the results of the analysis '
                                     'starting from the dir striptease where the pipeline is run'
                                     '(default: %(default)s).', metavar='')
