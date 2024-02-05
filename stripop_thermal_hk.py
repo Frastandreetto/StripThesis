@@ -53,8 +53,8 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         - **corr_plot** (``bool``): If true, compute the correlation plot of the TS.
         - **corr_mat** (``bool``): If true, compute the correlation matrices of the TS.
         - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
-        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
-        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **output_report_dir** (`str`): Path from the pipeline dir to the dir that contains the reports of the analysis
+        - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
         - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
     """
     logging.info('\nLoading dir and templates information...')
@@ -102,7 +102,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     gen_warn = []
 
     # root: location of the file.txt with the information to build the report
-    root = "../striptease/templates/validation_templates"
+    root = "/templates/validation_templates"
     templates_dir = Path(root)
 
     # Creating the Jinja2 environment
@@ -122,7 +122,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     for stat in status:
         # Creating the TS
         TS = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime, end_datetime=end_datetime,
-                                status=stat, nperseg_thermal=nperseg_thermal)
+                                status=stat, nperseg_thermal=nperseg_thermal, output_plot_dir=output_plot_dir)
 
         # Loading the TS
         logging.info(f'Loading TS. Status {stat}')
@@ -282,10 +282,10 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         # Define TS in both status 0 and 1
         ts_0 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
                                   end_datetime=end_datetime,
-                                  status=0, nperseg_thermal=nperseg_thermal)
+                                  status=0, nperseg_thermal=nperseg_thermal, output_plot_dir=output_plot_dir)
         ts_1 = ts.Thermal_Sensors(path_file=path_file, start_datetime=start_datetime,
                                   end_datetime=end_datetime,
-                                  status=1, nperseg_thermal=nperseg_thermal)
+                                  status=1, nperseg_thermal=nperseg_thermal, output_plot_dir=output_plot_dir)
         # Loading thermal measures
         ts_0.Load_TS()
         ts_1.Load_TS()

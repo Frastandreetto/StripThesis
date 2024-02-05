@@ -65,8 +65,8 @@ def main():
         - **corr_mat** (``bool``): If true, compute the correlation matrices of the even-odd and scientific data.
         - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
         - **cross_corr** (``bool``): If true, compute the 55x55 correlation matrices between all the polarimeters.
-        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
-        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **output_report_dir** (`str`): Path from the pipeline dir to the dir that contains the reports of the analysis
+        - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
         - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
 
         B) "pol_hk"
@@ -86,8 +86,8 @@ def main():
         - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
         - **hk_sam_exp_med** (``dict``): contains the exp sampling delta between two consecutive timestamps of HK
         - **hk_sam_tolerance** (``dict``): contains the acceptance sampling tolerances of the hk parameters: I,V,O
-        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
-        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **output_report_dir** (`str`): Path from the pipeline dir to the dir that contains the reports of the analysis
+        - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
         - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
 
         C) "thermal_hk"
@@ -111,8 +111,8 @@ def main():
         - **corr_plot** (``bool``): If true, compute the correlation plot of the TS.
         - **corr_mat** (``bool``): If true, compute the correlation matrices of the TS.
         - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
-        - **output_report_dir** (`str`): Path from striptease to the dir that contains the reports of the analysis.
-        - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
+        - **output_report_dir** (`str`): Path from the pipeline dir to the dir that contains the reports of the analysis
+        - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
         - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
 
         Final Note: During the spectral analysis the average of all periodograms is computed to produce the spectrogram.

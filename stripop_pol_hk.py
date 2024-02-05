@@ -97,7 +97,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
     gen_warn = []
 
     # root: location of the file.txt with the information to build the report
-    root = "../striptease/templates/validation_templates"
+    root = "/templates/validation_templates"
     templates_dir = Path(root)
 
     # Creating the Jinja2 environment
@@ -141,7 +141,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
 
         # Initializing a Polarimeter
         p = pol.Polarimeter(name_pol=np, path_file=path_file,
-                            start_datetime=start_datetime, end_datetime=end_datetime)
+                            start_datetime=start_datetime, end_datetime=end_datetime, output_plot_dir=output_plot_dir)
         # Loading the HK
         logging.warning('--------------------------------------------------------------------------------------'
                         f'\nHousekeeping Analysis of {np}.\nLoading HK.\n')
