@@ -1,0 +1,8 @@
+## Correlation Matrices
+
+{% for file in png_files %}
+
+Correlation Matrix of {{ file[:-12]}}
+
+![LSPE-Strip Official img]({{ report_to_plot }}/Correlation_Matrix/{{ file }})
+{% endfor %}

@@ -1,13 +1,16 @@
 # -*- encoding: utf-8 -*-
 
+
 # This file contains the Class Polarimeter
 # Part of this code was used in Francesco Andreetto's bachelor thesis (2020) and master thesis (2023).
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
+
 
 # November 1st 2022, Brescia (Italy) - January 31st 2024, Bologna (Italy)
 # Libraries & Modules
 import logging
 import numpy as np
+
 import scipy.stats as scs
 import scipy.signal
 
@@ -16,26 +19,18 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 from pathlib import Path
 from rich.logging import RichHandler
+
 from striptease import DataStorage
 from typing import List, Dict, Any
 
 # MyLibraries & MyModules
 import f_strip as fz
+
 
 # Use the module logging to produce nice messages on the shell
 logging.basicConfig(level="INFO", format='%(message)s',
                     datefmt="[%X]", handlers=[RichHandler()])
 
-from astropy.time import Time
-from matplotlib import pyplot as plt
-from pathlib import Path
-from rich.logging import RichHandler
-
-from striptease import DataStorage
-from typing import List, Dict, Any
-
-# MyLibraries & MyModules
-import f_strip as fz
 
 
 ########################################################################################################
@@ -53,9 +48,11 @@ class Polarimeter:
                 - **start_datetime** (``str``): start time
                 - **end_datetime** (``str``): end time
                 - **output_plot_dir** (``str``): output directory of the plots
+
         """
         # Store the name of the polarimeter
         self.name = name_pol
+
         # Create a Datastorage from the path of the file
         self.ds = DataStorage(path_file)
 
@@ -73,6 +70,10 @@ class Polarimeter:
         # Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
         # Output directory of the plots
         self.output_plot_dir = output_plot_dir
+
+        # Output directory of the plots
+        self.output_plot_dir = output_plot_dir
+
 
         # Dictionary for scientific Analysis
         self.times = []  # type: List[float]
@@ -100,14 +101,18 @@ class Polarimeter:
         self.hk = {"V": tensions, "I": currents, "O": offset}
         self.hk_t = {"V": t_tensions, "I": t_currents, "O": t_offset}
 
+
         # Warnings lists
         time_warning = []
         sampling_warning = []
+
         corr_warning = []
         eo_warning = []
         spike_warning = []
         self.warnings = {"time_warning": time_warning,
+
                          "sampling_warning": sampling_warning,
+
                          "corr_warning": corr_warning,
                          "eo_warning": eo_warning,
                          "spike_warning": spike_warning}
@@ -304,6 +309,7 @@ class Polarimeter:
 
     # ------------------------------------------------------------------------------------------------------------------
     # HOUSE-KEEPING ANALYSIS
+
     # ------------------------------------------------------------------------------------------------------------------
     def Load_HouseKeeping(self):
         """
@@ -1038,6 +1044,7 @@ class Polarimeter:
 
         # Jumps in the Timestamps
         else:
+
             for type in self.data.keys():
                 for idx, item in enumerate(jumps_pos):
                     if idx == 0:

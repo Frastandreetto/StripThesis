@@ -301,7 +301,6 @@ def find_spike(v, data_type: str, threshold=4.4, n_chunk=10) -> []:
 
     if len(spike_idx) > 0:
         logging.warning(f"Found Spike in {data_type}!\n")
-
     return spike_idx
 
 
