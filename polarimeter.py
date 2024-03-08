@@ -1,16 +1,13 @@
 # -*- encoding: utf-8 -*-
 
-
 # This file contains the Class Polarimeter
 # Part of this code was used in Francesco Andreetto's bachelor thesis (2020) and master thesis (2023).
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
 
-
-# November 1st 2022, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# November 1st 2022, Brescia (Italy) - March 8th 2024, Bologna (Italy)
 # Libraries & Modules
 import logging
 import numpy as np
-
 import scipy.stats as scs
 import scipy.signal
 
@@ -19,18 +16,15 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 from pathlib import Path
 from rich.logging import RichHandler
-
 from striptease import DataStorage
 from typing import List, Dict, Any
 
 # MyLibraries & MyModules
 import f_strip as fz
 
-
 # Use the module logging to produce nice messages on the shell
 logging.basicConfig(level="INFO", format='%(message)s',
                     datefmt="[%X]", handlers=[RichHandler()])
-
 
 
 ########################################################################################################
@@ -48,11 +42,9 @@ class Polarimeter:
                 - **start_datetime** (``str``): start time
                 - **end_datetime** (``str``): end time
                 - **output_plot_dir** (``str``): output directory of the plots
-
         """
         # Store the name of the polarimeter
         self.name = name_pol
-
         # Create a Datastorage from the path of the file
         self.ds = DataStorage(path_file)
 
@@ -70,10 +62,6 @@ class Polarimeter:
         # Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
         # Output directory of the plots
         self.output_plot_dir = output_plot_dir
-
-        # Output directory of the plots
-        self.output_plot_dir = output_plot_dir
-
 
         # Dictionary for scientific Analysis
         self.times = []  # type: List[float]
@@ -101,18 +89,14 @@ class Polarimeter:
         self.hk = {"V": tensions, "I": currents, "O": offset}
         self.hk_t = {"V": t_tensions, "I": t_currents, "O": t_offset}
 
-
         # Warnings lists
         time_warning = []
         sampling_warning = []
-
         corr_warning = []
         eo_warning = []
         spike_warning = []
         self.warnings = {"time_warning": time_warning,
-
                          "sampling_warning": sampling_warning,
-
                          "corr_warning": corr_warning,
                          "eo_warning": eo_warning,
                          "spike_warning": spike_warning}
@@ -259,9 +243,6 @@ class Polarimeter:
                 1) the output is expressed in function of the time in s from the beginning of the experience
                 2) the output is expressed in function of the number of the Julian Date JHD
         """
-        logging.basicConfig(level="INFO", format='%(message)s',
-                            datefmt="[%X]", handlers=[RichHandler()])  # <3
-
         self.norm_mode = norm_mode
 
         # This function would remove zero-value data from the beginning and from the end of a dataset,
@@ -309,7 +290,6 @@ class Polarimeter:
 
     # ------------------------------------------------------------------------------------------------------------------
     # HOUSE-KEEPING ANALYSIS
-
     # ------------------------------------------------------------------------------------------------------------------
     def Load_HouseKeeping(self):
         """
@@ -701,6 +681,13 @@ class Polarimeter:
         - **begin**, **end** (``int``): indexes of the data that have to be considered\n
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         """
+        """
+                Plot the 4 exits PWR or DEM of the Polarimeter\n
+                Parameters:\n
+                - **type** (``str``) of data *"DEM"* or *"PWR"*\n
+                - **begin**, **end** (``int``): indexes of the data that have to be considered\n
+                - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+                """
         # Creating the figure
         fig = plt.figure(figsize=(20, 6))
 
@@ -715,9 +702,15 @@ class Polarimeter:
             # Create 4 subplots on one line
             ax = fig.add_subplot(1, 4, o)
 
+            # Calculate Plot Statistics
+            # mean
+            m = round(np.mean(self.data[type][exit][begin:end]), 2)
+            # std deviation
+            std = round(np.std(self.data[type][exit][begin:end]), 2)
+
             # Plot of DEM/PWR Outputs
             ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
-            ax.set_title(f"{exit}")
+            ax.set_title(f"{exit}\n$mean$={m}\n$STD$={std}")
             ax.set_xlabel("Time [s]", size=15)
             ax.set_ylabel(f"Output {type} [ADU]", size=15)
         plt.tight_layout()
@@ -728,6 +721,8 @@ class Polarimeter:
         if show:
             plt.show()
         plt.close(fig)
+
+
 
     # ------------------------------------------------------------------------------------------------------------------
     # TIMESTAMPS JUMP ANALYSIS
@@ -1044,7 +1039,6 @@ class Polarimeter:
 
         # Jumps in the Timestamps
         else:
-
             for type in self.data.keys():
                 for idx, item in enumerate(jumps_pos):
                     if idx == 0:
