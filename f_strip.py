@@ -416,8 +416,9 @@ def csv_to_json(csv_file_path: str, json_file_path):
             json_array.append(row)
 
     # Check if the Json Path exists, if not it is created
-    # Note: 61 is the number of characters of the path of the date_dir + the json dir
-    json_dir = json_file_path[:61]
+    # Note: 55 is the number of char of the name of the reports
+    logging.info(json_file_path)
+    json_dir = json_file_path[:-55]
     logging.info(json_dir)
     Path(json_dir).mkdir(parents=True, exist_ok=True)
 
@@ -546,6 +547,7 @@ def data_plot(pol_name: str,
               even: str, odd: str, all: str,
               demodulated: bool, rms: bool, fft: bool,
               window: int, smooth_len: int, nperseg: int,
+              output_plot_dir: str,
               show: bool):
     """
         Generic function that create a Plot of the dataset provided.\n
@@ -568,10 +570,11 @@ def data_plot(pol_name: str,
         - **window** (``int``): number of elements on which the RMS is calculated
         - **smooth_len** (``int``): number of elements on which the mobile mean is calculated
         - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
+        - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
     """
-    # Initialize the plot directory from start_datetime and end_datetime
-    path_dir = dir_format(f"{Time(start_datetime)}__{Time(end_datetime)}")
+    # Initialize the plot directory
+    path_dir = ""
 
     # Initialize the name of the plot
     name_plot = f"{pol_name} "
@@ -863,7 +866,7 @@ def data_plot(pol_name: str,
 
     logging.debug(f"Title plot: {name_plot}, name file: {name_file}, name dir: {path_dir}")
 
-    path = f'../RESULTS/PIPELINE/{path_dir}/'
+    path = f'{output_plot_dir}/{path_dir}/'
     Path(path).mkdir(parents=True, exist_ok=True)
     try:
         fig.savefig(f'{path}{name_file}.png')
