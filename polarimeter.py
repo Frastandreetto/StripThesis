@@ -26,6 +26,17 @@ import f_strip as fz
 logging.basicConfig(level="INFO", format='%(message)s',
                     datefmt="[%X]", handlers=[RichHandler()])
 
+from astropy.time import Time
+from matplotlib import pyplot as plt
+from pathlib import Path
+from rich.logging import RichHandler
+
+from striptease import DataStorage
+from typing import List, Dict, Any
+
+# MyLibraries & MyModules
+import f_strip as fz
+
 
 ########################################################################################################
 # Class: Polarimeter
@@ -243,6 +254,9 @@ class Polarimeter:
                 1) the output is expressed in function of the time in s from the beginning of the experience
                 2) the output is expressed in function of the number of the Julian Date JHD
         """
+        logging.basicConfig(level="INFO", format='%(message)s',
+                            datefmt="[%X]", handlers=[RichHandler()])  # <3
+
         self.norm_mode = norm_mode
 
         # This function would remove zero-value data from the beginning and from the end of a dataset,
