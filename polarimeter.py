@@ -1,13 +1,16 @@
 # -*- encoding: utf-8 -*-
 
+
 # This file contains the Class Polarimeter
 # Part of this code was used in Francesco Andreetto's bachelor thesis (2020) and master thesis (2023).
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
+
 
 # November 1st 2022, Brescia (Italy) - January 31st 2024, Bologna (Italy)
 # Libraries & Modules
 import logging
 import numpy as np
+
 import scipy.stats as scs
 import scipy.signal
 
@@ -16,15 +19,18 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 from pathlib import Path
 from rich.logging import RichHandler
+
 from striptease import DataStorage
 from typing import List, Dict, Any
 
 # MyLibraries & MyModules
 import f_strip as fz
 
+
 # Use the module logging to produce nice messages on the shell
 logging.basicConfig(level="INFO", format='%(message)s',
                     datefmt="[%X]", handlers=[RichHandler()])
+
 
 
 ########################################################################################################
@@ -42,26 +48,32 @@ class Polarimeter:
                 - **start_datetime** (``str``): start time
                 - **end_datetime** (``str``): end time
                 - **output_plot_dir** (``str``): output directory of the plots
+
         """
         # Store the name of the polarimeter
         self.name = name_pol
+
         # Create a Datastorage from the path of the file
         self.ds = DataStorage(path_file)
 
         # Sampling Frequency of Strip. Std value = 100 Hz
+
         self.STRIP_SAMPLING_FREQ = 0
         # Normalization Modality: 0 (output vs index), 1 (output vs time in s), 2 (output vs time in Julian Date JHD)
         self.norm_mode = 0
 
         # Julian Date MJD
+
         self.date = [Time(start_datetime).mjd, Time(end_datetime).mjd]
         # Gregorian Date [in string format]
         self.gdate = [Time(start_datetime), Time(end_datetime)]
         # Directory where to save all plot for a given analysis
         self.date_dir = fz.dir_format(f"{self.gdate[0]}__{self.gdate[1]}")
         # Time(self.date, format="mjd").to_datetime().strftime("%Y-%m-%d %H:%M:%S")
+
         # Output directory of the plots
         self.output_plot_dir = output_plot_dir
+
 
         # Dictionary for scientific Analysis
         self.times = []  # type: List[float]
@@ -70,6 +82,7 @@ class Polarimeter:
         power = {}
         dem = {}
         self.data = {"DEM": dem, "PWR": power}
+
 
         # Dictionary for Housekeeping Analysis
         self.hk_list = {"V": ["VG0_HK", "VD0_HK", "VG1_HK", "VD1_HK", "VG2_HK", "VD2_HK", "VG3_HK", "VD3_HK",
@@ -89,14 +102,18 @@ class Polarimeter:
         self.hk = {"V": tensions, "I": currents, "O": offset}
         self.hk_t = {"V": t_tensions, "I": t_currents, "O": t_offset}
 
+
         # Warnings lists
         time_warning = []
         sampling_warning = []
+
         corr_warning = []
         eo_warning = []
         spike_warning = []
         self.warnings = {"time_warning": time_warning,
+
                          "sampling_warning": sampling_warning,
+
                          "corr_warning": corr_warning,
                          "eo_warning": eo_warning,
                          "spike_warning": spike_warning}
@@ -111,6 +128,7 @@ class Polarimeter:
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                      data_type=type, detector=exit)
+
         # Reset the sampling frequency
         self.STRIP_SAMPLING_FREQ = 0
 
@@ -124,11 +142,13 @@ class Polarimeter:
         for exit in ["Q1", "Q2", "U1", "U2"]:
             self.times, self.data[type][exit] = self.ds.load_sci(mjd_range=self.date, polarimeter=self.name,
                                                                  data_type=type, detector=exit)
+
         # Reset the sampling frequency
         self.STRIP_SAMPLING_FREQ = 0
 
     def Load_Times(self, range: []):
         """
+
         Load the Timestamps in the polarimeter and put to 0 the STRIP Sampling Frequency.
         Useful to calculate quickly the STRIP Sampling Frequency in the further steps without loading the whole Pol.
 
@@ -153,6 +173,7 @@ class Polarimeter:
         # A second expressed in days unit
         s = 1 / 86_400
         if modify:
+
             # Julian Date increased
             self.date[0] += s * (n_samples / 100)
             # Gregorian Date conversion
@@ -200,11 +221,13 @@ class Polarimeter:
         It depends on the electronics hence it's the same for all polarimeters.
         Note: it must be defined before time normalization.
         """
+
         # Calculate the Strip Sampling Frequency
         self.STRIP_SAMPLING_FREQ = int(
             len(self.times) / (self.times[-1].datetime - self.times[0].datetime).total_seconds())
 
         if warning:
+
             if int(self.STRIP_SAMPLING_FREQ) != 100:
                 msg = f"Sampling frequency is {self.STRIP_SAMPLING_FREQ} different from the std value of 100.\n " \
                       f"This can cause inversions in even-odd sampling. \n" \
@@ -225,6 +248,7 @@ class Polarimeter:
             # Outputs vs Number of samples
             self.times = np.arange(len(self.times))
         if norm_mode == 1:
+
             # Outputs vs Seconds
             self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ
         if norm_mode == 2:
@@ -243,6 +267,9 @@ class Polarimeter:
                 1) the output is expressed in function of the time in s from the beginning of the experience
                 2) the output is expressed in function of the number of the Julian Date JHD
         """
+        logging.basicConfig(level="INFO", format='%(message)s',
+                            datefmt="[%X]", handlers=[RichHandler()])  # <3
+
         self.norm_mode = norm_mode
 
         # This function would remove zero-value data from the beginning and from the end of a dataset,
@@ -273,7 +300,9 @@ class Polarimeter:
             Parameters:\n
         - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*\n
         - **type** (``str``) of data *"DEM"* or *"PWR"*
+
         - **begin**, **end** (``int``): indexes of the data that have to be considered
+
         """
         # Mean of the two consecutive times
         times = fz.mean_cons(self.times)
@@ -290,6 +319,7 @@ class Polarimeter:
 
     # ------------------------------------------------------------------------------------------------------------------
     # HOUSE-KEEPING ANALYSIS
+
     # ------------------------------------------------------------------------------------------------------------------
     def Load_HouseKeeping(self):
         """
@@ -1024,6 +1054,7 @@ class Polarimeter:
 
         # Jumps in the Timestamps
         else:
+
             for type in self.data.keys():
                 for idx, item in enumerate(jumps_pos):
                     if idx == 0:
@@ -1045,6 +1076,7 @@ class Polarimeter:
                         mad_odd = scs.median_abs_deviation(self.data[type][exit][b + 1:c:2])
 
                         # Calculate the Median Value of even/odd Outputs
+
                         m_even_1 = np.median(self.data[type][exit][a:b - 1:2])
                         m_even_2 = np.median(self.data[type][exit][b:c - 1:2])
 
@@ -1052,6 +1084,7 @@ class Polarimeter:
                         m_odd_2 = np.median(self.data[type][exit][b + 1:c:2])
 
                         # Evaluate the inversion between Even and Odd samples
+
                         if (
                                 (m_even_1 > m_even_2 + threshold * mad_even and m_odd_1 < m_odd_2 - threshold * mad_odd)
                                 or

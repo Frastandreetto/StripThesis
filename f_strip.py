@@ -20,6 +20,9 @@ from pathlib import Path
 from striptease import DataFile
 from typing import Dict, Any
 
+import csv
+import json
+import logging
 import numpy as np
 import scipy.stats as scs
 import scipy.ndimage as scn
@@ -59,6 +62,7 @@ def pol_list(path_dataset: Path) -> list:
     # Initialize a list to collect pol names
     pols = []
     for cur_pol in sorted(d.polarimeters):
+
         # Append pol names to the list
         pols.append(f"{cur_pol}")
     return pols
@@ -71,6 +75,7 @@ def mean_cons(v):
             Parameters:\n
         - **v** is an array-like object\n
         The mean on each couple of samples of even-odd index is computed.
+
     """
     n = (len(v) // 2) * 2
     mean = (v[0:n:2] + v[1:n + 1:2]) / 2
@@ -160,6 +165,7 @@ def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1) -> []:
             - odd samples (*eoa=1*)\n
             - even samples (*eoa=2*)\n
         - **begin**, **end** (``int``): interval of dataset that has to be considered
+
     """
     rms = []
     if eoa == 0:
@@ -298,7 +304,6 @@ def find_spike(v, data_type: str, threshold=4.4, n_chunk=10) -> []:
 
     if len(spike_idx) > 0:
         logging.warning(f"Found Spike in {data_type}!\n")
-
     return spike_idx
 
 
