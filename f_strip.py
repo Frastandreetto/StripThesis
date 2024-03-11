@@ -407,6 +407,24 @@ def get_tags_from_iso(dir_path: str, start_time: str, end_time: str) -> []:
     return tags
 
 
+def get_tags_from_file(file_path: str) -> []:
+    """
+        Get the tags form a given file
+
+            Parameters:\n
+        - **file_path** (``str``): Path of the data file\n
+            Return:\n
+        - **tags** (``list``): List containing the tags contained in the file
+    """
+    tags = []
+    f = h5py.File(f"{file_path}")
+
+    for cur_tag in f["TAGS"]["tag_data"]:
+        tags.append(cur_tag)
+    
+    return tags
+
+
 def get_tag_times(file_path: str, tag_name: str) -> []:
     """
         Find the start-time and the end-time of a given tag.
