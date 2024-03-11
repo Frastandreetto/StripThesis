@@ -15,7 +15,7 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 from numba import njit
 from pathlib import Path
-from striptease import DataFile
+from striptease import DataFile, DataStorage
 from typing import Dict, Any
 
 import csv
@@ -380,6 +380,33 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
     return jumps
 
 
+def get_tags_iso(dir_path: str, start_time: str, end_time: str) -> []:
+    """
+        Get the tags in a given time interval contained in a file dir
+
+            Parameters:\n
+        - **dir_path** (``str``): Path of the data dir\n
+        - **start_time** (``float``): start time in iso format\n
+        - **end_time** (``float``): end time in iso format\n
+
+            Return:\n
+        - **tags** (``list``): List containing the tags contained in the file
+    """
+    # Create Datastorage from the file.hdf5
+    ds = DataStorage(dir_path)
+
+    # Date conversion from iso to mjd
+    start_mjd = Time(start_time, format="iso")
+    start_mjd.format = "mjd"
+    end_mjd = Time(end_time, format="iso")
+    end_mjd.format = "mjd"
+
+    # Get the tags
+    tags = ds.get_tags(mjd_range=(start_mjd, end_mjd))
+
+    return tags
+
+
 def find_tag_times(file_path: str, tag_name: str) -> []:
     """
         Find the start-time and the end-time of a given tag.
@@ -388,7 +415,7 @@ def find_tag_times(file_path: str, tag_name: str) -> []:
         - **file_path** (``str``): Path of the data file\n
         - **file_tag** (``str``): Name of the tag of a specific subset of data (i.e. of a test)\n
             Return:\n
-        - **t_tag** (``list``): List containing 4 elements: start and end time in mjd and iso format 
+        - **t_tag** (``list``): List containing 4 elements: start and end time in mjd and iso format
 
     """
     t_tag = []
