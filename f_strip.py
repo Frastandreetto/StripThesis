@@ -380,7 +380,7 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
     return jumps
 
 
-def get_tags_iso(dir_path: str, start_time: str, end_time: str) -> []:
+def get_tags_from_iso(dir_path: str, start_time: str, end_time: str) -> []:
     """
         Get the tags in a given time interval contained in a file dir
 
