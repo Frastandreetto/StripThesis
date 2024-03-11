@@ -6,9 +6,7 @@
 # October 29th 2022, Brescia (Italy) - January 31st 2024, Bologna (Italy)
 
 # Libraries & Modules
-import csv
-import json
-import logging
+import h5py
 import scipy.signal
 import warnings
 
@@ -380,6 +378,55 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
             jumps["s_value"].append(dt[i])
 
     return jumps
+
+
+def find_tag_times(file_path: str, tag_name: str) -> []:
+    """
+        Find the start-time and the end-time of a given tag.
+
+            Parameters:\n
+        - **file_path** (``str``): Path of the data file\n
+        - **file_tag** (``str``): Name of the tag of a specific subset of data (i.e. of a test)\n
+            Return:\n
+        - **t_tag** (``list``): List containing 4 elements: start and end time in mjd and iso format 
+
+    """
+    t_tag = []
+    # Read the file
+    f = h5py.File(file_path, "r")
+
+    # Collect the tags
+    data_tags = f["TAGS"]["tag_data"]
+
+    # Find the Star-time and the End-time
+    for index, value in enumerate(data_tags["tag"]):
+        if tag_name == value.decode('UTF-8'):
+
+            # Set start-time of the tag and convert it into unix
+            t_0j = data_tags["mjd_start"][index]
+            # Append start-time of the tag to the list (JD)
+            t_tag.append(t_0j)
+
+            # Set end-time of the tag
+            t_1j = data_tags["mjd_end"][index]
+            # Append end-time of the tag to the list (JD)
+            t_tag.append(t_1j)
+
+            # Convert into time strings
+            t_0 = Time(t_0j, format="mjd")
+            t_0.format = "iso"
+            # Append start-time of the tag to the list (str)
+            t_tag.append(t_0.value[:-4])
+
+            t_1 = Time(t_1j, format="mjd")
+            t_1.format = "iso"
+            # Append end-time of the tag to the list (str)
+            t_tag.append(t_1.value[:-4])
+
+            logging.info(
+                f"Start Datetime = {t_tag[0]} MJD ({t_tag[2]})\nEnd Datetime = {t_tag[1]} MJD ({t_tag[3]})\n")
+
+    return t_tag
 
 
 def dir_format(old_string: str) -> str:
