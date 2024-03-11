@@ -407,7 +407,7 @@ def get_tags_iso(dir_path: str, start_time: str, end_time: str) -> []:
     return tags
 
 
-def find_tag_times(file_path: str, tag_name: str) -> []:
+def get_tag_times(file_path: str, tag_name: str) -> []:
     """
         Find the start-time and the end-time of a given tag.
 
@@ -416,8 +416,8 @@ def find_tag_times(file_path: str, tag_name: str) -> []:
         - **file_tag** (``str``): Name of the tag of a specific subset of data (i.e. of a test)\n
             Return:\n
         - **t_tag** (``list``): List containing 4 elements: start and end time in mjd and iso format
-
     """
+    # Initializing tag times list
     t_tag = []
     # Read the file
     f = h5py.File(file_path, "r")
