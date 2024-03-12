@@ -421,7 +421,7 @@ def get_tags_from_file(file_path: str) -> []:
 
     for cur_tag in f["TAGS"]["tag_data"]:
         tags.append(cur_tag)
-    
+
     return tags
 
 
