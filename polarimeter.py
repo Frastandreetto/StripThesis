@@ -707,10 +707,14 @@ class Polarimeter:
             m = round(np.mean(self.data[type][exit][begin:end]), 2)
             # std deviation
             std = round(np.std(self.data[type][exit][begin:end]), 2)
+            # Max value
+            max_val = round(max(self.data[type][exit][begin:end]), 4)
+            # Min value
+            min_val = round(min(self.data[type][exit][begin:end]), 4)
 
             # Plot of DEM/PWR Outputs
             ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
-            ax.set_title(f"{exit}\n$mean$={m}\n$STD$={std}")
+            ax.set_title(f"{exit}\n$Mean$={m} ~ $STD$={std}\n$Max$={max_val} ~ $Min$={min_val}")
             ax.set_xlabel("Time [s]", size=15)
             ax.set_ylabel(f"Output {type} [ADU]", size=15)
         plt.tight_layout()
