@@ -651,10 +651,24 @@ class Polarimeter:
 
                 axs[i, j].scatter(self.hk_t[hk_kind][hk_name[2 * i + j]][:min(l1, l2)],
                                   self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)], marker=".", color=col)
-
+                # X-Axis
                 axs[i, j].set_xlabel("Time [s]")
+                # Y-Axis
                 axs[i, j].set_ylabel(f"{label}")
-                axs[i, j].set_title(f"{hk_name[2 * i + j]}")
+
+                # Calculate Plot Statistics
+                # mean
+                m = round(np.mean(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
+                # std deviation
+                std = round(np.std(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
+                # Max value
+                max_val = round(max(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
+                # Min value
+                min_val = round(min(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
+
+                # Title
+                axs[i, j].set_title(f"{hk_name[2 * i + j]}\n"
+                                    f"$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}", size=10)
 
         # Creating the name of the png file
         name_file = f"{self.name}_HK_{hk_kind}"
@@ -714,8 +728,11 @@ class Polarimeter:
 
             # Plot of DEM/PWR Outputs
             ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
-            ax.set_title(f"{exit}\n$Mean$={m} ~ $STD$={std}\n$Max$={max_val} ~ $Min$={min_val}")
+            # Title
+            ax.set_title(f"{exit}\n$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}",  size=14)
+            # X-Axis
             ax.set_xlabel("Time [s]", size=15)
+            # Y-Axis
             ax.set_ylabel(f"Output {type} [ADU]", size=15)
         plt.tight_layout()
 
