@@ -446,7 +446,6 @@ def get_tag_times(file_path: str, tag_name: str) -> []:
     # Find the Star-time and the End-time
     for index, value in enumerate(data_tags["tag"]):
         if tag_name == value.decode('UTF-8'):
-
             # Set start-time of the tag and convert it into unix
             t_0j = data_tags["mjd_start"][index]
             # Append start-time of the tag to the list (JD)
@@ -714,7 +713,7 @@ def data_plot(pol_name: str,
         raise SystemExit(1)
 
     # ------------------------------------------------------------------------------------------------------------------
-    # Step 3: Creating the plot
+    # Step 3: Creating the Plot
 
     # Updating the start datatime for the plot title
     begin_date = date_update(n_samples=begin, start_datetime=start_datetime, sampling_frequency=100)
@@ -729,6 +728,17 @@ def data_plot(pol_name: str,
     for row in range(2):
         col = 0  # type: int
         for exit in ["Q1", "Q2", "U1", "U2"]:
+
+            # Plot Statistics
+            # Mean
+            m = ""
+            # Std deviation
+            std = ""
+            # Max Value
+            max_val = ""
+            # Min Value
+            min_val = ""
+
             # Setting the Y-scale uniform on the 2nd row
             if row == 1:
                 # Avoid UserWarning on y-axis log-scale
@@ -744,33 +754,55 @@ def data_plot(pol_name: str,
                                     f"Negative data found in Spectral Analysis (FFT): impossible to use log scale.\n\n")
                     continue
 
-            # ------------------------------------------------------------------------------------------------------
+            # ----------------------------------------------------------------------------------------------------------
             # Demodulation: Scientific Data
             if demodulated:
+                # Avoid ValueError during Scientific Data Processing
                 try:
                     # Creating a dict with the Scientific Data of an exit of a specific type and their new timestamps
                     sci_data = demodulation(dataset=dataset, timestamps=timestamps,
                                             type=type, exit=exit, begin=begin, end=end)
+
+                    # --------------------------------------------------------------------------------------------------
+                    # RMS Calculation
                     if rms:
                         # Calculate the RMS of the Scientific Data
                         rms_sd = RMS(sci_data["sci_data"], window=window, exit=exit, eoa=0, begin=begin, end=end)
 
-                        # Plot of FFT of the RMS of the SciData DEMODULATED/TOTPOWER -----------------------------------
+                        # ----------------------------------------------------------------------------------------------
+                        # Plot of FFT of the RMS of the SciData DEMODULATED/TOTPOWER
                         if fft:
                             f, s = scipy.signal.welch(rms_sd, fs=50, nperseg=min(len(rms_sd), nperseg),
                                                       scaling="spectrum")
                             axs[row, col].plot(f[f < 25.], s[f < 25.],
                                                linewidth=0.2, marker=".", color="mediumvioletred",
                                                label=f"{name_plot[3:]}")
+                        # ----------------------------------------------------------------------------------------------
 
-                        # Plot of RMS of the SciData DEMODULATED/TOTPOWER ----------------------------------------------
+                        # ----------------------------------------------------------------------------------------------
+                        # Plot of RMS of the SciData DEMODULATED/TOTPOWER
                         else:
                             # Smoothing of the rms of the SciData. Smooth_len=1 -> No smoothing
                             rms_sd = mob_mean(rms_sd, smooth_len=smooth_len)
 
+                            # Calculate Plot Statistics
+                            # Mean
+                            m = round(np.mean(rms_sd), 2)
+                            # Std deviation
+                            std = round(np.std(rms_sd), 2)
+                            # Max value
+                            max_val = round(max(rms_sd), 2)
+                            # Min value
+                            min_val = round(min(rms_sd), 2)
+
+                            # Plot RMS
                             axs[row, col].plot(sci_data["times"][begin:len(rms_sd) + begin], rms_sd,
                                                color="mediumvioletred", label=f"{name_plot[3:]}")
+                        # ----------------------------------------------------------------------------------------------
+                    # --------------------------------------------------------------------------------------------------
 
+                    # --------------------------------------------------------------------------------------------------
+                    # Scientific Data Processing
                     else:
                         # Plot of the FFT of the SciData DEMODULATED/TOTPOWER ------------------------------------------
                         if fft:
@@ -782,16 +814,31 @@ def data_plot(pol_name: str,
                                                label=f"{name_plot[3:]}")
 
                         # Plot of the SciData DEMODULATED/TOTPOWER -----------------------------------------------------
-                        else:
+                        elif not fft:
                             # Smoothing of the SciData  Smooth_len=1 -> No smoothing
                             y = mob_mean(sci_data["sci_data"][exit][begin:end], smooth_len=smooth_len)
+
+                            # Calculate Plot Statistics
+                            # Mean
+                            m = f"= {round(np.mean(y), 2)}"
+                            # Std deviation
+                            std = f"= {round(np.std(y), 2)}"
+                            # Max value
+                            max_val = round(max(y), 2)
+                            # Min value
+                            min_val = round(min(y), 2)
+
+                            # Plot SciData
                             axs[row, col].plot(sci_data["times"][begin:len(y) + begin], y,
                                                color="mediumpurple", label=f"{name_plot[3:]}")
+                    # --------------------------------------------------------------------------------------------------
 
                 except ValueError as e:
                     logging.warning(f"{e}. Impossible to process {name_plot}.\n\n")
                     pass
-            # ------------------------------------------------------------------------------------------------------
+            # ----------------------------------------------------------------------------------------------------------
+
+            # ----------------------------------------------------------------------------------------------------------
             # Output
             else:
                 # If even, odd, all are equal to 0
@@ -799,8 +846,14 @@ def data_plot(pol_name: str,
                     # Do not plot anything
                     logging.error("No plot can be printed if even, odd, all values are all 0.")
                     raise SystemExit(1)
+
+                # When at least one in even, odd, all is different from 0
                 else:
+                    # Avoid ValueError during Scientific Output Processing
                     try:
+
+                        # ----------------------------------------------------------------------------------------------
+                        # RMS Calculations
                         if rms:
                             rms_even = []
                             rms_odd = []
@@ -813,7 +866,8 @@ def data_plot(pol_name: str,
                             if all:
                                 rms_all = RMS(dataset[type], window=window, exit=exit, eoa=0, begin=begin, end=end)
 
-                            # Plot of FFT of the RMS of the Output DEM/PWR ---------------------------------------------
+                            # ------------------------------------------------------------------------------------------
+                            # Plot of FFT of the RMS of the Output DEM/PWR
                             if fft:
                                 if even:
                                     f, s = scipy.signal.welch(rms_even, fs=50, nperseg=min(len(rms_even), nperseg),
@@ -830,30 +884,48 @@ def data_plot(pol_name: str,
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
                                                        linewidth=0.2, marker=".", alpha=all, label="All samples")
+                            # ------------------------------------------------------------------------------------------
 
-                            # Plot of RMS of the Output DEM/PWR --------------------------------------------------------
+                            # ------------------------------------------------------------------------------------------
+                            # Plot of RMS of the Output DEM/PWR
                             else:
                                 if even:
                                     axs[row, col].plot(timestamps[begin:end - 1:2][:-window - smooth_len + 1],
                                                        mob_mean(rms_even, smooth_len=smooth_len)[:-1],
-                                                       color="royalblue", alpha=even, label="Even Output")
+                                                       color="royalblue", marker=".", alpha=even, label="Even Output")
+                                    # Plot Statistics
+                                    # Mean
+                                    m += f"\nEven = {round(np.mean(rms_even), 2)}"
+                                    # Std deviation
+                                    std += f"\nEven = {round(np.std(rms_even), 2)}"
+
                                 if odd:
                                     axs[row, col].plot(timestamps[begin + 1:end:2][:-window - smooth_len + 1],
                                                        mob_mean(rms_odd, smooth_len=smooth_len)[:-1],
-                                                       color="crimson", alpha=odd, label="Odd Output")
+                                                       color="crimson", marker=".", alpha=odd, label="Odd Output")
+                                    # Plot Statistics
+                                    # Mean
+                                    m += f"\nOdd = {round(np.mean(rms_odd), 2)}"
+                                    # Std deviation
+                                    std += f"\nOdd = {round(np.std(rms_odd), 2)}"
 
                                 if all != 0:
                                     axs[row, col].plot(timestamps[begin:end][:-window - smooth_len + 1],
                                                        mob_mean(rms_all, smooth_len=smooth_len)[:-1],
                                                        color="forestgreen", alpha=all, label="All Output")
+                                    # Plot Statistics
+                                    # Mean
+                                    m += f"\nAll = {round(np.mean(rms_all), 2)}"
+                                    # Std deviation
+                                    std += f"\nAll = {round(np.std(rms_all), 2)}"
+                            # ------------------------------------------------------------------------------------------
+                        # ----------------------------------------------------------------------------------------------
 
-                    except ValueError as e:
-                        logging.warning(f"{e}. Impossible to process {name_plot}. \n\n")
-                        pass
-
-                    else:
-                        try:
-                            # Plot of the FFT of the Output DEM/PWR ----------------------------------------------------
+                        # ----------------------------------------------------------------------------------------------
+                        # Scientific Output Processing
+                        else:
+                            # ------------------------------------------------------------------------------------------
+                            # Plot of the FFT of the Output DEM/PWR
                             if fft:
                                 if even:
                                     f, s = scipy.signal.welch(dataset[type][exit][begin:end - 1:2], fs=50,
@@ -875,39 +947,73 @@ def data_plot(pol_name: str,
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
                                                        linewidth=0.2, marker=".", alpha=all, label="All samples")
+                            # ------------------------------------------------------------------------------------------
 
-                            # Plot of the Output DEM/PWR ---------------------------------------------------------------
+                            # ------------------------------------------------------------------------------------------
+                            # Plot of the Output DEM/PWR
                             else:
-                                if even != 0:
-                                    axs[row, col].plot(timestamps[begin:end - 1:2][:- smooth_len],
-                                                       mob_mean(dataset[type][exit][begin:end - 1:2],
-                                                                smooth_len=smooth_len)[:-1],
-                                                       color="royalblue", alpha=even, label="Even Output")
-                                if odd != 0:
-                                    axs[row, col].plot(timestamps[begin + 1:end:2][:- smooth_len],
-                                                       mob_mean(dataset[type][exit][begin + 1:end:2],
-                                                                smooth_len=smooth_len)[:-1],
-                                                       color="crimson", alpha=odd, label="Odd Output")
-                                if all != 0:
-                                    axs[row, col].plot(timestamps[begin:end][:- smooth_len],
-                                                       mob_mean(dataset[type][exit][begin:end],
-                                                                smooth_len=smooth_len)[:-1],
-                                                       color="forestgreen", alpha=all, label="All Output")
+                                if not rms:
+                                    if even != 0:
+                                        axs[row, col].plot(timestamps[begin:end - 1:2][:- smooth_len],
+                                                           mob_mean(dataset[type][exit][begin:end - 1:2],
+                                                                    smooth_len=smooth_len)[:-1],
+                                                           color="royalblue", marker=".", alpha=even,
+                                                           label="Even Output")
 
-                        except ValueError as e:
-                            logging.warning(f"{e}. Impossible to process {name_plot}.\n\n")
-                            pass
+                                        # Plot Statistics
+                                        # Mean
+                                        m += f"\nEven = {round(np.mean(dataset[type][exit][begin:end - 1:2]), 2)}"
+                                        # Std deviation
+                                        std += f"\nEven = {round(np.std(dataset[type][exit][begin:end - 1:2]), 2)}"
 
-            # Subplots properties ----------------------------------------------------------------------------------
+                                    if odd != 0:
+                                        axs[row, col].plot(timestamps[begin + 1:end:2][:- smooth_len],
+                                                           mob_mean(dataset[type][exit][begin + 1:end:2],
+                                                                    smooth_len=smooth_len)[:-1],
+                                                           color="crimson", marker=".", alpha=odd, label="Odd Output")
+                                        # Plot Statistics
+                                        # Mean
+                                        m += f"\nOdd = {round(np.mean(dataset[type][exit][begin + 1:end:2]), 2)}"
+                                        # Std deviation
+                                        std += f"\nOdd = {round(np.std(dataset[type][exit][begin + 1:end:2]), 2)}"
 
+                                    if all != 0:
+                                        axs[row, col].plot(timestamps[begin:end][:- smooth_len],
+                                                           mob_mean(dataset[type][exit][begin:end],
+                                                                    smooth_len=smooth_len)[:-1],
+                                                           color="forestgreen", alpha=all, label="All Output")
+                                        # Plot Statistics
+                                        # Mean
+                                        m += f"\nAll = {round(np.mean(dataset[type][exit][begin:end]), 2)}"
+                                        # Std deviation
+                                        std += f"\nAll = {round(np.std(dataset[type][exit][begin:end]), 2)}"
+                            # ------------------------------------------------------------------------------------------
+                        # ----------------------------------------------------------------------------------------------
+
+                    except ValueError as e:
+                        logging.warning(f"{e}. Impossible to process {name_plot}.\n\n")
+                        pass
+            # ----------------------------------------------------------------------------------------------------------
+
+            # ----------------------------------------------------------------------------------------------------------
+            # Subplots properties
+            # ----------------------------------------------------------------------------------------------------------
             # Title subplot
-            axs[row, col].set_title(f'{exit}', size=15)
+            title = f'{exit}'
+            if not fft:
+                title += f"\n$Mean$:{m}\n$STD$:{std}"
+                if demodulated:
+                    title += f"\n$Min$={min_val}\n $Max$={max_val}"
+
+            axs[row, col].set_title(title, size=12)
 
             # Treat UserWarning as errors to catch them
             warnings.simplefilter("ignore", UserWarning)
 
-            # X-axis
+            # X-axis default label
             x_label = "Time [s]"
+
+            # FFT Plots arrangements
             if fft:
                 x_label = "Frequency [Hz]"
 
@@ -922,6 +1028,7 @@ def data_plot(pol_name: str,
                                     f"Negative data found in Spectral Analysis (FFT): impossible to use log scale.\n\n")
                     continue
 
+            # X-axis label
             axs[row, col].set_xlabel(f"{x_label}", size=10)
 
             # Y-axis
@@ -943,7 +1050,7 @@ def data_plot(pol_name: str,
             else:
                 if rms:
                     y_label = "RMS [ADU]"
-
+            # Y-Axis label
             axs[row, col].set_ylabel(f"{y_label}", size=10)
 
             # Legend
@@ -951,16 +1058,23 @@ def data_plot(pol_name: str,
 
             # Skipping to the following column of the subplot grid
             col += 1
+
     # ------------------------------------------------------------------------------------------------------------------
-    # Step 4: producing the file in the correct dir
+
+    # ------------------------------------------------------------------------------------------------------------------
+    # Step 4: producing the png file in the correct dir
+
     # Creating the name of the png file: introducing _ in place of white spaces
     name_file = dir_format(name_plot)
 
     logging.debug(f"Title plot: {name_plot}, name file: {name_file}, name dir: {path_dir}")
 
+    # Output dir path
     path = f'{output_plot_dir}/{path_dir}/'
+    # Checking existence of the dir
     Path(path).mkdir(parents=True, exist_ok=True)
     try:
+        # Save the png figure
         fig.savefig(f'{path}{name_file}.png')
     except ValueError as e:
         logging.warning(f"{e}. Impossible to save the pictures.\n\n")
@@ -970,5 +1084,5 @@ def data_plot(pol_name: str,
     if show:
         plt.show()
     plt.close(fig)
-
+    # ------------------------------------------------------------------------------------------------------------------
     return 88
