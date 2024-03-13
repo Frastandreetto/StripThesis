@@ -1,5 +1,11 @@
 # HEAD
 
+# Version 1.1.0
+Adding some new tools in f_strip.py [#6](https://github.com/Frastandreetto/StripThesis/pull/6):
+- Adding Statistics to data_plot: mean, dev std, max, min
+- Adding Bin Function
+- Adding Tags functions: get tags from hdf5 filename, get tags from start_time and end_time in iso str, get start_time & end_time from tag.
+
 # Version 1.0.0
 -   **Breaking change**: new CLI which provides help and supports the commands `tot` `pol_hk` and `thermal_hk` to provide three different analysis: a global one, the polarimeter housekeeping one and the thermal sensors one. The official_pipeline can be used both from the command line and through some handy TOML files. [#3](https://github.com/Frastandreetto/StripThesis/pull/3)
 
