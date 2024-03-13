@@ -3,7 +3,7 @@
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2024)
 
-# October 29th 2022, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# October 29th 2022, Brescia (Italy) - March 13th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import h5py
@@ -24,6 +24,32 @@ import logging
 import numpy as np
 import scipy.stats as scs
 import scipy.ndimage as scn
+
+
+def binning_func(data_array, bin_length: int):
+    """
+        Operates a binning of the data_array by doing a mean of a number of samples equal to bin_length\n
+            Parameters:\n
+        - **data_array** (``list``): array-like object
+        - **bin_length** (``int``): number of elements on which the mean is calculated\n
+    """
+    # Initialize a new list
+    new_data_array = []
+
+    # Check the dimension of the bin_length
+    if bin_length <= 1:
+        logging.warning("If bin_length < 1 it's not a binning operation")
+        return data_array
+    if bin_length >= len(data_array):
+        logging.warning("bin_length is too large for this array to bin.")
+        return data_array
+
+    # Operate the Binning
+    else:
+        chunk_n = int(len(data_array) / bin_length)
+        for i in range(chunk_n):
+            new_data_array.append(np.mean(data_array[i * bin_length:i * bin_length + bin_length]))
+        return new_data_array
 
 
 def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
