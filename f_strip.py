@@ -3,12 +3,9 @@
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2024)
 
-# October 29th 2022, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# October 29th 2022, Brescia (Italy) - March 13th 2024, Bologna (Italy)
 
 # Libraries & Modules
-import csv
-import json
-import logging
 import scipy.signal
 import warnings
 
@@ -17,7 +14,7 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 from numba import njit
 from pathlib import Path
-from striptease import DataFile
+from striptease import DataFile, DataStorage
 from typing import Dict, Any
 
 import csv
@@ -26,6 +23,32 @@ import logging
 import numpy as np
 import scipy.stats as scs
 import scipy.ndimage as scn
+
+
+def binning_func(data_array, bin_length: int):
+    """
+        Operates a binning of the data_array by doing a mean of a number of samples equal to bin_length\n
+            Parameters:\n
+        - **data_array** (``list``): array-like object
+        - **bin_length** (``int``): number of elements on which the mean is calculated\n
+    """
+    # Initialize a new list
+    new_data_array = []
+
+    # Check the dimension of the bin_length
+    if bin_length <= 1:
+        logging.warning("If bin_length < 1 it's not a binning operation")
+        return data_array
+    if bin_length >= len(data_array):
+        logging.warning("bin_length is too large for this array to bin.")
+        return data_array
+
+    # Operate the Binning
+    else:
+        chunk_n = int(len(data_array) / bin_length)
+        for i in range(chunk_n):
+            new_data_array.append(np.mean(data_array[i * bin_length:i * bin_length + bin_length]))
+        return new_data_array
 
 
 def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
@@ -106,6 +129,25 @@ def mob_mean(v, smooth_len: int):
         # Compute the mean on a number smooth_len of elements, than move forward the window by 1 element in the array
         m[i] = np.mean(v[i:i + smooth_len])
     return m
+
+
+def demodulate_array(array: list, type: str) -> list:
+    """
+        Demodulation over an array\n
+        Calculate the double demodulation at 50Hz of the dataset provided\n
+            Parameters:\n
+        - **array** (``dict``): array-like dataset
+        - **type** (``str``) of data *"DEM"* or *"PWR"*
+    """
+    data = []
+    # Calculate consecutive mean of PWR Outputs -> Get TOTAL POWER Scientific Data
+    if type == "PWR":
+        data = mean_cons(array)
+    # Calculate consecutive differences of DEM Outputs -> Get DEMODULATED Scientific Data
+    if type == "DEM":
+        data = diff_cons(array)
+
+    return data
 
 
 def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0, end=-1) -> Dict[str, Any]:
