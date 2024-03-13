@@ -842,6 +842,7 @@ class Polarimeter:
             m = round(np.mean(self.data[type][exit][begin:end]), 2)
             # std deviation
             std = round(np.std(self.data[type][exit][begin:end]), 2)
+
             # Max value
             max_val = round(max(self.data[type][exit][begin:end]), 4)
             # Min value
@@ -852,6 +853,7 @@ class Polarimeter:
             # Title
             ax.set_title(f"{exit}\n$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}", size=14)
             # X-Axis
+
             ax.set_xlabel("Time [s]", size=15)
             # Y-Axis
             ax.set_ylabel(f"Output {type} [ADU]", size=15)
