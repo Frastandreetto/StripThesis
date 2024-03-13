@@ -577,6 +577,10 @@ class Polarimeter:
 
         return sampling_results
 
+    # ------------------------------------------------------------------------------------------------------------------
+    # PLOT FUNCTION
+    # ------------------------------------------------------------------------------------------------------------------
+
     def Plot_Housekeeping(self, hk_kind: str, show=False):
         """
         Plot all the acquisitions of the chosen HouseKeeping parameters of the polarimeter.
@@ -683,9 +687,132 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-    # ------------------------------------------------------------------------------------------------------------------
-    # PLOT FUNCTION
-    # ------------------------------------------------------------------------------------------------------------------
+    def Plot_Band(self, type: str, demodulated: bool, output_path: str,
+                  binning: bool, binning_length=5, show=True):
+        """
+        Plot the bands of the 4 exits PWR/DEM or TOT_POWER/DEMODULATED of the Polarimeter\n
+        Parameters:\n
+        - **type** (``str``) of data *"DEM"* or *"PWR"*\n
+        - **demodulated** (``bool``): if true, demodulated data are computed, if false even-odd-all output are plotted
+        - **file_path** (``str``): Path of the data file.hdf5 (including its name)\n
+        - **output_path** (``str``): Path of the dir where the band plots are saved
+        - **binning** (``bool``): *True* -> bin the dataset loaded, *False* -> no binning
+        - **binning_length** (``int``): number of elements on which the mean in the binning is calculated
+        - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+        """
+        # Setting channel name
+        channel_name = self.name
+        logging.info(f"Plotting the bands of {channel_name}")
+
+        # SciData or Output
+        data = {}
+        if demodulated:
+            data_name = "TOTAL_PWR" if type == "PWR" else "DEMODULATED"
+            # Collecting Scientific Data
+            for exit in ["Q1", "Q2", "U1", "U2"]:
+                data[exit] = fz.demodulate_array(self.data[type][exit], type)
+        else:
+            # Collecting Scientific Output
+            data = self.data[type]
+            data_name = type
+
+        # --------------------------------------------------------------------------------------------------------------
+        # Preliminary Analysis: understanding the bands number
+        # ...
+        # --------------------------------------------------------------------------------------------------------------
+
+        # --------------------------------------------------------------------------------------------------------------
+        # PLOT
+        # --------------------------------------------------------------------------------------------------------------
+        fig, axs = plt.subplots(2, 2, gridspec_kw={'hspace': 0.5},
+                                figsize=(13, 12))
+        axs = np.reshape(axs, 4)
+        fig.suptitle(f"{channel_name} - {data_name}\nDate: {self.gdate[0]}", size=15)
+
+        # X-axis
+        # --------------------------------------------------------------------------------------------------------------
+        # Number of samples from the beginning of the experiment
+        samples_number = len(data["Q1"])
+
+        # PASS THE FREQ FROM CLI
+        # Create a frequency array in the range 38-50 GHz
+        freq = np.arange(samples_number) * (50 - 38) / (samples_number - 1) + 38
+        # Frequency step between consecutive values (needed in Band width formula below)
+        delta_f = freq[1] - freq[0]
+        # --------------------------------------------------------------------------------------------------------------
+
+        for o, exit in enumerate(["Q1", "Q2", "U1", "U2"]):
+
+            # Set title of the subplots
+            axs[o].set_title(exit)
+            # Set the grid for the subplots
+            axs[o].grid(True)
+
+            # Y Axis
+            # ----------------------------------------------------------------------------------------------------------
+            # Select the relevant samples
+            Int = data[exit]
+            # Define the Offset of the signal
+            offset = max(Int)
+            # Normalization: define the effective shift from the offset
+            Int_0 = offset - Int
+            # ----------------------------------------------------------------------------------------------------------
+
+            # Band Calculation
+            # ----------------------------------------------------------------------------------------------------------
+            # Sum of all the elements of the signal-array
+            Sum_Int = np.sum(Int_0)
+            # Square root of the elements of the signal-array
+            Int_sq = np.square(Int_0, dtype=np.float64)
+            # Sum of all the elements of the signal-array
+            Sum_Int_sq = np.sum(Int_sq, dtype=np.float64)
+
+            # Band Width formula
+            BW = ((np.square(Sum_Int, dtype=np.float64)) * delta_f) / Sum_Int_sq
+            BW = round(BW, 2)
+            # Band Center
+            Cent_freq = sum(Int_0 * freq) / Sum_Int
+            Cent_freq = round(Cent_freq, 2)
+            # Max Value of the Signal
+            Max = max(Int_0)
+            # Min Value of the Signal
+            Min = min(Int_0)
+            # ----------------------------------------------------------------------------------------------------------
+
+            # Write on the file the information about the band
+            # Open
+            file_out = open(f"{output_path}/stat_bands.txt", "a")
+            # Write
+            file_out.write(
+                f"{str(channel_name)} {exit} {str(BW)} {str(Cent_freq)} {str(Max)} {str(Min)}\n")
+            # Close
+            file_out.close()
+            # ----------------------------------------------------------------------------------------------------------
+
+            # Binning operation
+            # ----------------------------------------------------------------------------------------------------------
+            if binning:
+                axs[o].plot(fz.binning_func(data_array=freq, bin_length=binning_length),
+                            fz.binning_func(data_array=Int_0 * (-1), bin_length=binning_length),
+                            ".", markersize=0.5)
+            # ----------------------------------------------------------------------------------------------------------
+            else:
+                # Plot of the Normalized Signal
+                axs[o].plot(freq, Int_0 * (-1), ".", markersize=0.5)
+                # Set title
+                axs[o].set_title(f'{exit}\nBW={str(BW)}\nCent_f={str(Cent_freq)}\nMax={Max}\nMin={Min}')
+        # Set figure name
+        figure_name = f"{output_path}{str(channel_name)}"
+        if binning:
+            figure_name = f"{figure_name}_binned"
+        # Save the figure
+        plt.savefig(f"{figure_name}.png")
+        # Show the figure
+        if show:
+            plt.show()
+        plt.close(fig)
+
+        return freq, Int_0
 
     def Plot_Output(self, type: str, begin: int, end: int, show=True):
         """
@@ -695,13 +822,7 @@ class Polarimeter:
         - **begin**, **end** (``int``): indexes of the data that have to be considered\n
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         """
-        """
-                Plot the 4 exits PWR or DEM of the Polarimeter\n
-                Parameters:\n
-                - **type** (``str``) of data *"DEM"* or *"PWR"*\n
-                - **begin**, **end** (``int``): indexes of the data that have to be considered\n
-                - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
-                """
+
         # Creating the figure
         fig = plt.figure(figsize=(20, 6))
 
@@ -729,16 +850,19 @@ class Polarimeter:
             # Plot of DEM/PWR Outputs
             ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
             # Title
-            ax.set_title(f"{exit}\n$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}",  size=14)
+            ax.set_title(f"{exit}\n$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}", size=14)
             # X-Axis
             ax.set_xlabel("Time [s]", size=15)
             # Y-Axis
             ax.set_ylabel(f"Output {type} [ADU]", size=15)
         plt.tight_layout()
 
+        # Create the path for the output dir
         path = f"{self.output_plot_dir}/{self.date_dir}/OUTPUT/"
         Path(path).mkdir(parents=True, exist_ok=True)
+        # Save the figure
         fig.savefig(f'{path}{self.name}_{type}.png', dpi=400)
+        # Show the figure
         if show:
             plt.show()
         plt.close(fig)
@@ -919,7 +1043,6 @@ class Polarimeter:
                     if not fft:
                         # Create the caption for the table of the spikes in Output
                         if not cap:
-
                             # [MD] Storing Table Heading
                             md_spike_tab += (
                                 "\n| Spike Number | Data Type | Exit "
@@ -964,7 +1087,6 @@ class Polarimeter:
 
                         # Create the caption for the table of the spikes in FFT
                         if not cap:
-
                             # [MD] Storing Table Heading
                             md_spike_tab += (
                                 "\n| Spike Number | Data Type | Exit | Frequency Spike "
@@ -980,7 +1102,6 @@ class Polarimeter:
                             cap = True
 
                         for idx, item in enumerate(spike_idxs):
-
                             # [MD] Storing FFT spikes information
                             rows += (f"|{idx + 1}|{data_name}|{exit}"
                                      f"|{np.round(x_data[item], 6)}"
