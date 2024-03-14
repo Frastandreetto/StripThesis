@@ -6,7 +6,6 @@
 # October 29th 2022, Brescia (Italy) - March 13th 2024, Bologna (Italy)
 
 # Libraries & Modules
-import h5py
 import scipy.signal
 import warnings
 
@@ -130,6 +129,25 @@ def mob_mean(v, smooth_len: int):
         # Compute the mean on a number smooth_len of elements, than move forward the window by 1 element in the array
         m[i] = np.mean(v[i:i + smooth_len])
     return m
+
+
+def demodulate_array(array: list, type: str) -> list:
+    """
+        Demodulation over an array\n
+        Calculate the double demodulation at 50Hz of the dataset provided\n
+            Parameters:\n
+        - **array** (``dict``): array-like dataset
+        - **type** (``str``) of data *"DEM"* or *"PWR"*
+    """
+    data = []
+    # Calculate consecutive mean of PWR Outputs -> Get TOTAL POWER Scientific Data
+    if type == "PWR":
+        data = mean_cons(array)
+    # Calculate consecutive differences of DEM Outputs -> Get DEMODULATED Scientific Data
+    if type == "DEM":
+        data = diff_cons(array)
+
+    return data
 
 
 def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0, end=-1) -> Dict[str, Any]:
