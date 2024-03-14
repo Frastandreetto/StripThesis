@@ -688,6 +688,8 @@ class Polarimeter:
         plt.close(fig)
 
     def Plot_Band(self, type: str, demodulated: bool, output_path: str,
+                  s_start: int, s_duration: int,
+                  f_i: float, f_f: float,
                   binning: bool, binning_length=5, show=True):
         """
         Plot the bands of the 4 exits PWR/DEM or TOT_POWER/DEMODULATED of the Polarimeter\n
@@ -696,6 +698,12 @@ class Polarimeter:
         - **demodulated** (``bool``): if true, demodulated data are computed, if false even-odd-all output are plotted
         - **file_path** (``str``): Path of the data file.hdf5 (including its name)\n
         - **output_path** (``str``): Path of the dir where the band plots are saved
+
+        - **s_start** (``int``): Number of seconds from the tag acquisition to the beginning of first band
+        - **s_duration** (``int``): Duration of the first band in seconds
+        - **f_i** (``float``): initial frequency at which the band starts
+        - **f_f** (``float``): final frequency at which the band arrives
+
         - **binning** (``bool``): *True* -> bin the dataset loaded, *False* -> no binning
         - **binning_length** (``int``): number of elements on which the mean in the binning is calculated
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
@@ -706,103 +714,168 @@ class Polarimeter:
 
         # SciData or Output
         data = {}
+        # Setting sampling frequency
+        fs = 100
+
         if demodulated:
+            # Setting data name
             data_name = "TOTAL_PWR" if type == "PWR" else "DEMODULATED"
+            # Setting sampling frequency
+            fs = 50
             # Collecting Scientific Data
             for exit in ["Q1", "Q2", "U1", "U2"]:
                 data[exit] = fz.demodulate_array(self.data[type][exit], type)
         else:
             # Collecting Scientific Output
             data = self.data[type]
+            # Setting data name
             data_name = type
 
         # --------------------------------------------------------------------------------------------------------------
-        # Preliminary Analysis: understanding the bands number
-        # ...
+        # Write on the file the information about the bands
+        # Create band file name
+        band_file_name = f"{self.name}_Bands_{fz.dir_format(self.gdate[0].value)}_{data_name}"
+        # Open file
+        file_out = open(f"{output_path}/{band_file_name}.txt", "w")
+        # Write
+        file_out.write(
+            f"Channel Name  exit BW Cent_freq Max_Signal_value Min_Signal_value \n")
+        # Close file
+        file_out.close()
         # --------------------------------------------------------------------------------------------------------------
 
+        # Naive way to calculate the number of bands in the experiment
+        # not looking at the actual behaviour of the data
+        # ------------------------------------------------------------------------------------
+        # Experiment global duration (Delta time in s)
+        dt = (self.gdate[1] - self.gdate[0]).sec
+        logging.info(f"Global time = {dt}")
+        # Removing Starting seconds to get the actual experiment duration
+        dt -= s_start
+        logging.info(f"Experiment time =  {dt}")
+        # Calculate the number of possible bands in the experiment
+        s_num = int(dt / (s_duration + 1))
+        logging.info(f"# of Bands Overlapped: {s_num}")
+        # ------------------------------------------------------------------------------------
+
         # --------------------------------------------------------------------------------------------------------------
-        # PLOT
+        # Plotting the Bands
         # --------------------------------------------------------------------------------------------------------------
         fig, axs = plt.subplots(2, 2, gridspec_kw={'hspace': 0.5},
                                 figsize=(13, 12))
         axs = np.reshape(axs, 4)
-        fig.suptitle(f"{channel_name} - {data_name}\nDate: {self.gdate[0]}", size=15)
-
-        # X-axis
-        # --------------------------------------------------------------------------------------------------------------
-        # Number of samples from the beginning of the experiment
-        samples_number = len(data["Q1"])
-
-        # PASS THE FREQ FROM CLI
-        # Create a frequency array in the range 38-50 GHz
-        freq = np.arange(samples_number) * (50 - 38) / (samples_number - 1) + 38
-        # Frequency step between consecutive values (needed in Band width formula below)
-        delta_f = freq[1] - freq[0]
-        # --------------------------------------------------------------------------------------------------------------
+        # Setting Figure Title
+        fig_title = f"{channel_name} - {data_name}\nDate: {self.gdate[0]}"
+        if binning:
+            fig_title += f"\nBinning length = {binning_length}."
+        fig.suptitle(f"{fig_title}", size=15)
 
         for o, exit in enumerate(["Q1", "Q2", "U1", "U2"]):
 
-            # Set title of the subplots
-            axs[o].set_title(exit)
             # Set the grid for the subplots
             axs[o].grid(True)
 
-            # Y Axis
-            # ----------------------------------------------------------------------------------------------------------
-            # Select the relevant samples
-            Int = data[exit]
-            # Define the Offset of the signal
-            offset = max(Int)
-            # Normalization: define the effective shift from the offset
-            Int_0 = offset - Int
-            # ----------------------------------------------------------------------------------------------------------
+            # Setting the correct beginning/end of the experiment
+            start = s_start * fs
+            stop = start + s_duration * fs
 
-            # Band Calculation
-            # ----------------------------------------------------------------------------------------------------------
-            # Sum of all the elements of the signal-array
-            Sum_Int = np.sum(Int_0)
-            # Square root of the elements of the signal-array
-            Int_sq = np.square(Int_0, dtype=np.float64)
-            # Sum of all the elements of the signal-array
-            Sum_Int_sq = np.sum(Int_sq, dtype=np.float64)
+            # Initialize lists to collect the Statistics values of all the bands, they will be then mediated
+            BW = []
+            Cent_freq = []
+            Max = []
+            Min = []
 
-            # Band Width formula
-            BW = ((np.square(Sum_Int, dtype=np.float64)) * delta_f) / Sum_Int_sq
-            BW = round(BW, 2)
-            # Band Center
-            Cent_freq = sum(Int_0 * freq) / Sum_Int
-            Cent_freq = round(Cent_freq, 2)
-            # Max Value of the Signal
-            Max = max(Int_0)
-            # Min Value of the Signal
-            Min = min(Int_0)
-            # ----------------------------------------------------------------------------------------------------------
+            for i in range(s_num):
 
-            # Write on the file the information about the band
-            # Open
-            file_out = open(f"{output_path}/stat_bands.txt", "a")
-            # Write
-            file_out.write(
-                f"{str(channel_name)} {exit} {str(BW)} {str(Cent_freq)} {str(Max)} {str(Min)}\n")
-            # Close
-            file_out.close()
-            # ----------------------------------------------------------------------------------------------------------
+                # X-axis
+                # ------------------------------------------------------------------------------------------------------
+                # Number of samples from the beginning of the experiment
+                samples_number = fs * s_duration
 
-            # Binning operation
-            # ----------------------------------------------------------------------------------------------------------
-            if binning:
-                axs[o].plot(fz.binning_func(data_array=freq, bin_length=binning_length),
-                            fz.binning_func(data_array=Int_0 * (-1), bin_length=binning_length),
-                            ".", markersize=0.5)
-            # ----------------------------------------------------------------------------------------------------------
-            else:
-                # Plot of the Normalized Signal
-                axs[o].plot(freq, Int_0 * (-1), ".", markersize=0.5)
-                # Set title
-                axs[o].set_title(f'{exit}\nBW={str(BW)}\nCent_f={str(Cent_freq)}\nMax={Max}\nMin={Min}')
+                if i == 0:
+                    samples_number = samples_number
+                else:
+                    # Add 1 s of samples
+                    samples_number += 1*fs
+
+                # Create the frequency array in the range between the f_i and the f_f
+                freq = np.arange(samples_number) * (f_f - f_i) / (samples_number - 1) + f_i
+                # Frequency step between consecutive values (needed in Band width formula below)
+                delta_f = freq[1] - freq[0]
+                # ------------------------------------------------------------------------------------------------------
+
+                # Y Axis
+                # ------------------------------------------------------------------------------------------------------
+                # Select the relevant samples
+                Int = data[exit][start:stop]
+                # Define the Offset of the signal
+                offset = max(Int)
+                # Normalization: define the effective shift from the offset
+                Int_0 = offset - Int
+                # ------------------------------------------------------------------------------------------------------
+
+                # Band Calculation (mean values computed on the i bands)
+                # ------------------------------------------------------------------------------------------------------
+                # Sum of all the elements of the signal-array
+                Sum_Int = np.sum(Int_0)
+                # Square root of the elements of the signal-array
+                Int_sq = np.square(Int_0, dtype=np.float64)
+                # Sum of all the elements of the signal-array
+                Sum_Int_sq = np.sum(Int_sq, dtype=np.float64)
+
+                # Band Width formula
+                BW.append(round(((np.square(Sum_Int, dtype=np.float64)) * delta_f) / Sum_Int_sq, 2))
+                # Band Center
+                Cent_freq.append(round(sum(Int_0 * freq) / Sum_Int, 2))
+                # Max Value of the Signal
+                Max.append(max(Int_0))
+                # Min Value of the Signal
+                Min.append(min(Int_0))
+                # ------------------------------------------------------------------------------------------------------
+
+                # Write on the file the information about all the bands
+                # Open
+                file_out = open(f"{output_path}/{band_file_name}.txt", "a")
+                # Write
+                file_out.write(
+                    f"{channel_name} {exit} {BW[i]} {Cent_freq[i]} {Max[i]} {Min[i]}\n")
+                # Close
+                file_out.close()
+                # ------------------------------------------------------------------------------------------------------
+
+                # Binning operation
+                # ------------------------------------------------------------------------------------------------------
+                if binning:
+                    axs[o].plot(fz.binning_func(data_array=freq, bin_length=binning_length),
+                                fz.binning_func(data_array=Int_0 * (-1), bin_length=binning_length),
+                                ".", markersize=0.5)
+                # ------------------------------------------------------------------------------------------------------
+                else:
+                    # Plot of the Normalized Signal
+                    axs[o].plot(freq, Int_0 * (-1), ".", markersize=0.5)
+
+                # Update start and stop time for the new band
+                # Start of the new band
+                start = stop
+                # End of the new band
+                stop = stop + (s_duration + 1) * fs
+
+            # Calculate mean values to write title and Axis Labels
+            BW_mean = round(np.mean(BW), 2)
+            Cent_freq_mean = round(np.mean(Cent_freq), 2)
+            Max_mean = round(np.mean(Max), 2)
+            Min_mean = round(np.mean(Min), 2)
+            # Set title
+            axs[o].set_title(f'{exit}\nBW={str(BW_mean)}\n'
+                             f'Cent_f={str(Cent_freq_mean)}\n'
+                             f'Max={Max_mean}\nMin={Min_mean}')
+            # Set X Axis label
+            axs[o].set_xlabel("Frequency [GHz]", size=13)
+            # Set Y Axis label
+            axs[o].set_ylabel("Signal Level [ADU]", size=13)
+
         # Set figure name
-        figure_name = f"{output_path}{str(channel_name)}"
+        figure_name = f"{output_path}{band_file_name}"
         if binning:
             figure_name = f"{figure_name}_binned"
         # Save the figure
@@ -812,7 +885,7 @@ class Polarimeter:
             plt.show()
         plt.close(fig)
 
-        return freq, Int_0
+        return
 
     def Plot_Output(self, type: str, begin: int, end: int, show=True):
         """
