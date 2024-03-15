@@ -1,5 +1,9 @@
 # HEAD
 
+# Version 1.3.0
+Adding a new feature to the class ThermalSensors in thermalsensors.py [#5](https://github.com/Frastandreetto/StripThesis/pull/5):
+- Plot_FFT_TS -> all_in parameter to plot all FFT in one plot
+
 # Version 1.2.0
 Adding a new method to the class Polarimeter in polarimeter.py [#4](https://github.com/Frastandreetto/StripThesis/pull/4):
 - Plot_Band, with some little updates [#7](https://github.com/Frastandreetto/StripThesis/pull/7)
