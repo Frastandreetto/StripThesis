@@ -1,7 +1,8 @@
 # HEAD
+
 # Version 1.2.0
 Adding a new method to the class Polarimeter in polarimeter.py [#4](https://github.com/Frastandreetto/StripThesis/pull/4):
-- Plot_Band 
+- Plot_Band, with some little updates [#7](https://github.com/Frastandreetto/StripThesis/pull/7)
 
 # Version 1.1.0
 Adding some new tools in f_strip.py [#6](https://github.com/Frastandreetto/StripThesis/pull/6):
