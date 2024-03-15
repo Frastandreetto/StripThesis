@@ -1,5 +1,5 @@
 # -*- encoding: utf-8 -*-
-
+import h5py
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2024)
 
