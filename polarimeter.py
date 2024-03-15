@@ -895,7 +895,6 @@ class Polarimeter:
         - **begin**, **end** (``int``): indexes of the data that have to be considered\n
         - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
         """
-
         # Creating the figure
         fig = plt.figure(figsize=(20, 6))
 
@@ -941,6 +940,8 @@ class Polarimeter:
         if show:
             plt.show()
         plt.close(fig)
+
+
 
     # ------------------------------------------------------------------------------------------------------------------
     # TIMESTAMPS JUMP ANALYSIS
