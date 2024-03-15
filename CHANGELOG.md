@@ -1,0 +1,22 @@
+# HEAD
+
+# Version 1.2.0
+Adding a new method to the class Polarimeter in polarimeter.py [#4](https://github.com/Frastandreetto/StripThesis/pull/4):
+- Plot_Band, with some little updates [#7](https://github.com/Frastandreetto/StripThesis/pull/7)
+
+# Version 1.1.0
+Adding some new tools in f_strip.py [#6](https://github.com/Frastandreetto/StripThesis/pull/6):
+- Adding Statistics to data_plot: mean, dev std, max, min
+- Adding Bin Function
+- Adding Tags functions: get tags from hdf5 filename, get tags from start_time and end_time in iso str, get start_time & end_time from tag.
+
+# Version 1.0.0
+-   **Breaking change**: new CLI which provides help and supports the commands `tot` `pol_hk` and `thermal_hk` to provide three different analysis: a global one, the polarimeter housekeeping one and the thermal sensors one. The official_pipeline can be used both from the command line and through some handy TOML files. [#3](https://github.com/Frastandreetto/StripThesis/pull/3)
+
+# Version 0.2.0
+ 
+-   Fix many issues on the functions. Pipeline presented on March 29th for my Master Defence [#2](https://github.com/Frastandreetto/StripThesis/pull/2)
+
+# Version 0.1.0
+
+-   First release of the code. Some easy functions for a first analysis during my Master Thesis [#1](https://github.com/Frastandreetto/StripThesis/pull/1)

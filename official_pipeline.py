@@ -781,21 +781,22 @@ def main():
         ################################################################################################################
         # MD REPORT MERGING
         ################################################################################################################
-        logging.info(f"Merging all MD reports into: General_Report_{args.start_datetime}__{args.end_datetime}.md\n"
+        logging.info(f"Merging all MD reports into: 00_{args.start_datetime}__{args.end_datetime}.md\n"
                      f"Enjoy!\n\n")
         # Merge all the MD report into a single file
         fz.merge_report(md_reports_path=args.output_report_dir,
                         total_report_path=f"{args.output_report_dir}/"
-                                          f"General_Report_{args.start_datetime}__{args.end_datetime}.md")
+                                          f"00_Report_{args.start_datetime}__{args.end_datetime}.md")
 
         ################################################################################################################
         # JSON PRODUCTION
         ################################################################################################################
+        logging.info(f"Converting CSV report into JSON\n")
         # Convert the CSV Report File into a JSON Report File
         fz.csv_to_json(csv_file_path=f"{args.output_report_dir}/CSV/"
-                                     f"General_Report_{args.start_datetime}__{args.end_datetime}.csv",
+                                     f"00_Report_{args.start_datetime}__{args.end_datetime}.csv",
                        json_file_path=f"{args.output_report_dir}/JSON/"
-                                      f"General_Report_{args.start_datetime}__{args.end_datetime}.json")
+                                      f"00_Report_{args.start_datetime}__{args.end_datetime}.json")
 
 
 if __name__ == "__main__":

@@ -1,2 +1,4 @@
 # StripThesis
-:telescope: Here you can find the python code of the new LSPE-STRIP pipeline for functional verification. Version 1.0.0
+:telescope: Here you can find the python code of the new LSPE-STRIP pipeline for functional verification. 
+
+## Version 1.2.0
