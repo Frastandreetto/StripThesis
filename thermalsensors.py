@@ -2,7 +2,7 @@
 
 # This file contains the Class Thermal_Sensors
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
-# August 15th 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# August 15th 2023, Brescia (Italy) - March 15th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import logging
@@ -393,7 +393,6 @@ class Thermal_Sensors:
 
             for group in self.ts_names.keys():
                 for sensor_name in self.ts_names[group]:
-
                     # [MD] Filling the table with values
                     md_table += (f"|{sensor_name}|{self.status}|{group}|"
                                  f"{round(results[calib]['max'][sensor_name], 4)}|"
@@ -459,19 +458,25 @@ class Thermal_Sensors:
             plt.show()
         plt.close(fig)
 
-    def Plot_FFT_TS(self, show=False):
+    def Plot_FFT_TS(self, all_in: bool, show=False):
         """
         Plot the FFT of the calibrated acquisitions of Thermal Sensors of the polarimeter.\n
             Parameters:\n
          - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+         - **all_in** (``bool``): *True* -> show all the FFT of TS in one plot *False* -> different plots for the groups
         """
 
         # Prepare the shape of the fig: in each row there is a subplot with the data of the TS of a same group.
         n_rows = len(self.ts_names.keys())
-        fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(15, 10))
+
+        # All FFT of TS in one plot
+        if all_in:
+            fig, axs = plt.subplots(nrows=1, ncols=1, constrained_layout=True, figsize=(15, 10))
+        else:
+            fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(15, 10))
 
         # Set the title of the figure
-        fig.suptitle(f'Plot Thermal Sensors FFT status {self.status}- Date: {self.gdate[0]}', fontsize=14)
+        fig.suptitle(f'Plot Thermal Sensors FFT status {self.status}- Date: {self.gdate[0]}', fontsize=15)
 
         # Note: the steps used by the periodogram are 1/20, the sampling frequency of the thermal measures.
         fs = 1 / 20.
@@ -489,25 +494,44 @@ class Thermal_Sensors:
                 f, s = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][sensor_name],
                                           fs=fs, nperseg=min(int(fs * 10 ** 4), self.nperseg_thermal,
                                                              len(self.ts["thermal_data"]["calibrated"][sensor_name])))
-                # Plot the periodogram (fft)
-                axs[i].plot(f[f < 25.], s[f < 25.],
-                            linewidth=0.2, label=f"{sensor_name}", marker=".", markerfacecolor=color, markersize=4)
+                # All FFT of TS in one plot
+                if all_in:
+                    axs.plot(f[f < 25.], s[f < 25.],
+                             linewidth=0.2, label=f"{sensor_name}", marker=".", markersize=6)
+                    # XY-axis
+                    axs.set_yscale("log")
+                    axs.set_xscale("log")
+                    axs.set_xlabel(f"$Frequency$ $[Hz]$", size=14)
+                    axs.set_ylabel(f"PSD [K**2/Hz]", size=14)
+                    # Legend
+                    axs.legend(prop={'size': 9}, loc=3)
+                else:
+                    # Plot the periodogram (fft)
+                    axs[i].plot(f[f < 25.], s[f < 25.],
+                                linewidth=0.2, label=f"{sensor_name}", marker=".", markerfacecolor=color, markersize=4)
 
-                # Subplots properties
-                # Title
-                axs[i].set_title(f"FFT TS GROUP {group}")
-                # XY-axis
-                axs[i].set_yscale("log")
-                axs[i].set_xscale("log")
-                axs[i].set_xlabel(f"$Frequency$ $[Hz]$")
-                axs[i].set_ylabel(f"PSD [K**2/Hz]")
-                # Legend
-                axs[i].legend(prop={'size': 9}, loc=7)
+                    # Subplots properties
+                    # Title
+                    axs[i].set_title(f"FFT TS GROUP {group}")
+                    # XY-axis
+                    axs[i].set_yscale("log")
+                    axs[i].set_xscale("log")
+                    axs[i].set_xlabel(f"$Frequency$ $[Hz]$")
+                    axs[i].set_ylabel(f"PSD [K**2/Hz]")
+                    # Legend
+                    axs[i].legend(prop={'size': 9}, loc=7)
 
         # Procedure to save the png of the plot in the correct dir
         path = f"{self.output_plot_dir}/{self.date_dir}/Thermal_Output/FFT/"
         Path(path).mkdir(parents=True, exist_ok=True)
-        fig.savefig(f'{path}FFT_Thermal_status_{self.status}.png', dpi=600)
+
+        # Set figure name
+        fig_name = f"FFT_Thermal_status_{self.status}"
+        # All FFT of TS in one plot
+        if all_in:
+            fig_name += "_All"
+        # Save the figure
+        fig.savefig(f'{path}{fig_name}.png', dpi=600)
 
         # If show is True the plot is visible on video
         if show:
@@ -636,7 +660,6 @@ class Thermal_Sensors:
                     csv_table.append([""])
 
                     for idx, item in enumerate(spike_idxs):
-
                         # [MD] Fill the table with the FFT values
                         md_table += (f"|{idx + 1}|FFT TS|{name}"
                                      f"|{np.round(x_data[item], 6)}"
