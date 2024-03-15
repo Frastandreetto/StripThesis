@@ -9,10 +9,10 @@
 # Positional Arguments (mandatory)
 ########################################################################################################################
 subcommand = 'tot'
-path_file = '../../data_test'
-start_datetime='2023-10-08 01:00:00'
-end_datetime='2023-10-08 03:00:00'
-name_pol= "all" # Set 'all' to parse all 55 polarimeters
+path_file = '../../../data_test'
+start_datetime='2024-03-04 17:00:00'
+end_datetime='2024-03-04 17:05:00'
+name_pol= "B0" # Set 'all' to parse all 55 polarimeters
 
 ########################################################################################################################
 # Flags (optional)
@@ -22,40 +22,40 @@ name_pol= "all" # Set 'all' to parse all 55 polarimeters
 toml_file_path = "config/validation_config/config_tot.toml"
 
 # TS Analysis
-thermal_sensors = "true"
+thermal_sensors = "false"
 ts_sam_exp_med=20.0
 ts_sam_tolerance=1.0
 
 # HK Analysis
-housekeeping = "true"
+housekeeping = "false"
 hk_sam_exp_med = "1.4, 1.4, 60.0"
 hk_sam_tolerance = "0.1, 0.1, 0.5"
 
 # Correlation Analysis
-corr_plot= "true"
-corr_mat= "true"
-cross_corr= "true" # Set "true" for cross correlations
+corr_plot= "false"
+corr_mat= "false"
+cross_corr= "false" # Set "true" for cross correlations
 corr_t=0.4
 
 # Scientific Analysis
-even_odd_all='AOE'
-scientific="true"
-rms="true"
+even_odd_all='A'
+scientific="false"
+rms="false"
 smooth=1
 window=10
 sam_tolerance=0.005
 
 # Spectral Analysis
-fourier="true"
+fourier="false"
 # To reach a min freq of 10^-4 these are the nperseg requested
 nperseg=500000
 nperseg_thermal=500
 
 # Spike Analysis
-spike_data="true"
-spike_fft="true"
+spike_data="false"
+spike_fft="false"
 
 # Output dir for plots and reports
-output_plot_dir='../RESULTS/PIPELINE'
-output_report_dir='../RESULTS/PIPELINE/Reports'
+output_plot_dir='../../../RESULTS/PIPELINE'
+output_report_dir='../../../RESULTS/PIPELINE/Reports'
 report_to_plot ='../..'
