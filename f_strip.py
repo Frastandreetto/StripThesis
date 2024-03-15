@@ -6,6 +6,7 @@
 # October 29th 2022, Brescia (Italy) - March 13th 2024, Bologna (Italy)
 
 # Libraries & Modules
+import h5py
 import scipy.signal
 import warnings
 
