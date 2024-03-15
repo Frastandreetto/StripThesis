@@ -2,7 +2,7 @@
 
 # This file contains the Class Thermal_Sensors
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
-# August 15th 2023, Brescia (Italy) - March 15th 2024, Roma (Italy)
+# August 15th 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
 
 # Libraries & Modules
 import logging
