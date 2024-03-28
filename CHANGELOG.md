@@ -1,5 +1,8 @@
 # HEAD
 
+# Version 1.3.1
+Adding Userguide for the version [#8](https://github.com/Frastandreetto/StripThesis/pull/8) - Fixing comments.
+
 # Version 1.3.0
 Adding a new feature to the class ThermalSensors in thermalsensors.py [#5](https://github.com/Frastandreetto/StripThesis/pull/5):
 - Plot_FFT_TS -> all_in parameter to plot all FFT in one plot
