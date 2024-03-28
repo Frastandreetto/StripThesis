@@ -4,7 +4,7 @@
 # This file contains the new LSPE-Strip official pipeline for functional verification.
 # It includes different analysis modalities: total analysis, housekeeping analysis and thermal analysis
 
-# July 23rd 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# July 23rd 2023, Brescia (Italy) - March 28th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import argparse
@@ -19,7 +19,7 @@ from pathlib import Path
 from rich.logging import RichHandler
 
 # MyLibraries & MyModules
-sys.path.append('../../')
+sys.path.append('pipeline/')
 import f_strip as fz
 import stripop_tot as strip_a
 import stripop_pol_hk as strip_b
@@ -764,7 +764,7 @@ def main():
     }
 
     # root: location of the file.txt with the information to build the report
-    root = "templates/validation_templates"
+    root = "pipeline/templates/validation_templates"
     templates_dir = Path(root)
 
     # Creating the Jinja2 environment
