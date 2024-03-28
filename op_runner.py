@@ -4,7 +4,7 @@
 # This program is used to run the new version of the pipeline for functional verification of LSPE-STRIP (2024) using
 # TOML files passed by the command line
 
-# September 29th 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# September 29th 2023, Brescia (Italy) - March 28th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import argparse

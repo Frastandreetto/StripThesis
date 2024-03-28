@@ -4,7 +4,7 @@
 # This file contains the new LSPE-Strip official pipeline for functional verification.
 # It includes different analysis modalities: total analysis, housekeeping analysis and thermal analysis
 
-# July 23rd 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# July 23rd 2023, Brescia (Italy) - March 28th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import argparse
