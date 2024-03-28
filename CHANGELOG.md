@@ -1,5 +1,9 @@
 # HEAD
 
+# Version 1.3.3
+Fixing Userguide for the new version [#10](https://github.com/Frastandreetto/StripThesis/pull/10)
+
+
 # Version 1.3.2
 Fixing dependences in op_runner.py and official_pipeline.py to run the pipeline on the EGSE @ INAF-OAS Cryowaves Laboratory.
 Adding Userguide for the version [#9](https://github.com/Frastandreetto/StripThesis/pull/9)
