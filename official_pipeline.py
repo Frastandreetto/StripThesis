@@ -19,6 +19,7 @@ from pathlib import Path
 from rich.logging import RichHandler
 
 # MyLibraries & MyModules
+sys.path.append('../../')
 import f_strip as fz
 import stripop_tot as strip_a
 import stripop_pol_hk as strip_b
