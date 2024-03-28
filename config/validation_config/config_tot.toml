@@ -9,7 +9,7 @@
 # Positional Arguments (mandatory)
 ########################################################################################################################
 subcommand = 'tot'
-path_file = '../../../data_test'
+path_file = '/mnt/storage/data/HDF5'
 start_datetime='2024-03-04 17:00:00'
 end_datetime='2024-03-04 17:05:00'
 name_pol= "B0" # Set 'all' to parse all 55 polarimeters
@@ -19,7 +19,7 @@ name_pol= "B0" # Set 'all' to parse all 55 polarimeters
 ########################################################################################################################
 
 # TOML
-toml_file_path = "config/validation_config/config_tot.toml"
+toml_file_path = "pipeline/config/validation_config/config_tot.toml"
 
 # TS Analysis
 thermal_sensors = "false"
@@ -56,6 +56,6 @@ spike_data="false"
 spike_fft="false"
 
 # Output dir for plots and reports
-output_plot_dir='../../../RESULTS/PIPELINE'
-output_report_dir='../../../RESULTS/PIPELINE/Reports'
+output_plot_dir='../RESULTS/PIPELINE'
+output_report_dir='../RESULTS/PIPELINE/Reports'
 report_to_plot ='../..'

@@ -9,16 +9,16 @@
 # Positional Arguments (mandatory)
 ########################################################################################################################
 subcommand = 'thermal_hk'
-path_file = '../../data_test'
-start_datetime='2023-03-13 00:00:00'
-end_datetime='2023-03-13 03:00:00'
+path_file = '/mnt/storage/data/HDF5'
+start_datetime='2024-04-03 00:00:00'
+end_datetime='2024-04-03 00:05:00'
 
 ########################################################################################################################
 # Flags (optional)
 ########################################################################################################################
 
 # TOML
-toml_file_path = "config/validation_config/config_thermal_hk.toml"
+toml_file_path = "pipeline/config/validation_config/config_thermal_hk.toml"
 
 # TS Analysis
 ts_sam_exp_med=20.0
