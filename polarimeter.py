@@ -46,7 +46,7 @@ class Polarimeter:
         # Store the name of the polarimeter
         self.name = name_pol
         # Create a Datastorage from the path of the file
-        self.ds = DataStorage(path_file)
+        self.ds = DataStorage(str(path_file))
 
         # Sampling Frequency of Strip. Std value = 100 Hz
         self.STRIP_SAMPLING_FREQ = 0
