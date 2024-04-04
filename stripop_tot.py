@@ -260,7 +260,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             if fft:
                 logging.info(f'Plotting the FFT of all the TS measures for status {status} of the multiplexer.')
                 # Plot of the FFT of all TS measures
-                TS.Plot_FFT_TS()
+                for all_in in [True, False]:
+                    TS.Plot_FFT_TS(all_in=all_in)
 
             # ----------------------------------------------------------------------------------------------------------
             # REPORT TS
