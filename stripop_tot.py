@@ -765,6 +765,31 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                              f"Bias_{item}", f"{unit}")
                         ])
 
+                # ------------------------------------------------------------------------------------------------------
+                # SCIDATA
+                # DEMODULATED Self Correlation
+                # TOTAL_PWR Self Correlation
+                # ------------------------------------------------------------------------------------------------------
+                if not scientific:
+                    pass
+                else:
+                    for type in ["DEM", "PWR"]:
+                        # Collect only one type of Scidata DEMODULATED or TOTAL PWR
+                        sci_data = {}
+                        # Data name assignment
+                        data_name = "DEMODULATED" if type == "DEM" else "TOTAL_POWER"
+
+                        for exit in ["Q1", "Q2", "U1", "U2"]:
+                            sci_data[exit] = fz.demodulate_array(p.data[type][exit], type)
+                            sci_times = fz.mean_cons(p.times)
+
+                        # Collecting all possible combinations of Output correlations
+                        possible_combos.extend([
+                            # Scidata self correlation
+                            (sci_data, sci_times, f"{np}_{data_name}", " [ADU]", {}, [], "Self_Corr", "[ADU]")
+                        ])
+                # ------------------------------------------------------------------------------------------------------
+
                 # Produce all correlation plots and matrix using all the combinations of the Outputs
                 # d -> data
                 # t -> timestamps
@@ -896,10 +921,15 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         ])
 
                 # Produce all correlation plots and matrix using all the combinations
+                # d -> data (dictionary)
+                # t -> timestamps
+                # n -> (data) name
+                # u -> unit of measure
                 for d1, t1, n1, u1, d2, t2, n2, u2 in possible_combos:
 
                     # --------------------------------------------------------------------------------------------------
                     # Correlation Plot
+                    # Specific for the Polarimeter Under Test
                     # --------------------------------------------------------------------------------------------------
                     if corr_plot:
                         logging.warning(
@@ -923,6 +953,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                     # --------------------------------------------------------------------------------------------------
                     # Correlation Matrix
+                    # Specific for the Polarimeter Under Test
                     # --------------------------------------------------------------------------------------------------
                     if corr_mat:
                         logging.warning(
@@ -1108,7 +1139,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # Adding Cross Correlation Bool
         report_data.update({"cross": cross_corr})
         if cross_corr:
-
             # Get png files name from the dir Cross_Corr sorted in alphabetic order
             png_cross_files = sorted([file for file in os.listdir(f"{output_plot_dir}/Cross_Corr/")
                                       if file.lower().endswith('.png')])
