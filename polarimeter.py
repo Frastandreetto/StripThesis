@@ -678,7 +678,7 @@ class Polarimeter:
         name_file = f"{self.name}_HK_{hk_kind}"
 
         # Creating the directory path
-        path = f'{self.output_plot_dir}/{self.date_dir}/HK/'
+        path = f'{self.output_plot_dir}/HK/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{name_file}.png')
 
@@ -932,7 +932,7 @@ class Polarimeter:
         plt.tight_layout()
 
         # Create the path for the output dir
-        path = f"{self.output_plot_dir}/{self.date_dir}/OUTPUT/"
+        path = f"{self.output_plot_dir}/OUTPUT/"
         Path(path).mkdir(parents=True, exist_ok=True)
         # Save the figure
         fig.savefig(f'{path}{self.name}_{type}.png', dpi=400)
