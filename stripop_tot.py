@@ -9,6 +9,7 @@
 import csv
 import logging
 import os
+import time
 
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
@@ -75,6 +76,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
         - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
     """
+    logging.info("Starting the Pipeline: Total Operation.")
+
+    # Starting chronometer
+    start_code_time = time.time()
+
     logging.info('\nLoading dir and templates information...')
 
     # REPORTS ----------------------------------------------------------------------------------------------------------
@@ -1033,7 +1039,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # TS 1 self correlation
                 (ts_1.ts["thermal_data"]["calibrated"], ts_1.ts["thermal_times"],
                  "TS_status_1", "Temperature [K]",
-                 {}, [], "Self_Corr", "Temperature [K]",)
+                 {}, [], "Self_Corr", "Temperature [K]")
             ])
 
             # Produce all correlation plots and matrix using all the combinations
@@ -1173,5 +1179,15 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     filename = Path(f"{output_report_dir}/2_report_tot_warnings.md")
     with open(filename, 'w') as outf:
         outf.write(template_w.render(report_data))
+
+    # Stopping chronometer
+    end_code_time = time.time()
+    # Calculate running time of the code
+    elapsed_time = end_code_time - start_code_time
+
+    # Printing the elapsed time
+    logging.info(f"############################################################################################\n"
+                 f"Elapsed Time: {round(elapsed_time, 2)} s\n"
+                 "############################################################################################\n")
 
     return
