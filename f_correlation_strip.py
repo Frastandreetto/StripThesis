@@ -18,18 +18,18 @@ from pathlib import Path
 import polarimeter as pol
 
 
-def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: [], time2: [],
+def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], time2: [],
                      data_name1: str, data_name2: str, measure_unit1: str, measure_unit2: str,
                      start_datetime: str, show=False,
                      corr_t=0.4, plot_dir='../RESULTS/PIPELINE') -> []:
     """
-        Create a Correlation Plot of two dataset: two array, two dictionaries or one array and one dictionary.\n
+        Create a Correlation Plot of two dataset: two list, two dictionaries or one list and one dictionary.\n
         Return a dictionary of warnings that highlights which data are highly correlated.
 
             Parameters:\n
-        - **array1**, **array2** (``list``): arrays ([]) of n1 and n2 elements
+        - **list1**, **list2** (``list``): lists ([]) of n1 and n2 elements
         - **dict1**, **dict2** (``dict``): dictionaries ({}) with N1, N2 keys
-        - **time1**, **time2** (``list``): arrays ([]) of timestamps: not necessary if the dataset have same length.
+        - **time1**, **time2** (``list``): lists ([]) of timestamps: not necessary if the dataset have same length.
         - **data_name1**, **data_name2** (``str``): names of the dataset. Used for titles, labels and to save the png.
         - **measure_unit1**, **measure_unit2** (``str``): measure units. Used for labels in the plots.
         - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
@@ -48,27 +48,34 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     # Initialize a warning dict for the reports
     warnings = {"md": md_correlation, "csv": csv_correlation}
 
-    # Initialize a bool that express a case of self correlations in the datasets
+    # Initialize a bool that express the case of self correlations in the datasets
     self_correlation = False
-    # Data comprehension -----------------------------------------------------------------------------------------------
+
+    ####################################################################################################################
+    # Data comprehension
+    ####################################################################################################################
     # Type check
-    # array and timestamps array must be list
-    if not (all(isinstance(l, list) for l in (array1, array2, time1, time2))):
-        logging.error("Wrong type: note that array1, array2, time1, time2 are list.")
+    # Data lists and timestamps arrays must be lists
+    if not (all(isinstance(l, list) for l in (list1, list2, time1, time2))):
+        logging.error("Wrong type: check if list1, list2, time1, time2 are list.")
     # dict1 and dict2 must be dictionaries
     if not (all(isinstance(d, dict) for d in (dict1, dict2))):
-        logging.error("Wrong type: note that dict1 and dict2 are dictionaries.")
+        logging.error("Wrong type: check if dict1 and dict2 are dictionaries.")
 
-    # Case 1 : two 1D arrays
-    # Single plot: scatter correlation between two array
-    if array1 != [] and array2 != [] and dict1 == {} and dict2 == {}:
+    ####################################################################################################################
+    # Case 1 : two 1D lists
+    # Single plot: scatter correlation between two list
+    ####################################################################################################################
+    if list1 != [] and list2 != [] and dict1 == {} and dict2 == {}:
         n_rows = 1
         n_col = 1
         fig_size = (4, 4)
 
-    # Case 2: one 1D array and one dictionary with N keys
-    # Plot 1xN: scatter correlation between an array and the exits of a dictionary
-    elif array1 != [] and array2 == [] and dict1 != {} and dict2 == {}:
+    ####################################################################################################################
+    # Case 2: one 1D list and one dictionary with N keys
+    # Plot 1xN: scatter correlation between a list and the exits of a dictionary
+    ####################################################################################################################
+    elif list1 != [] and list2 == [] and dict1 != {} and dict2 == {}:
         # If the object are different, the sampling frequency may be different
         # hence the timestamps array must be provided to interpolate
         if time1 == [] or time2 == []:
@@ -79,26 +86,36 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
             n_col = len(dict1.keys())
             fig_size = (4 * n_col, 4 * n_rows)
 
+    ####################################################################################################################
     # Case 3: two dictionaries with N and M keys
     # Plot NxM: scatter correlation between each dictionary exit
-    elif array1 == [] and array2 == [] and dict1 != {} and dict2 != {}:
+    ####################################################################################################################
+    elif list1 == [] and list2 == [] and dict1 != {} and dict2 != {}:
         n_rows = len(dict1.keys())
         n_col = len(dict2.keys())
         fig_size = (4 * n_col, 4 * n_rows)
 
-    # Case 4: one dictionary with N keys, correlating to itself
+    ####################################################################################################################
+    # Case 4: Self Correlation - one dictionary with N keys, correlating to itself
     # Plot NxN: scatter correlation between each dictionary exit
-    elif array1 == [] and array2 == [] and dict1 != {} and dict2 == {}:
-        # Assign to dict2 the dict1, so to have self correlation
+    ####################################################################################################################
+    elif list1 == [] and list2 == [] and dict1 != {} and dict2 == {}:
+        # Self correlation: assign to the second dataset all the properties of the first one
         dict2 = dict1
+        time2 = time1
+        data_name2 = "Self_Correlation"
+        measure_unit2 = measure_unit1
         self_correlation = True
         n_rows = len(dict1.keys())
         n_col = len(dict2.keys())
         fig_size = (4 * n_col, 4 * n_rows)
 
+    ####################################################################################################################
+    # Last Case: wrong dataset
+    ####################################################################################################################
     else:
-        msg = ("Wrong data. Please insert only two of the four dataset: array1, array2, dict1 or dict2. "
-               "Please do not insert array2 if there is not an array1. "
+        msg = ("Wrong data. Please insert only two of the four dataset: list1, list2, dict1 or dict2. "
+               "Please do not insert list2 if there is not an list1. "
                "Please do not insert dict2 if there is not a dict1.")
         logging.error(f"{msg}")
         raise SystemExit(1)
@@ -113,7 +130,7 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
     fig.suptitle(f'Correlation {data_name} \n Date: {start_datetime}', fontsize=10)
 
     ####################################################################################################################
-    # array1 vs array2
+    # list1 vs list2
     ####################################################################################################################
     if n_col == 1:
 
@@ -121,27 +138,33 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         label1 = f"{data_name1} Temperature [K]" if data_name1[0] in ("T", "E") else f"{data_name1} {measure_unit1}"
         label2 = f"{data_name2} Temperature [K]" if data_name2[0] in ("T", "E") else f"{data_name2} {measure_unit2}"
 
+        # --------------------------------------------------------------------------------------------------------------
         # Arrays with different length must be interpolated
-        if len(array1) != len(array2):
+        if len(list1) != len(list2):
             if time1 == [] or time2 == []:
                 logging.error("Different sampling frequency: provide timestamps array.")
                 raise SystemExit(1)
             else:
-                # Find the longest array (x) and the shortest to be interpolated
-                x, short_array, label_x, label_y = (array1, array2, label1, label2) if len(array1) > len(array2) \
-                    else (array2, array1, label2, label1)
-                x_t, short_t = (time1, time2) if x is array1 else (time2, time1)
+                # Find the longest list (x) and the shortest to be interpolated
+                x, short_list, label_x, label_y = (list1, list2, label1, label2) if len(list1) > len(list2) \
+                    else (list2, list1, label2, label1)
+                x_t, short_t = (time1, time2) if x is list1 else (time2, time1)
 
-                # Interpolation of the shortest array
-                y = np.interp(x_t, short_t, short_array)
+                # Interpolation of the shortest list
+                y = np.interp(x_t, short_t, short_list)
+        # --------------------------------------------------------------------------------------------------------------
 
+        # --------------------------------------------------------------------------------------------------------------
         # Arrays with same length
         else:
-            x = array1
-            y = array2
+            x = list1
+            y = list2
             label_x = label1
             label_y = label2
+        # --------------------------------------------------------------------------------------------------------------
 
+        # --------------------------------------------------------------------------------------------------------------
+        # Plot: list1 vs list2
         axs.plot(x, y, "*", color="firebrick", label="Corr Data")
         # XY-axis
         axs.set_xlabel(f"{label_x}")
@@ -149,7 +172,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         # Legend
         axs.legend(prop={'size': 9}, loc=4)
 
-        # Calculate the correlation coefficient matrix -----------------------------------------------------------------
+        # --------------------------------------------------------------------------------------------------------------
+        # Calculate the correlation coefficient matrix
         correlation_matrix = np.corrcoef(x, y)
         # Extract the correlation coefficient between the two datasets from the matrix
         correlation_value = correlation_matrix[0, 1]
@@ -176,78 +200,71 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
         # dict1 vs dict2
         ################################################################################################################
         if n_rows > 1:
-            # length of the shortest array in the dictionary.
+            # length of the shortest sub-set in the dictionary.
             min_len = np.inf
             for r, r_exit in enumerate(dict1.keys()):
-                # logging.debug(dict1.keys())
                 for c, c_exit in enumerate(dict2.keys()):
-                    # logging.debug(dict2.keys())
 
-                    # Do not plot self correlation plots
+                    ####################################################################################################
+                    # Do not plot self correlation plots for now
                     if self_correlation and c_exit == r_exit:
                         pass
+                    ####################################################################################################
                     else:
-                        # Put the same x and y axes on the subplots
+                        # Share x-axis and y-axis on the subplots
                         if r == 0:
                             axs[r, c].sharey(axs[1, 0])
                             axs[r, c].sharex(axs[1, 0])
 
-                        # Assign the current arrays
-                        array1 = dict1[r_exit]
-                        array2 = dict2[c_exit]
+                        # Assign the current sub-sets
+                        sub_set1 = dict1[r_exit]
+                        sub_set2 = dict2[c_exit]
                         # Assign the current labels
                         label1 = f"{data_name1} {r_exit} {measure_unit1}"
                         label2 = f"{data_name2} {c_exit} {measure_unit2}"
 
-                        # Arrays with different length must be interpolated
-                        if len(array1) != len(array2):
-
-                            # Debug length mismatch in correlations
-                            # logging.debug(f"PRE: len array1 {len(array1)} - len array2 {len(array2)}")
+                        # ----------------------------------------------------------------------------------------------
+                        # CASE 1
+                        # Sub-set of the dictionaries (lists) with different length
+                        # Interpolation needed
+                        if len(sub_set1) != len(sub_set2):
 
                             # Timestamps arrays must be provided to interpolate
                             if time1 == [] or time2 == []:
                                 logging.error("Different sampling frequency: provide timestamps array.")
                                 raise SystemExit(1)
+
                             # If the timestamps are provided
                             else:
-                                # Find the longest array (x) and the shortest to be interpolated
-                                x, short_array, label_x, label_y = (array1, array2, label1, label2) \
-                                    if len(array1) > len(array2) \
-                                    else (array2, array1, label2, label1)
-                                x_t, short_t = (time1, time2) if x is array1 else (time2, time1)
+                                # Find the longest sub-set of the dictionary (x) and the shortest to be interpolated
+                                x, short_list, label_x, label_y = (sub_set1, sub_set2, label1, label2) \
+                                    if len(sub_set1) > len(sub_set2) \
+                                    else (sub_set2, sub_set1, label2, label1)
+                                x_t, short_t = (time1, time2) if x is sub_set1 else (time2, time1)
 
-                                if len(short_t) != len(short_array):
-                                    lim = min(len(short_t), len(short_array))
+                                if len(short_t) != len(short_list):
+                                    lim = min(len(short_t), len(short_list))
                                     short_t = short_t[:lim - 1]
-                                    short_array = short_array[:lim - 1]
-                                # Interpolation of the shortest array
-                                y = np.interp(x_t, short_t, short_array)
+                                    short_list = short_list[:lim - 1]
+                                # Interpolation of the shortest list
+                                y = np.interp(x_t, short_t, short_list)
 
-                                # Debug length mismatch in correlations
-                                # logging.debug(f"POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
-
-                                # Fixing (im)possible len mismatch
+                                # Fixing (im)possible length mismatch
                                 if len(x) != len(y):
                                     lim = min(len(x), len(y))
                                     x = x[:lim - 1]
                                     y = y[:lim - 1]
+                        # ----------------------------------------------------------------------------------------------
 
-                                    # Debug length mismatch in correlations
-                                    # logging.debug(f"SECOND POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
-
-                        # Arrays with same length
+                        # ----------------------------------------------------------------------------------------------
+                        # CASE 2
+                        # Sub-set of the dictionaries (lists) with same length
                         else:
                             x = dict1[r_exit]
                             y = dict2[c_exit]
                             label_x = label1
                             label_y = label2
-
-                            # Debug length mismatch in correlations
-                            # logging.debug(f"THIRD POST: len {label_x}: {len(x)} - len {label_y}: {len(y)}")
-
-                        # Debug length mismatch in correlations
-                        # logging.debug("Plotting...\n\n")
+                        # ----------------------------------------------------------------------------------------------
 
                         axs[r, c].plot(x, y, "*", color="teal", label="Corr Data")
 
@@ -266,10 +283,10 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                             min_len = len(x)
                             # logging.debug(f"min length: {min_len}")
 
-            # ----------------------------------------------------------------------------------------------------------
+            ############################################################################################################
             # Calculate Correlations of the dictionaries
-            # ----------------------------------------------------------------------------------------------------------
-            # Adjust arrays lengths
+            ############################################################################################################
+            # Adjust dataset lengths
             for r_exit in dict1.keys():
                 dict1[r_exit] = dict1[r_exit][:min_len - 1]
             for c_exit in dict2.keys():
@@ -283,7 +300,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
             # Initialize an empty DataFrame for correlations
             correlation_matrix = pd.DataFrame(index=df1.columns, columns=df2.columns)
             logging.info("Done.\nHigh correlations found will be listed below.\n\n")
-            # ----------------------------------------------------------------------------------------------------------
+
+            ############################################################################################################
             # Calculate Self Correlations
             if self_correlation:
                 keys = df1.columns
@@ -304,7 +322,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                         warnings["csv"].append([""])
                         warnings["csv"].append([f"{data_name1} {keys[i]}", f"{data_name2} {keys[i + 1]}",
                                                 f"{correlation_matrix.loc[keys[i], keys[i + 1]]}"])
-            # ----------------------------------------------------------------------------------------------------------
+
+            ############################################################################################################
             # Calculate Normal Correlations
             else:
                 for key1 in df1.columns:
@@ -327,37 +346,37 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                                                     f"{correlation_matrix.loc[key1, key2]}"])
 
         ################################################################################################################
-        # array1 vs dict1
+        # list1 vs dict1
         ################################################################################################################
         else:
             for c, exit in enumerate(dict1.keys()):
-                # Assign the current arrays
-                array2 = dict1[exit]
+                # Assign the current sub-set of the dictionary
+                sub_set1 = dict1[exit]
                 # Assign the current labels
                 label1 = f"{data_name1} {measure_unit1}"
                 label2 = f"{data_name2} {measure_unit2}"
 
                 # Arrays with different length must be interpolated
-                if len(array1) != len(array2):
+                if len(list1) != len(sub_set1):
                     # Timestamps arrays must be provided to interpolate
                     if time1 == [] or time2 == []:
-                        logging.error("Different sampling frequency: provide timestamps array.")
+                        logging.error("Different sampling frequency: provide timestamps arrays.")
                         raise SystemExit(1)
                     # If the timestamps are provided
                     else:
-                        # Find the longest array (x) and the shortest to be interpolated
-                        x, short_array, label_x, label_y = (array1, array2, label1, label2) if len(
-                            array1) > len(array2) \
-                            else (array2, array1, label2, label1)
-                        x_t, short_t = (time1, time2) if x is array1 else (time2, time1)
+                        # Find the longest list (x) and the shortest to be interpolated
+                        x, short_list, label_x, label_y = (list1, sub_set1, label1, label2) if len(
+                            list1) > len(sub_set1) \
+                            else (sub_set1, list1, label2, label1)
+                        x_t, short_t = (time1, time2) if x is list1 else (time2, time1)
 
-                        # Interpolation of the shortest array
-                        y = np.interp(x_t, short_t, short_array)
+                        # Interpolation of the shortest list
+                        y = np.interp(x_t, short_t, short_list)
 
                 # Arrays with same length
                 else:
                     x = dict1[exit]
-                    y = np.interp(time2, time1, array1)
+                    y = np.interp(time2, time1, list1)
                     label_x = label1
                     label_y = label2
 
@@ -372,7 +391,8 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                 # Legend
                 axs[c].legend(prop={'size': 9}, loc=4)
 
-                # Calculate the correlation coefficient matrix ---------------------------------------------------------
+                ########################################################################################################
+                # Calculate the correlation coefficient matrix
                 correlation_matrix = np.corrcoef(x, y)
                 # Extract the correlation coefficient between the two datasets from the matrix
                 correlation_value = correlation_matrix[0, 1]
@@ -389,14 +409,18 @@ def correlation_plot(array1: [], array2: [], dict1: dict, dict2: dict, time1: []
                     warnings["csv"].append([f"{data_name1}",
                                             f"{data_name2} {exit}",
                                             f"{round(correlation_value, 4)}"])
+
+    # If n_col is not bigger than 1, warnings are produced
     else:
         return warnings
 
+    # ------------------------------------------------------------------------------------------------------------------
     # Procedure to save the png of the plot in the correct dir
     path = f'{plot_dir}/Correlation_Plot/'
     # Check if the dir exists. If not, it will be created.
     Path(path).mkdir(parents=True, exist_ok=True)
     fig.savefig(f'{path}{data_name}_CorrPlot.png')
+    # ------------------------------------------------------------------------------------------------------------------
 
     # If show is True the plot is visible on video
     if show:
