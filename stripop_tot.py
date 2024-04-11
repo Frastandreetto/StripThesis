@@ -216,6 +216,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # ------------------------------------------------------------------------------------------------------
             ############################################################################################################
 
+            # Cleaning thermal measures
+            logging.info(f'Cleaning TS measures. Status {status}')
+            TS.Clean_TS()
             # Normalizing TS measures
             logging.info(f'Normalizing TS. Status {status}')
             _ = TS.Norm_TS()
@@ -739,6 +742,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                 output_plot_dir=output_plot_dir)
                         # Loading thermal measures
                         TS.Load_TS()
+                        # Cleaning thermal measures
+                        TS.Clean_TS()
                         # Normalizing thermal times
                         _ = TS.Norm_TS()
 
@@ -813,7 +818,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             f'\n{n1} - {n2}.')
                         # Store correlation warnings from the correlation plot
 
-                        correlation_warnings = fz_c.correlation_plot(array1=[], array2=[],
+                        correlation_warnings = fz_c.correlation_plot(list1=[], list2=[],
                                                                      dict1=d1, dict2=d2,
                                                                      time1=list(t1), time2=list(t2),
                                                                      data_name1=f"{n1}", data_name2=f"{n2}",
@@ -911,6 +916,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                 output_plot_dir=output_plot_dir)
                         # Loading thermal measures
                         TS.Load_TS()
+                        # Cleaning thermal measures
+                        TS.Clean_TS()
                         # Normalizing thermal times
                         _ = TS.Norm_TS()
 
@@ -943,7 +950,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             f'\nCorrelation plot with threshold {corr_t}. '
                             f'\n{n1} - {n2}.')
                         # Store correlation warnings from the correlation plot
-                        correlation_warnings = fz_c.correlation_plot(array1=[], array2=[],
+                        correlation_warnings = fz_c.correlation_plot(list1=[], list2=[],
                                                                      dict1=d1, dict2=d2,
                                                                      time1=list(t1), time2=list(t2),
                                                                      data_name1=f"{n1}", data_name2=f"{n2}",
@@ -1054,8 +1061,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         f'\nCorrelation plot with threshold {corr_t}. '
                         f'\n{n1} - {n2}.')
                     # Store correlation warnings from the correlation plot
-                    correlation_warnings = fz_c.correlation_plot(array1=[],
-                                                                 array2=[],
+                    correlation_warnings = fz_c.correlation_plot(list1=[],
+                                                                 list2=[],
                                                                  dict1=d1,
                                                                  dict2=d2,
                                                                  time1=list(t1),
