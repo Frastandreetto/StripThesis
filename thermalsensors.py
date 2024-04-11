@@ -126,6 +126,31 @@ class Thermal_Sensors:
                     # Conversion to list to better handle the data array
                     self.ts["thermal_data"][calib][sensor_name] = list(self.ts["thermal_data"][calib][sensor_name])
 
+    def Clean_TS(self):
+        """
+        Clean all Thermal Sensor's data removing those whose acquisition presents Nan values
+        """
+        # Find TS with Nan values
+        problematic_TS = []
+        for ts_name, array in self.ts["thermal_data"]["calibrated"].items():
+            if np.isnan(array).any():
+                problematic_TS.append(ts_name)
+
+        for ts_name in problematic_TS:
+            # Remove the key of the dictionary: remove TS from the analysis
+            del self.ts["thermal_data"]["calibrated"][ts_name]
+            # Remove the TS name form the list
+            for group in self.ts_names.keys():
+                try:
+                    self.ts_names[group].remove(ts_name)
+                except ValueError:
+                    pass
+
+            # Print & store a warning message
+            msg = f"\nNan Values Found: Thermal Sensors {ts_name} (status {self.status}) removed from the analysis.\n\n"
+            logging.info(msg)
+            self.warnings["time_warning"].append(msg)
+
     def Norm_TS(self) -> []:
         """
         Check if the Timestamps array and the CALIBRATED DATA array have the same length.
@@ -144,14 +169,14 @@ class Thermal_Sensors:
                 len_data = len(self.ts["thermal_data"]["calibrated"][sensor_name])
                 # If Timestamps and Data don't have the same length
                 if len_times != len_data:
-                    # If they differ by 1 unit it means that:
-                    # 1) A datum of the status of the multiplexer hasn't been stored yet in the time interval given,
-                    # but its timestamp was already collected, hence the time array is reduced by one unit
-                    if len_times == len_data + 1:  # and self.status == 1:
-                        self.ts["thermal_times"] = self.ts["thermal_times"][:-1]
+
+                    # 1) A datum hasn't been stored yet but its timestamp had been already collected
+                    # No need of data manipulations
+                    if len_times == len_data + 1:
+                        pass
 
                     # 2) A datum of the status of the multiplexer has been stored in the time interval given,
-                    # but its timestamp was collected before the start_datetime given,
+                    # but its timestamp had been collected before the start_datetime given,
                     # hence a warning is produced and stored
                     else:
                         good_sampling = False
