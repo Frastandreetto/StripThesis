@@ -17,6 +17,7 @@ from rich.logging import RichHandler
 
 # My Modules
 import thermalsensors as ts
+import f_strip as fz
 import f_correlation_strip as fz_c
 
 # Use the module logging to produce nice messages on the shell
@@ -91,7 +92,9 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     ]
 
     # [CSV] Open and append information
-    with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+    # TS Report Name
+    report_name = fz.dir_format(f"TS_Report_{start_datetime}__{end_datetime}")
+    with open(f'{csv_output_dir}/{report_name}.csv',
               'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(csv_general)
@@ -142,7 +145,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         csv_general = sampling_table["csv"]
         # --------------------------------------------------------------------------------------------------------------
         # [CSV] REPORT: write TS sampling in the report ----------------------------------------------------------------
-        with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -167,7 +170,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write TS Dataset spikes --------------------------------------------------------------------
-            with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -186,7 +189,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write TS FFT spikes --------------------------------------------------------------------
-            with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -207,7 +210,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         # --------------------------------------------------------------------------------------------------------------
 
         # [CSV] REPORT: write TS time warnings in the report -----------------------------------------------------------
-        with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -229,7 +232,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         # ----------------------------------------------------------------------------------------------------------
 
         # [CSV] write TS results table in the report ---------------------------------------------------------------
-        with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -373,7 +376,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             corr_warn.extend(gen_warn)
 
             # [CSV] REPORT: write Polarimeter Correlation warnings in the report -----------------------------------
-            with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
