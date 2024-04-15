@@ -4,7 +4,7 @@
 # This file contains the new LSPE-Strip official pipeline for functional verification.
 # It includes different analysis modalities: total analysis, housekeeping analysis and thermal analysis
 
-# July 23rd 2023, Brescia (Italy) - March 28th 2024, Bologna (Italy)
+# July 23rd 2023, Brescia (Italy) - April 15th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import argparse
@@ -782,22 +782,20 @@ def main():
         ################################################################################################################
         # MD REPORT MERGING
         ################################################################################################################
-        logging.info(f"Merging all MD reports into: 00_{args.start_datetime}__{args.end_datetime}.md\n"
-                     f"Enjoy!\n\n")
+        # Write the correct name of the General Report
+        report_name = fz.dir_format(f"00_Report_{args.start_datetime}__{args.end_datetime}")
         # Merge all the MD report into a single file
+        logging.info(f"Merging all MD reports into: {report_name}.md\nEnjoy!\n\n")
         fz.merge_report(md_reports_path=args.output_report_dir,
-                        total_report_path=f"{args.output_report_dir}/"
-                                          f"00_Report_{args.start_datetime}__{args.end_datetime}.md")
+                        total_report_path=f"{args.output_report_dir}/{report_name}.md")
 
         ################################################################################################################
         # JSON PRODUCTION
         ################################################################################################################
         logging.info(f"Converting CSV report into JSON\n")
         # Convert the CSV Report File into a JSON Report File
-        fz.csv_to_json(csv_file_path=f"{args.output_report_dir}/CSV/"
-                                     f"00_Report_{args.start_datetime}__{args.end_datetime}.csv",
-                       json_file_path=f"{args.output_report_dir}/JSON/"
-                                      f"00_Report_{args.start_datetime}__{args.end_datetime}.json")
+        fz.csv_to_json(csv_file_path=f"{args.output_report_dir}/CSV/{report_name}.csv",
+                       json_file_path=f"{args.output_report_dir}/JSON/{report_name}.json")
 
 
 if __name__ == "__main__":

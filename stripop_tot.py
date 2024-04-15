@@ -3,7 +3,7 @@
 # This file contains the function "tot" that operates a complete analysis of a provided group of polarimeters.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
 
-# August 14th 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# August 14th 2023, Brescia (Italy) - April 15th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import csv
@@ -84,6 +84,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     logging.info('\nLoading dir and templates information...')
 
     # REPORTS ----------------------------------------------------------------------------------------------------------
+    # General Report File Name
+    report_name = fz.dir_format(f"00_Report_{start_datetime}__{end_datetime}")
 
     # [MD] Markdown REPORT ---------------------------------------------------------------------------------------------
     # Initializing the data-dict for the md report
@@ -115,7 +117,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     ]
 
     # [CSV] Open and append information
-    with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+    with open(f'{csv_output_dir}/{report_name}.csv',
               'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(csv_general)
@@ -163,7 +165,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             csv_general = sampling_table["csv"]
             # ----------------------------------------------------------------------------------------------------------
             # [CSV] REPORT: write TS sampling in the report ------------------------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -188,7 +190,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 csv_general.append(spike_table["csv"])
 
                 # [CSV] REPORT: write TS Dataset spikes ----------------------------------------------------------------
-                with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+                with open(f'{csv_output_dir}/{report_name}.csv',
                           'a', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerows(csv_general)
@@ -231,7 +233,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # ----------------------------------------------------------------------------------------------------------
 
             # [CSV] REPORT: write TS sampling & time warnings in the report --------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -253,7 +255,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # ----------------------------------------------------------------------------------------------------------
 
             # [CSV] write TS results table in the report ---------------------------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -310,7 +312,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         csv_general = cross_corr_mat["csv"]
 
         # [CSV] write Cross Correlations results in the report ---------------------------------------------------------
-        with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -339,7 +341,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             [""]
         ]
         # [CSV] write which polarimeter is parsed ---------------------------------------------------------
-        with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -388,7 +390,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # ----------------------------------------------------------------------------------------------------------
 
             # [CSV] REPORT: write HK sampling & time warnings in the report --------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -407,7 +409,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # [CSV] Storing the HK results table
             csv_general = HK_table["csv"]
             # [CSV] REPORT: write HK Table in the report ---------------------------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -462,7 +464,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # ----------------------------------------------------------------------------------------------------------
 
         # [CSV] REPORT: write Polarimeter Sampling Table (Jumps) in the report -------------------------------------
-        with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -482,7 +484,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write Polarimeter Spikes Table in the report -------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -500,7 +502,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write Polarimeter FFT Spikes Table in the report ---------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -855,7 +857,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     corr_warn.extend(gen_warn)
 
                     # [CSV] REPORT: write Polarimeter Correlation warnings in the report ---------------------------
-                    with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+                    with open(f'{csv_output_dir}/{report_name}.csv',
                               'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerows(csv_general)
@@ -988,7 +990,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     corr_warn.extend(gen_warn)
 
                     # [CSV] REPORT: write Correlation warnings in the report -------------------------------------------
-                    with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+                    with open(f'{csv_output_dir}/{report_name}.csv',
                               'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerows(csv_general)
@@ -1105,7 +1107,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 corr_warn.extend(gen_warn)
 
                 # [CSV] REPORT: write Polarimeter Correlation warnings in the report -----------------------------------
-                with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+                with open(f'{csv_output_dir}/{report_name}.csv',
                           'a', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerows(csv_general)
