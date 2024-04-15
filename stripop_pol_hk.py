@@ -274,7 +274,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
                         f'\nPolarimeter {np}: Correlation plot with threshold {corr_t}. '
                         f'\n{n1} - {n2}.\n')
                     # Store correlation warnings from the correlation plot
-                    correlation_warnings = fz_c.correlation_plot(array1=[], array2=[],
+                    correlation_warnings = fz_c.correlation_plot(list1=[], list2=[],
                                                                  dict1=d1, dict2=d2,
                                                                  time1=list(t1), time2=list(t2),
                                                                  data_name1=f"{n1}", data_name2=f"{n2}",
