@@ -1083,7 +1083,7 @@ class Polarimeter:
         for type in self.data.keys():
             for exit in self.data[type].keys():
 
-                # FFT Calculation using welch method
+                # Compute FFT Measures using welch method
                 if fft:
                     x_data, y_data = scipy.signal.welch(self.data[type][exit], fs=100,
                                                         nperseg=min(len(self.data[type][exit]), nperseg),
@@ -1141,12 +1141,12 @@ class Polarimeter:
                             # Datetime object to a Julian date
                             julian_date = Time(greg_datetime).jd
 
-                            # [MD] Storing spikes information
+                            # [MD] Fill the table with spikes information
                             rows += f"|{idx + 1}|{data_name}|{exit}|{greg_date}|{julian_date}" \
                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}" \
                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n"
 
-                            # [CSV] Storing spikes information
+                            # [CSV] Fill the table with spikes information
                             csv_spike_tab.append([f"{idx + 1}", f"{data_name}", f"{exit}",
                                                   f"{greg_date}", f"{julian_date}",
                                                   f"{np.round(y_data[item] - np.median(y_data), 6)}",
@@ -1172,7 +1172,6 @@ class Polarimeter:
                             csv_spike_tab.append([""])
                             csv_spike_tab.append(["Spike Number", "Data Type", "Exit", "Frequency Spike",
                                                   "Spike Value - Median [ADU]", "MAD [ADU]"])
-
                             cap = True
 
                         for idx, item in enumerate(spike_idxs):

@@ -164,7 +164,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             # [MD]
             spike_warn.extend(spike_table["md"])
             # [CSV]
-            csv_general.append(spike_table["csv"])
+            csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write TS Dataset spikes --------------------------------------------------------------------
             with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
@@ -183,7 +183,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             # [MD]
             spike_warn.extend(spike_table["md"])
             # [CSV]
-            csv_general.append(spike_table["csv"])
+            csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write TS FFT spikes --------------------------------------------------------------------
             with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',

@@ -2,7 +2,7 @@
 
 # This file contains the Class Thermal_Sensors
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
-# August 15th 2023, Brescia (Italy) - March 15th 2024, Roma (Italy)
+# August 15th 2023, Brescia (Italy) - April 15th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import logging
@@ -576,18 +576,22 @@ class Thermal_Sensors:
             - **fft** (``bool``): if true, the code looks for spikes in the fft.
             - **nperseg** (``int``): number of elements of the array on which the fft is calculated
         """
+        # Initializing a bool to see if the caption of the table is already in the report
+        cap = False
+
         # [MD] Initialize a result string to contain the md table
-        md_table = " "
+        rows = ""
+        md_spike_tab = ""
         # [CSV] Initialize a result list to contain the csv table
-        csv_table = []
+        csv_spike_tab = []
 
         # Initialize list for x_data
         x_data = []
 
         for name in self.ts["thermal_data"]["calibrated"].keys():
 
+            # Compute FFT of TS Measures using welch method
             if fft:
-                # Compute FFT of TS Measures
                 x_data, y_data = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][name], fs=ts_sam_exp_med / 60,
                                                     nperseg=min(len(self.ts["thermal_data"]["calibrated"][name]),
                                                                 self.nperseg_thermal),
@@ -602,6 +606,7 @@ class Thermal_Sensors:
                 n_chunk = 10
                 data_type = "FFT"
 
+            # No FFT calculation: using TS outputs
             else:
                 y_data = self.ts["thermal_data"]["calibrated"][name]
                 # Set threshold values for spike research
@@ -623,23 +628,20 @@ class Thermal_Sensors:
 
                 # Spikes in the TS dataset
                 if not fft:
+                    # Create the caption for the table of the spikes in Output
+                    if not cap:
+                        # [MD] Storing Table Heading
+                        md_spike_tab += (
+                            "\n| Spike Number | Data Type | Sensor Name "
+                            "| Gregorian Date | Julian Date [JHD]| Spike Value - Median [ADU]| MAD [ADU] |\n"
+                            "|:------------:|:---------:|:----:"
+                            "|:--------------:|:----------------:|:-------------------------:|:---------:|\n")
 
-                    # Create the heading for the table of the spikes in TS Output
-
-                    # [MD] Heading of the table
-                    md_table += (
-                        "\n| Spike Number | Data Type | Sensor Name "
-                        "| Gregorian Date | Julian Date [JHD]| Spike Value - Median [ADU]| MAD [ADU] |\n"
-                        "|:------------:|:---------:|:----:"
-                        "|:--------------:|:----------------:|:-------------------------:|:---------:|\n")
-
-                    # [CSV] Heading of the table
-                    csv_table.append([""])
-                    csv_table.append(["Spike Number", "Data Type", "Sensor Name",
-                                      "Gregorian Date", "Julian Date [JHD]",
-                                      "Spike Value - Median [ADU]", "MAD [ADU]"
-                                      ])
-                    csv_table.append([""])
+                        # [CSV] Storing Table Heading
+                        csv_spike_tab.append([""])
+                        csv_spike_tab.append(["Spike Number", "Data Type", "Sensor Name", "Gregorian Date",
+                                              "Julian Date [JHD]", "Spike Value - Median [ADU]", "MAD [ADU]", ""])
+                        cap = True
 
                     for idx, item in enumerate(spike_idxs):
                         # Calculate the Gregorian date in which the spike happened
@@ -651,19 +653,18 @@ class Thermal_Sensors:
                         # Convert the Datetime object to a Julian date
                         julian_date = Time(greg_datetime).jd
 
-                        # [MD] Fill the table with TS values
-                        md_table += (f"|{idx + 1}|{data_type}|{name}"
-                                     f"|{greg_date}|{julian_date}"
-                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}"
-                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|"
-                                     f"\n")
+                        # [MD] Fill the table with TS spikes information
+                        rows += f"|{idx + 1}|{data_type}|{name}" \
+                                f"|{greg_date}|{julian_date}" \
+                                f"|{np.round(y_data[item] - np.median(y_data), 6)}" \
+                                f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n"
 
-                        # [CSV] Fill the table with TS values
-                        csv_table.append([f"{idx + 1}", f"{data_type}", f"{name}",
-                                          f"{greg_date}", f"{julian_date}",
-                                          f"{np.round(y_data[item] - np.median(y_data), 6)}",
-                                          f"{np.round(scs.median_abs_deviation(y_data), 6)}"
-                                          ])
+                        # [CSV] Fill the table with TS spikes information
+                        csv_spike_tab.append([f"{idx + 1}", f"{data_type}", f"{name}",
+                                              f"{greg_date}", f"{julian_date}",
+                                              f"{np.round(y_data[item] - np.median(y_data), 6)}",
+                                              f"{np.round(scs.median_abs_deviation(y_data), 6)}"])
+
                 # Spikes in the FFT of TS
                 else:
                     # Select the more relevant spikes
@@ -671,33 +672,34 @@ class Thermal_Sensors:
 
                     # Create the heading for the table of the spikes in TS FFT
                     # [MD] Heading of the table
-                    md_table += (
+                    md_spike_tab += (
                         "\n| Spike Number | Data Type | Sensor Name | Frequency Spike "
                         "|Spike Value - Median [ADU]| MAD [ADU] |\n"
                         "|:------------:|:---------:|:----:|:---------------:"
                         "|:------------------------:|:---------:|\n")
 
                     # [CSV] Heading of the table
-                    csv_table.append([""])
-                    csv_table.append(["Spike Number", "Data Type", "Sensor Name",
-                                      "Frequency Spike", "Spike Value - Median [ADU]", "MAD [ADU]"
-                                      ])
-                    csv_table.append([""])
+                    csv_spike_tab.append([""])
+                    csv_spike_tab.append(["Spike Number", "Data Type", "Sensor Name",
+                                          "Frequency Spike", "Spike Value - Median [ADU]", "MAD [ADU]"])
+                    cap = True
 
                     for idx, item in enumerate(spike_idxs):
                         # [MD] Fill the table with the FFT values
-                        md_table += (f"|{idx + 1}|FFT TS|{name}"
-                                     f"|{np.round(x_data[item], 6)}"
-                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}"
-                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
+                        rows += (f"|{idx + 1}|FFT TS|{name}"
+                                 f"|{np.round(x_data[item], 6)}"
+                                 f"|{np.round(y_data[item] - np.median(y_data), 6)}"
+                                 f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
 
                         # [CSV] Fill the table with FFT values
-                        csv_table.append([f"{idx + 1}", "FFT TS", f"{name}",
-                                          f"{np.round(x_data[item], 6)}",
-                                          f"{np.round(y_data[item] - np.median(y_data), 6)}",
-                                          f"{np.round(scs.median_abs_deviation(y_data), 6)}"
-                                          ])
-        # Initialize a dictionary with the two tables: MD and CSV
-        spike_tab = {"md": md_table, "csv": csv_table}
+                        csv_spike_tab.append([f"{idx + 1}", "FFT TS", f"{name}",
+                                              f"{np.round(x_data[item], 6)}",
+                                              f"{np.round(y_data[item] - np.median(y_data), 6)}",
+                                              f"{np.round(scs.median_abs_deviation(y_data), 6)}"])
 
+            if cap:
+                md_spike_tab += rows
+
+        # Initialize a dictionary with the two tables: MD and CSV
+        spike_tab = {"md": md_spike_tab, "csv": csv_spike_tab}
         return spike_tab

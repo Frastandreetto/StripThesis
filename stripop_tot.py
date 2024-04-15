@@ -177,7 +177,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # TS SPIKE RESEARCH
             ############################################################################################################
             spike_warn = []
-            csv_general = []
 
             # Looking for spikes in the TS Dataset
             if spike_data:
@@ -187,7 +186,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # [MD]
                 spike_warn.extend(spike_table["md"])
                 # [CSV]
-                csv_general.append(spike_table["csv"])
+                csv_general = spike_table["csv"]
 
                 # [CSV] REPORT: write TS Dataset spikes ----------------------------------------------------------------
                 with open(f'{csv_output_dir}/{report_name}.csv',
@@ -206,7 +205,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # [MD]
                 spike_warn.extend(spike_table["md"])
                 # [CSV]
-                csv_general.append(spike_table["csv"])
+                csv_general = spike_table["csv"]
 
                 # [CSV] REPORT: write TS FFT spikes --------------------------------------------------------------------
                 with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
@@ -744,7 +743,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                 output_plot_dir=output_plot_dir)
                         # Loading thermal measures
                         TS.Load_TS()
-                        # Cleaning thermal measures
+                        # Cleaning thermal measures from Nan values
                         TS.Clean_TS()
                         # Normalizing thermal times
                         _ = TS.Norm_TS()
