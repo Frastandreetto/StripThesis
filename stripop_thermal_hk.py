@@ -244,7 +244,9 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         # Fourier's analysis if asked
         if fft:
             logging.info(f'Plotting the FFT of all the TS measures for status {stat} of the multiplexer.')
-            TS.Plot_FFT_TS()
+            # Plot of the FFT of all TS measures
+            for all_in in [True, False]:
+                TS.Plot_FFT_TS(all_in=all_in)
 
         # ----------------------------------------------------------------------------------------------------------
         # [MD] REPORT TS
@@ -295,6 +297,9 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         # Loading thermal measures
         ts_0.Load_TS()
         ts_1.Load_TS()
+        # Cleaning thermal measures from Nan values
+        ts_0.Clean_TS()
+        ts_1.Clean_TS()
         # Normalizing thermal times
         _ = ts_0.Norm_TS()
         _ = ts_1.Norm_TS()
@@ -326,8 +331,8 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                     f'\nCorrelation plot with threshold {corr_t}. '
                     f'\n{n1} - {n2}.\n\n')
                 # Store correlation warnings from the correlation plot
-                correlation_warnings = fz_c.correlation_plot(array1=[],
-                                                             array2=[],
+                correlation_warnings = fz_c.correlation_plot(list1=[],
+                                                             list2=[],
                                                              dict1=d1,
                                                              dict2=d2,
                                                              time1=list(t1),
