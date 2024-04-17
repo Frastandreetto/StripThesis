@@ -209,8 +209,8 @@ class Thermal_Sensors:
             logging.error("Invalid status value. Please choose between the values 0 and 1 for a single analysis.")
             SystemExit(1)
 
-        # Assign new Timestamps equally spaced every 20s
-        self.ts["thermal_times"] = start + np.arange(start=0, stop=len(self.ts["thermal_times"]) * 20, step=20)
+        # Convert to seconds the timestamps
+        self.ts["thermal_times"] = start + self.ts["thermal_times"].unix - self.ts["thermal_times"][0].unix
         # Conversion to list to better handle the data array
         self.ts["thermal_times"] = list(self.ts["thermal_times"])
 

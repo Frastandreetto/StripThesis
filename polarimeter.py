@@ -237,7 +237,6 @@ class Polarimeter:
             self.times = np.arange(len(self.times))
         if norm_mode == 1:
             # Outputs vs Seconds
-            # self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ
             self.times = self.times.unix - self.times[0].unix
         if norm_mode == 2:
             # Outputs vs JHD
@@ -346,17 +345,8 @@ class Polarimeter:
                     # [CSV] Append the name of a problematic HK
                     problematic_hk.append(f"{self.name} - {hk_name}")
 
-                # Normalization Operations - different sampling frequencies
-                # Offset
-                if item == "O":
-                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk[item][hk_name]) * 30, 30)
-                    l1 = len(self.hk_t[item][hk_name])
-                    self.hk_t[item][hk_name] = self.hk_t[item][hk_name][:min(l1, l2)]
-                # Tensions and Currents
-                else:
-                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk[item][hk_name]) * 1.4, 1.4)
-                    l1 = len(self.hk_t[item][hk_name])
-                    self.hk_t[item][hk_name] = self.hk_t[item][hk_name][:min(l1, l2)]
+                # Convert to seconds the timestamps of Housekeeping Parameters: Offsets, Currents and Voltages
+                self.hk_t[item][hk_name] = self.hk_t[item][hk_name].unix - self.hk_t[item][hk_name][0].unix
 
         # In the end if there are no sampling problems a message is printed and stored
         if good_sampling:
