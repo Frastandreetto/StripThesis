@@ -12,6 +12,7 @@ import scipy.stats as scs
 import scipy.signal
 
 from astropy.time import Time
+import astropy.units as u
 from datetime import datetime
 from matplotlib import pyplot as plt
 from pathlib import Path
@@ -212,6 +213,16 @@ class Polarimeter:
                       f"There is at least a hole in the sampling: after the normalization, seconds are not significant."
                 logging.error(msg)
                 self.warnings["eo_warning"].append(msg)
+
+    def Fix_Timestamps(self, j_info: {}):
+        """
+        Fix the timestamps assignment applying a jump forward in time.
+        Parameters:\n **j_info** (``{}``) dictionary obtained from the function `find_jump` in the module `f_strip.py`;
+        """
+        for i in range(0, j_info["n"] - 1, 2):
+            print(i)
+            self.times[j_info["idx"][i]+1:j_info["idx"][i+1]+1] +=\
+                u.day * np.mean([np.abs(j_info["value"][i]), np.abs(j_info["value"][i+1])])
 
     def Norm(self, norm_mode: int):
         """
