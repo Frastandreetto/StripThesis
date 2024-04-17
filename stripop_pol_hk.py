@@ -346,7 +346,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
 
     # Printing the elapsed time
     logging.info(f"############################################################################################\n"
-                 f"Elapsed Time: {round(elapsed_time, 2)} s\n"
+                 f"Elapsed Time: {round(elapsed_time, 2)} s ({(round(elapsed_time/60., 2))} min)\n"
                  "############################################################################################\n")
 
     return
