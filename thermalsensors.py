@@ -518,10 +518,11 @@ class Thermal_Sensors:
                 # Changing this parameter allow to reach lower freq in the plot: the limInf of the x-axis is fs/nperseg.
                 f, s = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][sensor_name],
                                           fs=fs, nperseg=min(int(fs * 10 ** 4), self.nperseg_thermal,
-                                                             len(self.ts["thermal_data"]["calibrated"][sensor_name])))
+                                                             len(self.ts["thermal_data"]["calibrated"][sensor_name])),
+                                          scaling="spectrum")
                 # All FFT of TS in one plot
                 if all_in:
-                    axs.plot(f[f < 25.], s[f < 25.],
+                    axs.plot(f, s,
                              linewidth=0.2, label=f"{sensor_name}", marker=".", markersize=6)
                     # XY-axis
                     axs.set_yscale("log")
@@ -532,7 +533,7 @@ class Thermal_Sensors:
                     axs.legend(prop={'size': 9}, loc=3)
                 else:
                     # Plot the periodogram (fft)
-                    axs[i].plot(f[f < 25.], s[f < 25.],
+                    axs[i].plot(f, s,
                                 linewidth=0.2, label=f"{sensor_name}", marker=".", markerfacecolor=color, markersize=4)
 
                     # Subplots properties
