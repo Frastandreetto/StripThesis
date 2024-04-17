@@ -237,7 +237,8 @@ class Polarimeter:
             self.times = np.arange(len(self.times))
         if norm_mode == 1:
             # Outputs vs Seconds
-            self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ
+            # self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ
+            self.times = self.times.unix - self.times[0].unix
         if norm_mode == 2:
             # Outputs vs JHD
             self.times = self.times.value
