@@ -51,6 +51,49 @@ def binning_func(data_array, bin_length: int):
         return new_data_array
 
 
+def down_sampling(v1: [], v2: []) -> []:
+    """
+    Create a new list operating the down-sampling (using median values) on the longest of the two arrays.
+    Parameters:\n
+    - **v1** (``list``): array-like object
+    - **v2** (``list``): array-like object
+    Return:\n
+    A tuple containing two lists: the down-sampled array and the short array.
+    """
+    # Define the lengths of the arrays
+    l1 = len(v1)
+    l2 = len(v2)
+
+    # No down-sampling needed
+    if l1 == l2:
+        # Do nothing, return v1, v2
+        return [v1, v2]
+
+    # Down-sampling procedure
+    else:
+        # Define the length of the down-sampled array
+        len_v = max(l1, l2)
+
+        # Points on which the median will be calculated
+        points_med = int(l1 / l2) if l1 > l2 else int(l2 / l1)
+
+        # Define the array that must be down-sampled
+        long_v = v1 if l1 > l2 else v2
+        # Define the array that won't be manipulated
+        short_v = v2 if l2 > l1 else v1
+
+        # Down-sampling of the longest array
+        down_sampled_data = []
+        for i in range(0, len_v, points_med):
+            group = long_v[i:i + points_med]
+            down_sampled_data.append(np.median(group))
+
+        # Avoid length mismatch
+        down_sampled_data = down_sampled_data[:min(l1, l2)]
+
+        return down_sampled_data, short_v
+
+
 def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
     """
         Create a new file .csv and write the caption of a tabular\n
