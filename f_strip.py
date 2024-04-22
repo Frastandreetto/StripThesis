@@ -1,11 +1,12 @@
 # -*- encoding: utf-8 -*-
-import h5py
+
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2024)
 
 # October 29th 2022, Brescia (Italy) - March 13th 2024, Bologna (Italy)
 
 # Libraries & Modules
+import h5py
 import scipy.signal
 import warnings
 
@@ -51,23 +52,23 @@ def binning_func(data_array, bin_length: int):
         return new_data_array
 
 
-def down_sampling(v1: [], v2: []) -> []:
+def down_sampling(list1: [], list2: [], label1: str, label2: str) -> ():
     """
     Create a new list operating the down-sampling (using median values) on the longest of the two arrays.
     Parameters:\n
-    - **v1** (``list``): array-like object
-    - **v2** (``list``): array-like object
+   - **list1**, **list2** (``list``): array-like objects
+    - **label1**, **label2** (``str``): names of the dataset. Used for labels for future plots.
     Return:\n
-    A tuple containing two lists: the down-sampled array and the short array.
+    A tuple containing: the interpolated array, the long array and the two data labels.
     """
     # Define the lengths of the arrays
-    l1 = len(v1)
-    l2 = len(v2)
+    l1 = len(list1)
+    l2 = len(list2)
 
     # No down-sampling needed
     if l1 == l2:
-        # Do nothing, return v1, v2
-        return [v1, v2]
+        # Do nothing, return list1, list2
+        return [list1, list2]
 
     # Down-sampling procedure
     else:
@@ -78,9 +79,9 @@ def down_sampling(v1: [], v2: []) -> []:
         points_med = int(l1 / l2) if l1 > l2 else int(l2 / l1)
 
         # Define the array that must be down-sampled
-        long_v = v1 if l1 > l2 else v2
-        # Define the array that won't be manipulated
-        short_v = v2 if l2 > l1 else v1
+        long_v, short_v = (list1, list2) if len(list1) > len(list2) else (list2, list1)
+        # Define the correct labels
+        long_label, short_label = (label1, label2) if len(list1) > len(list2) else (label2, label1)
 
         # Down-sampling of the longest array
         down_sampled_data = []
@@ -91,7 +92,41 @@ def down_sampling(v1: [], v2: []) -> []:
         # Avoid length mismatch
         down_sampled_data = down_sampled_data[:min(l1, l2)]
 
-        return down_sampled_data, short_v
+        return down_sampled_data, short_v, long_label, short_label
+
+
+def interpolation(list1: [], list2: [], time1: [], time2: [], label1: str, label2: str) -> ():
+    """
+    Create a new list operating the down-sampling (using median values) on the longest of the two arrays.
+    Parameters:\n
+    - **list1**, **list2** (``list``): array-like objects
+    - **time1**, **time2** (``list``): lists of timestamps: not necessary if the dataset have same length.
+    - **label1**, **label2** (``str``): names of the dataset. Used for labels for future plots.
+    Return:\n
+    A tuple containing: the interpolated array, the long array and the two data labels.
+    """
+    # If the arrays have same lengths, no interpolation needed
+    if len(list1) == len(list2):
+        # Do nothing, return list1, list2, label1 and label2
+        return list1, list2, label1, label2
+
+    # Interpolation procedure
+    else:
+        # Timestamps must be provided
+        if time1 == [] or time2 == []:
+            logging.error("Different sampling frequency: provide timestamps array.")
+            raise SystemExit(1)
+        else:
+            # Find the longest list (x) and the shortest to be interpolated
+            x, short_list, label_x, label_y = (list1, list2, label1, label2) if len(list1) > len(list2) \
+                else (list2, list1, label2, label1)
+            x_t, short_t = (time1, time2) if x is list1 else (time2, time1)
+
+            # Interpolation of the shortest list
+            logging.info("Interpolation of the shortest list.")
+            y = np.interp(x_t, short_t, short_list)
+
+            return x, y, label_x, label_y
 
 
 def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
