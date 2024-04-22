@@ -151,6 +151,7 @@ def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], 
                 x_t, short_t = (time1, time2) if x is list1 else (time2, time1)
 
                 # Interpolation of the shortest list
+                logging.info("Interpolation of the shortest list.")
                 y = np.interp(x_t, short_t, short_list)
         # --------------------------------------------------------------------------------------------------------------
 
@@ -247,6 +248,7 @@ def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], 
                                     short_t = short_t[:lim - 1]
                                     short_list = short_list[:lim - 1]
                                 # Interpolation of the shortest list
+                                logging.info("Interpolation of the shortest list.")
                                 y = np.interp(x_t, short_t, short_list)
 
                                 # Fixing (im)possible length mismatch
@@ -371,11 +373,13 @@ def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], 
                         x_t, short_t = (time1, time2) if x is list1 else (time2, time1)
 
                         # Interpolation of the shortest list
+                        logging.info("Interpolation of the shortest list.")
                         y = np.interp(x_t, short_t, short_list)
 
                 # Arrays with same length
                 else:
                     x = dict1[exit]
+                    logging.info("Interpolation of the shortest list.")
                     y = np.interp(time2, time1, list1)
                     label_x = label1
                     label_y = label2
