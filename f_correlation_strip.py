@@ -16,11 +16,12 @@ from pathlib import Path
 
 # MyLibraries & MyModules
 import polarimeter as pol
+import f_strip as fz
 
 
 def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], time2: [],
                      data_name1: str, data_name2: str, measure_unit1: str, measure_unit2: str,
-                     start_datetime: str, show=False,
+                     start_datetime: str, show=False, down_sampling=True,
                      corr_t=0.4, plot_dir='../RESULTS/PIPELINE') -> []:
     """
         Create a Correlation Plot of two dataset: two list, two dictionaries or one list and one dictionary.\n
@@ -139,29 +140,15 @@ def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], 
         label2 = f"{data_name2} Temperature [K]" if data_name2[0] in ("T", "E") else f"{data_name2} {measure_unit2}"
 
         # --------------------------------------------------------------------------------------------------------------
-        # Arrays with different length must be interpolated
-        if len(list1) != len(list2):
-            if time1 == [] or time2 == []:
-                logging.error("Different sampling frequency: provide timestamps array.")
-                raise SystemExit(1)
-            else:
-                # Find the longest list (x) and the shortest to be interpolated
-                x, short_list, label_x, label_y = (list1, list2, label1, label2) if len(list1) > len(list2) \
-                    else (list2, list1, label2, label1)
-                x_t, short_t = (time1, time2) if x is list1 else (time2, time1)
+        # Arrays with different length must be interpolated or down-sampled
 
-                # Interpolation of the shortest list
-                logging.info("Interpolation of the shortest list.")
-                y = np.interp(x_t, short_t, short_list)
-        # --------------------------------------------------------------------------------------------------------------
+        # Down-sampling
+        if down_sampling:
+            x, y, label_x, label_y = fz.down_sampling(list1, list2, label1, label2)
 
-        # --------------------------------------------------------------------------------------------------------------
-        # Arrays with same length
+        # Interpolation
         else:
-            x = list1
-            y = list2
-            label_x = label1
-            label_y = label2
+            x, y, label_x, label_y = fz.interpolation(list1, list2, label1, label2)
         # --------------------------------------------------------------------------------------------------------------
 
         # --------------------------------------------------------------------------------------------------------------
