@@ -27,9 +27,9 @@ def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], 
         Return a dictionary of warnings that highlights which data are highly correlated.
 
             Parameters:\n
-        - **list1**, **list2** (``list``): lists ([]) of n1 and n2 elements
-        - **dict1**, **dict2** (``dict``): dictionaries ({}) with N1, N2 keys
-        - **time1**, **time2** (``list``): lists ([]) of timestamps: not necessary if the dataset have same length.
+        - **list1**, **list2** (``list``): lists of n1 and n2 elements
+        - **dict1**, **dict2** (``dict``): dictionaries with N1, N2 keys
+        - **time1**, **time2** (``list``): lists of timestamps: not necessary if the dataset have same length.
         - **data_name1**, **data_name2** (``str``): names of the dataset. Used for titles, labels and to save the png.
         - **measure_unit1**, **measure_unit2** (``str``): measure units. Used for labels in the plots.
         - **start_datetime** (``str``): begin date of dataset. Used for the title of the figure and to save the png.
