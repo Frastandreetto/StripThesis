@@ -818,7 +818,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             f'\nCorrelation plot with threshold {corr_t}. '
                             f'\n{n1} - {n2}.')
                         # Store correlation warnings from the correlation plot
-
                         correlation_warnings = fz_c.correlation_plot(list1=[], list2=[],
                                                                      dict1=d1, dict2=d2,
                                                                      time1=list(t1), time2=list(t2),
