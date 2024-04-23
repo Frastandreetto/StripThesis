@@ -148,7 +148,7 @@ def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], 
 
         # Interpolation
         else:
-            x, y, label_x, label_y = fz.interpolation(list1, list2, label1, label2)
+            x, y, label_x, label_y = fz.interpolation(list1, list2, time1, time2, label1, label2)
         # --------------------------------------------------------------------------------------------------------------
 
         # --------------------------------------------------------------------------------------------------------------
@@ -212,48 +212,17 @@ def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], 
                         label2 = f"{data_name2} {c_exit} {measure_unit2}"
 
                         # ----------------------------------------------------------------------------------------------
-                        # CASE 1
-                        # Sub-set of the dictionaries (lists) with different length
-                        # Interpolation needed
-                        if len(sub_set1) != len(sub_set2):
+                        # Sub-set of the dictionaries (lists) with different length must be interpolated or down-sampled
 
-                            # Timestamps arrays must be provided to interpolate
-                            if time1 == [] or time2 == []:
-                                logging.error("Different sampling frequency: provide timestamps array.")
-                                raise SystemExit(1)
+                        # Down-sampling
+                        if down_sampling:
+                            x, y, label_x, label_y = fz.down_sampling(sub_set1, sub_set2, label1, label2)
 
-                            # If the timestamps are provided
-                            else:
-                                # Find the longest sub-set of the dictionary (x) and the shortest to be interpolated
-                                x, short_list, label_x, label_y = (sub_set1, sub_set2, label1, label2) \
-                                    if len(sub_set1) > len(sub_set2) \
-                                    else (sub_set2, sub_set1, label2, label1)
-                                x_t, short_t = (time1, time2) if x is sub_set1 else (time2, time1)
-
-                                if len(short_t) != len(short_list):
-                                    lim = min(len(short_t), len(short_list))
-                                    short_t = short_t[:lim - 1]
-                                    short_list = short_list[:lim - 1]
-                                # Interpolation of the shortest list
-                                y = np.interp(x_t, short_t, short_list)
-
-                                # Fixing (im)possible length mismatch
-                                if len(x) != len(y):
-                                    lim = min(len(x), len(y))
-                                    x = x[:lim - 1]
-                                    y = y[:lim - 1]
-                        # ----------------------------------------------------------------------------------------------
-
-                        # ----------------------------------------------------------------------------------------------
-                        # CASE 2
-                        # Sub-set of the dictionaries (lists) with same length
+                        # Interpolation
                         else:
-                            x = dict1[r_exit]
-                            y = dict2[c_exit]
-                            label_x = label1
-                            label_y = label2
+                            x, y, label_x, label_y = fz.interpolation(sub_set1, sub_set2, time1, time2, label1, label2)
                         # ----------------------------------------------------------------------------------------------
-
+                        # Plot dict1 vs dict2 (each subset1 vs subset2)
                         axs[r, c].plot(x, y, "*", color="teal", label="Corr Data")
 
                         # Subplot title
@@ -345,28 +314,15 @@ def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], 
                 label2 = f"{data_name2} {measure_unit2}"
 
                 # Arrays with different length must be interpolated
-                if len(list1) != len(sub_set1):
-                    # Timestamps arrays must be provided to interpolate
-                    if time1 == [] or time2 == []:
-                        logging.error("Different sampling frequency: provide timestamps arrays.")
-                        raise SystemExit(1)
-                    # If the timestamps are provided
-                    else:
-                        # Find the longest list (x) and the shortest to be interpolated
-                        x, short_list, label_x, label_y = (list1, sub_set1, label1, label2) if len(
-                            list1) > len(sub_set1) \
-                            else (sub_set1, list1, label2, label1)
-                        x_t, short_t = (time1, time2) if x is list1 else (time2, time1)
 
-                        # Interpolation of the shortest list
-                        y = np.interp(x_t, short_t, short_list)
+                # Down-sampling
+                if down_sampling:
+                    x, y, label_x, label_y = fz.down_sampling(list1, sub_set1, label1, label2)
 
-                # Arrays with same length
+                # Interpolation
                 else:
-                    x = dict1[exit]
-                    y = np.interp(time2, time1, list1)
-                    label_x = label1
-                    label_y = label2
+                    x, y, label_x, label_y = fz.interpolation(list1, sub_set1, time1, time2, label1, label2)
+                # ------------------------------------------------------------------------------------------------------
 
                 # Plotting the data
                 axs[c].plot(x, y, "*", color="lawngreen", label="Corr Data")
