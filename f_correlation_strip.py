@@ -38,6 +38,9 @@ def correlation_plot(list1: [], list2: [], dict1: dict, dict2: dict, time1: [], 
         - **show** (``bool``):\n
             *True* -> show the plot and save the figure\n
             *False* -> save the figure only
+        - **down_sampling** (``bool``):\n
+            *True* -> down-sampling between arrays with mismatched length is computed\n
+            *False* -> interpolation between arrays with mismatched length is computed\n
         - **corr_t** (``float``): LimSup for the corr value between two dataset: if overcome a warning is produced.
         - **plot_dir** (``str``): path where the plots are organized in directories and saved.
     """
