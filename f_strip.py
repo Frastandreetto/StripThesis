@@ -212,7 +212,8 @@ def mob_mean(v, smooth_len: int):
 def demodulate_array(array: list, type: str) -> list:
     """
         Demodulation over an array\n
-        Calculate the double demodulation at 50Hz of the dataset provided\n
+        Calculate the double demodulation of the dataset.
+        Depending on the type provided, consecutive means or differences are computed.
             Parameters:\n
         - **array** (``list``): array-like dataset
         - **type** (``str``) of data *"DEM"* or *"PWR"*
@@ -231,7 +232,8 @@ def demodulate_array(array: list, type: str) -> list:
 def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0, end=-1) -> Dict[str, Any]:
     """
         Demodulation\n
-        Calculate the double demodulation at 50Hz of the dataset provided\n
+        Calculate the double demodulation of the dataset.
+        Depending on the type provided, consecutive means or differences are computed.\n
         Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data\n
             Parameters:\n
         - **dataset** (``dict``): dictionary ({}) containing the dataset with the output of a polarimeter
