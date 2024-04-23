@@ -1028,6 +1028,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # Loading thermal measures
             ts_0.Load_TS()
             ts_1.Load_TS()
+            # Cleaning thermal measures from Nan values
+            ts_0.Clean_TS()
+            ts_1.Clean_TS()
             # Normalizing thermal times
             _ = ts_0.Norm_TS()
             _ = ts_1.Norm_TS()
