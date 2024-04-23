@@ -825,6 +825,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                                      measure_unit1=f"{u1}", measure_unit2=f"{u2}",
                                                                      start_datetime=start_datetime,
                                                                      show=False,
+                                                                     down_sampling=True,
                                                                      corr_t=corr_t,
                                                                      plot_dir=output_plot_dir)
                         # [MD] Collecting correlation warnings
@@ -957,6 +958,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                                      measure_unit1=f"{u1}", measure_unit2=f"{u2}",
                                                                      start_datetime=start_datetime,
                                                                      show=False,
+                                                                     down_sampling=True,
                                                                      corr_t=corr_t,
                                                                      plot_dir=output_plot_dir)
                         # [MD] Collecting correlation warnings
