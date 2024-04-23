@@ -67,8 +67,8 @@ def down_sampling(list1: [], list2: [], label1: str, label2: str) -> ():
 
     # No down-sampling needed
     if l1 == l2:
-        # Do nothing, return list1, list2
-        return [list1, list2]
+        # Do nothing, return list1, list2, label1 and label2
+        return list1, list2, label1, label2
 
     # Down-sampling procedure
     else:
