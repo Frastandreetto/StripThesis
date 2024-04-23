@@ -77,18 +77,21 @@ class Polarimeter:
                               "VG4_HK", "VD4_HK", "VD5_HK", "VG5_HK"],
                         "I": ["IG0_HK", "ID0_HK", "IG1_HK", "ID1_HK", "IG2_HK", "ID2_HK", "IG3_HK", "ID3_HK",
                               "IG4_HK", "ID4_HK", "IG5_HK", "ID5_HK"],
-                        "O": ["DET0_OFFS", "DET1_OFFS", "DET2_OFFS", "DET3_OFFS"]
+                        "O": ["DET0_OFFS", "DET1_OFFS", "DET2_OFFS", "DET3_OFFS"],
+                        "M": ["POL_MODE"]
                         }
-        # Dictionaries for HK parameters: Tensions, Currents and Offsets
+        # Dictionaries for HK parameters: Tensions, Currents, Offsets, Pol_Mode
         tensions = {}
         currents = {}
         offset = {}
+        pol_mode = {}
         # Dictionaries for timestamps of HK parameters
         t_tensions = {}
         t_currents = {}
         t_offset = {}
-        self.hk = {"V": tensions, "I": currents, "O": offset}
-        self.hk_t = {"V": t_tensions, "I": t_currents, "O": t_offset}
+        t_pol_mode = {}
+        self.hk = {"V": tensions, "I": currents, "O": offset, "M": pol_mode}
+        self.hk_t = {"V": t_tensions, "I": t_currents, "O": t_offset, "M": t_pol_mode}
 
         # Warnings lists
         time_warning = []
@@ -221,8 +224,8 @@ class Polarimeter:
         """
         for i in range(0, j_info["n"] - 1, 2):
             print(i)
-            self.times[j_info["idx"][i]+1:j_info["idx"][i+1]+1] +=\
-                u.day * np.mean([np.abs(j_info["value"][i]), np.abs(j_info["value"][i+1])])
+            self.times[j_info["idx"][i] + 1:j_info["idx"][i + 1] + 1] += \
+                u.day * np.mean([np.abs(j_info["value"][i]), np.abs(j_info["value"][i + 1])])
 
     def Norm(self, norm_mode: int):
         """
@@ -304,12 +307,14 @@ class Polarimeter:
     # ------------------------------------------------------------------------------------------------------------------
     def Load_HouseKeeping(self):
         """
-        Load all House-Keeping parameters using the module load_hk, taking the names from the list in the constructor.
+        Load House-Keeping parameters using the module load_hk of the striptease library.
+        Take the names of the HK parameters from the list in the constructor.
         """
-        group = "BIAS"
+        # Iterate over items I, V, O, M
         for item in self.hk_list.keys():
-            if item == "O":
-                group = "DAQ"
+            # Define the correct group of HK
+            group = "DAQ" if item == "O" else "BIAS"
+            # Iterate over specific HK
             for hk_name in self.hk_list[item]:
                 self.hk_t[item][hk_name], self.hk[item][hk_name] = self.ds.load_hk(mjd_range=self.date,
                                                                                    group=group,
@@ -395,7 +400,8 @@ class Polarimeter:
         # Initialize a dict for the results of the analysis of the HK
         results = {"max": hk_max, "min": hk_min, "mean": mean, "dev_std": dev_std, "nan_percent": nan_percent}
 
-        for item in self.hk_list.keys():
+        # Cycle over the HK (excluding the "M": POL_MODE)
+        for item in (k for k in self.hk_list.keys() if k != "M"):
             for hk_name in self.hk_list[item]:
                 results["nan_percent"][item][hk_name] = 0.
 
@@ -445,7 +451,8 @@ class Polarimeter:
         # Initialize a list to contain the csv table
         csv_table = []
 
-        for item in self.hk_list.keys():
+        # Cycle over the HK (excluding the "M": POL_MODE)
+        for item in (k for k in self.hk_list.keys() if k != "M"):
             # Tension V
             if item == "V":
                 unit = "[mV]"
@@ -527,8 +534,9 @@ class Polarimeter:
         # Initialize a boolean variable: if true, no jumps occurred
         good_sampling = True
 
-        # Find jumps in the timestamps of the HK parameters
-        for item in self.hk_list.keys():
+        # Find jumps in the timestamps of the HK parameters: V, I, O
+        # Cycle over the HK (excluding the "M": POL_MODE)
+        for item in (k for k in self.hk_list.keys() if k != "M"):
             for hk_name in self.hk_list[item]:
                 jumps = fz.find_jump(self.hk_t[item][hk_name],
                                      exp_med=sam_exp_med[item], tolerance=sam_tolerance[item])
@@ -590,21 +598,18 @@ class Polarimeter:
             Parameters:\n
 
             - **hk_kind** (``str``): defines the hk to plot.
-            *V* -> Drain Voltage and Gate Voltage
-
-            *I* -> Drain Current and Gate Current
-
-            *O* -> the Offsets
-
+            *V* -> Drain Voltage and Gate Voltage\n
+            *I* -> Drain Current and Gate Current\n
+            *O* -> the Offsets\n
+            *M* -> the Modality of biasing of the amplifiers: open or closed loop\n
             - **show** (``bool``):
-            *True* -> show the plot and save the figure
-
-            *False* -> save the figure only
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only\n
         """
         # --------------------------------------------------------------------------------------------------------------
         # Step 1: define data
-        if hk_kind not in ["V", "I", "O"]:
-            logging.error(f"Wrong name: no HK parameters is defined by {hk_kind}. Choose between V, I or O.")
+        if hk_kind not in ["V", "I", "O", "M"]:
+            logging.error(f"Wrong name: no HK parameters is defined by {hk_kind}. Choose between V, I, O or M.")
             raise SystemExit(1)
 
         # Voltage
@@ -631,6 +636,14 @@ class Polarimeter:
             n_col = 2
             fig_size = (8, 8)
 
+        # Pol Mode
+        elif hk_kind == "M":
+            col = "crimson"
+            label = "Modality [ADU]"
+            n_rows = 1
+            n_col = 1
+            fig_size = (4, 4)
+
         # Nothing else
         else:
             col = "black"
@@ -646,35 +659,50 @@ class Polarimeter:
         for i in range(n_rows):
             for j in range(n_col):
 
+                # Set plot title
+                plot_title = f"{hk_name[2 * i + j]}"
+
+                # Check length mismatch
                 l1 = len(self.hk_t[hk_kind][hk_name[2 * i + j]])
                 l2 = len(self.hk[hk_kind][hk_name[2 * i + j]])
-
-                # Check the len of the plotted hk
                 if l1 != l2:
                     msg = f"The House-Keeping: {hk_name[2 * i + j]} has a sampling problem.\n"
                     logging.error(msg)
                     self.warnings["time_warning"].append(msg + "<br />")
 
-                axs[i, j].scatter(self.hk_t[hk_kind][hk_name[2 * i + j]][:min(l1, l2)],
-                                  self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)], marker=".", color=col)
-                # X-Axis
-                axs[i, j].set_xlabel("Time [s]")
-                # Y-Axis
-                axs[i, j].set_ylabel(f"{label}")
+                # Modality of Biasing Open-Closed Loop
+                if hk_kind == "M":
+                    axs.scatter(self.hk_t[hk_kind][hk_name[2 * i + j]][:min(l1, l2)],
+                                self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)], marker=".", color=col)
+                    # X-Axis
+                    axs.set_xlabel("Time [s]")
+                    # Y-Axis
+                    axs.set_ylabel(f"{label}")
+                    # Title
+                    axs.set_title(plot_title, size=10)
 
-                # Calculate Plot Statistics
-                # mean
-                m = round(np.mean(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
-                # std deviation
-                std = round(np.std(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
-                # Max value
-                max_val = round(max(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
-                # Min value
-                min_val = round(min(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
+                # Other HK: V, I, O
+                else:
+                    axs[i, j].scatter(self.hk_t[hk_kind][hk_name[2 * i + j]][:min(l1, l2)],
+                                      self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)], marker=".", color=col)
 
-                # Title
-                axs[i, j].set_title(f"{hk_name[2 * i + j]}\n"
-                                    f"$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}", size=10)
+                    # Calculate Plot Statistics
+                    # mean
+                    m = round(np.mean(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
+                    # std deviation
+                    std = round(np.std(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
+                    # Max value
+                    max_val = round(max(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
+                    # Min value
+                    min_val = round(min(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
+                    plot_title += f"\n$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}"
+
+                    # X-Axis
+                    axs[i, j].set_xlabel("Time [s]")
+                    # Y-Axis
+                    axs[i, j].set_ylabel(f"{label}")
+                    # Title
+                    axs[i, j].set_title(plot_title, size=10)
 
         # Creating the name of the png file
         name_file = f"{self.name}_HK_{hk_kind}"
@@ -798,7 +826,7 @@ class Polarimeter:
                     samples_number = samples_number
                 else:
                     # Add 1 s of samples
-                    samples_number += 1*fs
+                    samples_number += 1 * fs
 
                 # Create the frequency array in the range between the f_i and the f_f
                 freq = np.arange(samples_number) * (f_f - f_i) / (samples_number - 1) + f_i

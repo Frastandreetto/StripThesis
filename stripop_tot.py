@@ -416,14 +416,14 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                          f"CSV Report updated: HK {np} Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
-            # Plots of the Bias HK (Tensions and Currents) and of the Offsets
+            # Plots of HK: Bias Tensions (V) and Currents (I), Offsets (O) and Modality of biasing (M)
             logging.info('Plotting Bias HK and Offsets.')
-            for hk_kind in ["I", "V", "O"]:
+            for hk_kind in p.hk_list.keys():
                 p.Plot_Housekeeping(hk_kind=hk_kind, show=False)
 
             # ----------------------------------------------------------------------------------------------------------
             # [MD] REPORT HK
-            # ----------------------------------------------------------------------------------------------------------
+            # ---------------------------------------------------g-------------------------------------------------------
             logging.info(f"\nOnce ready, I will put the HK report into: {output_report_dir}.")
 
             # Updating the report_data dict
