@@ -128,7 +128,7 @@ class Thermal_Sensors:
 
     def Clean_TS(self):
         """
-        Clean all Thermal Sensor's data removing those whose acquisition presents Nan values
+        Clean all Thermal Sensor measures removing those whose acquisition presents Nan values
         """
         # Find TS with Nan values
         problematic_TS = []
