@@ -423,7 +423,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
             # ----------------------------------------------------------------------------------------------------------
             # [MD] REPORT HK
-            # ---------------------------------------------------g-------------------------------------------------------
+            # ----------------------------------------------------------------------------------------------------------
             logging.info(f"\nOnce ready, I will put the HK report into: {output_report_dir}.")
 
             # Updating the report_data dict
@@ -774,7 +774,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             # Output vs TS_status 0 or 1
                             (p.data[type], p.times, f"{np}_{type}", "Output [ADU]",
                              p.hk[item], p.hk_t[item][first_hk],
-                             f"Bias_{item}", f"{unit}")
+                             f"{np}_Bias_{item}", f"{unit}")
                         ])
 
                 # ------------------------------------------------------------------------------------------------------
@@ -891,13 +891,13 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # Note: time is fixed for all I and V: hence the timestamps are defined by the first HK parameter
                 possible_combos.extend([
                     # I vs V
-                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], "Bias_I", "[µA]",
-                     p.hk["V"], p.hk_t["V"]["VD0_HK"], "Bias_V", "[mV]"),
+                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], f"{np}_Bias_I", "[µA]",
+                     p.hk["V"], p.hk_t["V"]["VD0_HK"], f"{np}_Bias_V", "[mV]"),
                     # I Self Correlations
-                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], "Bias_I", "[µA]",
+                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], f"{np}_Bias_I", "[µA]",
                      {}, [], "Self_Corr", "[µA]"),
                     # V Self Correlations
-                    (p.hk["V"], p.hk_t["V"]["VD0_HK"], "Bias_V", "[mV]",
+                    (p.hk["V"], p.hk_t["V"]["VD0_HK"], f"{np}_Bias_V", "[mV]",
                      {}, [], "Self_Corr", "[mV]")
                 ])
 
@@ -925,11 +925,11 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         # Collecting all possible combinations of Hk with TS
                         possible_combos.extend([
                             # Bias Currents I vs TS status 0 or 1
-                            (p.hk["I"], p.hk_t["I"]["ID0_HK"], "Bias_I", "[µA]",
+                            (p.hk["I"], p.hk_t["I"]["ID0_HK"], f"{np}_Bias_I", "[µA]",
                              TS.ts["thermal_data"]["calibrated"], TS.ts["thermal_times"],
                              f"TS_status_{status}", "Temperature [K]"),
                             # Bias Voltages V vs TS status 0 or 1
-                            (p.hk["V"], p.hk_t["V"]["VD0_HK"], "Bias_V", "[mV]",
+                            (p.hk["V"], p.hk_t["V"]["VD0_HK"], f"{np}_Bias_V", "[mV]",
                              TS.ts["thermal_data"]["calibrated"], TS.ts["thermal_times"],
                              f"TS_status_{status}", "Temperature [K]")
                         ])
