@@ -22,8 +22,8 @@ name_pol= "B0" # Set 'all' to parse all 55 polarimeters
 toml_file_path = "pipeline/config/validation_config/config_pol_hk.toml"
 
 # HK Analysis
-hk_sam_exp_med = "1.4, 1.4, 60.0"
-hk_sam_tolerance = "0.1, 0.1, 0.5"
+hk_sam_exp_med = "1.4, 1.4, 60.0, 60., 60."
+hk_sam_tolerance = "0.1, 0.1, 0.5, 0.5, 0.5"
 
 # Correlation Analysis
 corr_plot= "true"
