@@ -9,9 +9,9 @@
 # Positional Arguments (mandatory)
 ########################################################################################################################
 subcommand = 'pol_hk'
-path_file =  '/mnt/storage/data/HDF5'
-start_datetime='2024-02-02 23:00:00'
-end_datetime='2024-02-02 23:05:00'
+path_file =  '../data_test/'     # '/mnt/storage/data/HDF5'
+start_datetime='2024-02-02 20:00:00'
+end_datetime='2024-02-03 00:00:00'
 name_pol= "B0" # Set 'all' to parse all 55 polarimeters
 
 ########################################################################################################################
@@ -22,6 +22,7 @@ name_pol= "B0" # Set 'all' to parse all 55 polarimeters
 toml_file_path = "pipeline/config/validation_config/config_pol_hk.toml"
 
 # HK Analysis
+# HK properties: V, I, O, M, P
 hk_sam_exp_med = "1.4, 1.4, 60.0, 60., 60."
 hk_sam_tolerance = "0.1, 0.1, 0.5, 0.5, 0.5"
 

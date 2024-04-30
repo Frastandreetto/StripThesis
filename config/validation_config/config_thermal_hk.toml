@@ -9,9 +9,9 @@
 # Positional Arguments (mandatory)
 ########################################################################################################################
 subcommand = 'thermal_hk'
-path_file =  '/mnt/storage/data/HDF5'
-start_datetime='2024-02-02 23:00:00'
-end_datetime='2024-02-02 23:20:00'
+path_file =  '../data_test/'     # '/mnt/storage/data/HDF5'
+start_datetime='2024-02-02 20:00:00'
+end_datetime='2024-02-03 00:00:00'
 
 ########################################################################################################################
 # Flags (optional)
@@ -34,8 +34,8 @@ corr_t=0.4
 
 # Spectral Analysis
 fourier="true"
-# To reach a min freq of 10^-4 this is the nperseg requested
-nperseg_thermal=500
+# To reach a min freq of ~10^-3 this is the nperseg requested
+nperseg_thermal=50
 
 # Spike Analysis
 spike_data="true"
