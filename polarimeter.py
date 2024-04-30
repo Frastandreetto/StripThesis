@@ -455,7 +455,7 @@ class Polarimeter:
         csv_table = []
 
         # Cycle over the HK (excluding the "M": POL_MODE)
-        for item in (k for k in self.hk_list.keys() if k != "M"):
+        for item in (k for k in self.hk_list.keys() if k not in ["M", "P"]):
             # Tension V
             if item == "V":
                 unit = "[mV]"
