@@ -498,7 +498,7 @@ class Thermal_Sensors:
         if all_in:
             fig, axs = plt.subplots(nrows=1, ncols=1, constrained_layout=True, figsize=(15, 10))
         else:
-            fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(15, 10))
+            fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(15, 15))
 
         # Set the title of the figure
         fig.suptitle(f'Plot Thermal Sensors FFT status {self.status}- Date: {self.gdate[0]}', fontsize=15)

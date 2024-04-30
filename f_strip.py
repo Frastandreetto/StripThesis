@@ -899,7 +899,7 @@ def data_plot(pol_name: str,
                             f, s = scipy.signal.welch(rms_sd, fs=50, nperseg=min(len(rms_sd), nperseg),
                                                       scaling="spectrum")
                             axs[row, col].plot(f[f < 25.], s[f < 25.],
-                                               linewidth=0.2, marker=".", color="mediumvioletred",
+                                               linewidth=0.2, marker=".", markersize=2, color="mediumvioletred",
                                                label=f"{name_plot[3:]}")
                         # ----------------------------------------------------------------------------------------------
 
@@ -921,6 +921,7 @@ def data_plot(pol_name: str,
 
                             # Plot RMS
                             axs[row, col].plot(sci_data["times"][begin:len(rms_sd) + begin], rms_sd,
+                                               linewidth=0.2, marker=".", markersize=2,
                                                color="mediumvioletred", label=f"{name_plot[3:]}")
                         # ----------------------------------------------------------------------------------------------
                     # --------------------------------------------------------------------------------------------------
@@ -934,7 +935,7 @@ def data_plot(pol_name: str,
                                                       nperseg=min(len(sci_data["sci_data"][exit][begin:end]), nperseg),
                                                       scaling="spectrum")
                             axs[row, col].plot(f[f < 25.], s[f < 25.],
-                                               linewidth=0.2, marker=".", color="mediumpurple",
+                                               linewidth=0.2, marker=".", markersize=2, color="mediumpurple",
                                                label=f"{name_plot[3:]}")
 
                         # Plot of the SciData DEMODULATED/TOTPOWER -----------------------------------------------------
@@ -954,6 +955,7 @@ def data_plot(pol_name: str,
 
                             # Plot SciData
                             axs[row, col].plot(sci_data["times"][begin:len(y) + begin], y,
+                                               linewidth=0.2, marker=".", markersize=2,
                                                color="mediumpurple", label=f"{name_plot[3:]}")
                     # --------------------------------------------------------------------------------------------------
 
@@ -997,17 +999,20 @@ def data_plot(pol_name: str,
                                     f, s = scipy.signal.welch(rms_even, fs=50, nperseg=min(len(rms_even), nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
-                                                       linewidth=0.2, marker=".", alpha=even, label=f"Even samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=even, label=f"Even samples")
                                 if odd:
                                     f, s = scipy.signal.welch(rms_odd, fs=50, nperseg=min(len(rms_odd), nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
-                                                       linewidth=0.2, marker=".", alpha=odd, label=f"Odd samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=odd, label=f"Odd samples")
                                 if all:
                                     f, s = scipy.signal.welch(rms_all, fs=100, nperseg=min(len(rms_all), nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
-                                                       linewidth=0.2, marker=".", alpha=all, label="All samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=all, label="All samples")
                             # ------------------------------------------------------------------------------------------
 
                             # ------------------------------------------------------------------------------------------
@@ -1016,7 +1021,8 @@ def data_plot(pol_name: str,
                                 if even:
                                     axs[row, col].plot(timestamps[begin:end - 1:2][:-window - smooth_len + 1],
                                                        mob_mean(rms_even, smooth_len=smooth_len)[:-1],
-                                                       color="royalblue", marker=".", alpha=even, label="Even Output")
+                                                       color="royalblue", linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=even, label="Even Output")
                                     # Plot Statistics
                                     # Mean
                                     m += f"\nEven = {round(np.mean(rms_even), 2)}"
@@ -1026,7 +1032,8 @@ def data_plot(pol_name: str,
                                 if odd:
                                     axs[row, col].plot(timestamps[begin + 1:end:2][:-window - smooth_len + 1],
                                                        mob_mean(rms_odd, smooth_len=smooth_len)[:-1],
-                                                       color="crimson", marker=".", alpha=odd, label="Odd Output")
+                                                       color="crimson", linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=odd, label="Odd Output")
                                     # Plot Statistics
                                     # Mean
                                     m += f"\nOdd = {round(np.mean(rms_odd), 2)}"
@@ -1036,6 +1043,7 @@ def data_plot(pol_name: str,
                                 if all != 0:
                                     axs[row, col].plot(timestamps[begin:end][:-window - smooth_len + 1],
                                                        mob_mean(rms_all, smooth_len=smooth_len)[:-1],
+                                                       linewidth=0.2, marker=".", markersize=2,
                                                        color="forestgreen", alpha=all, label="All Output")
                                     # Plot Statistics
                                     # Mean
@@ -1057,20 +1065,23 @@ def data_plot(pol_name: str,
                                                                           nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
-                                                       linewidth=0.2, marker=".", alpha=even, label="Even samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=even, label="Even samples")
                                 if odd:
                                     f, s = scipy.signal.welch(dataset[type][exit][begin + 1:end:2], fs=50,
                                                               nperseg=min(len(dataset[type][exit][begin + 1:end:2]),
                                                                           nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
-                                                       linewidth=0.2, marker=".", alpha=odd, label="Odd samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=odd, label="Odd samples")
                                 if all:
                                     f, s = scipy.signal.welch(dataset[type][exit][begin:end], fs=100,
                                                               nperseg=min(len(dataset[type][exit][begin:end]), nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
-                                                       linewidth=0.2, marker=".", alpha=all, label="All samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=all, label="All samples")
                             # ------------------------------------------------------------------------------------------
 
                             # ------------------------------------------------------------------------------------------
@@ -1081,8 +1092,8 @@ def data_plot(pol_name: str,
                                         axs[row, col].plot(timestamps[begin:end - 1:2][:- smooth_len],
                                                            mob_mean(dataset[type][exit][begin:end - 1:2],
                                                                     smooth_len=smooth_len)[:-1],
-                                                           color="royalblue", marker=".", alpha=even,
-                                                           label="Even Output")
+                                                           color="royalblue", linewidth=0.2, marker=".", markersize=2,
+                                                           alpha=even, label="Even Output")
 
                                         # Plot Statistics
                                         # Mean
@@ -1094,7 +1105,8 @@ def data_plot(pol_name: str,
                                         axs[row, col].plot(timestamps[begin + 1:end:2][:- smooth_len],
                                                            mob_mean(dataset[type][exit][begin + 1:end:2],
                                                                     smooth_len=smooth_len)[:-1],
-                                                           color="crimson", marker=".", alpha=odd, label="Odd Output")
+                                                           color="crimson", linewidth=0.2, marker=".", markersize=2,
+                                                           alpha=odd, label="Odd Output")
                                         # Plot Statistics
                                         # Mean
                                         m += f"\nOdd = {round(np.mean(dataset[type][exit][begin + 1:end:2]), 2)}"
@@ -1105,7 +1117,8 @@ def data_plot(pol_name: str,
                                         axs[row, col].plot(timestamps[begin:end][:- smooth_len],
                                                            mob_mean(dataset[type][exit][begin:end],
                                                                     smooth_len=smooth_len)[:-1],
-                                                           color="forestgreen", alpha=all, label="All Output")
+                                                           color="forestgreen", linewidth=0.2, marker=".", markersize=2,
+                                                           alpha=all, label="All Output")
                                         # Plot Statistics
                                         # Mean
                                         m += f"\nAll = {round(np.mean(dataset[type][exit][begin:end]), 2)}"
