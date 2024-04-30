@@ -3,7 +3,7 @@
 # This file contains the function "tot" that operates a complete analysis of a provided group of polarimeters.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
 
-# August 14th 2023, Brescia (Italy) - April 15th 2024, Brescia (Italy)
+# August 14th 2023, Brescia (Italy) - April 30th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import csv
@@ -416,7 +416,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                          f"CSV Report updated: HK {np} Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
-            # Plots of HK: Bias Tensions (V) and Currents (I), Offsets (O) and Modality of biasing (M)
+            # Plots of HK: Bias Tensions (V) and Currents (I), Offsets (O),
+            # Modality of biasing (M) and Phase Switch Modality (P)
             logging.info('Plotting Bias HK and Offsets.')
             for hk_kind in p.hk_list.keys():
                 p.Plot_Housekeeping(hk_kind=hk_kind, show=False)

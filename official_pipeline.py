@@ -4,7 +4,7 @@
 # This file contains the new LSPE-Strip official pipeline for functional verification.
 # It includes different analysis modalities: total analysis, housekeeping analysis and thermal analysis
 
-# July 23rd 2023, Brescia (Italy) - April 15th 2024, Brescia (Italy)
+# July 23rd 2023, Brescia (Italy) - April 30th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import argparse
@@ -156,12 +156,12 @@ def main():
     # Sampling Parameters ----------------------------------------------------------------------------------------------
     # Housekeeping Sampling Expected Median
     common_parser.add_argument('--hk_sam_exp_med', '-hk_sem',
-                               type=lambda x: [float(val) for val in x.split(',')], default=[1.4, 1.4, 60., 60.],
+                               type=lambda x: [float(val) for val in x.split(',')], default=[1.4, 1.4, 60., 60., 60.],
                                help='Contains the exp sampling delta between two consecutive timestamps of the hk. '
                                     '(default: %(default)s)', metavar='')
     # Housekeeping Sampling Tolerance
     common_parser.add_argument('--hk_sam_tolerance', '-hk_st',
-                               type=lambda x: [float(val) for val in x.split(',')], default=[0.1, 0.1, 0.5, 0.5],
+                               type=lambda x: [float(val) for val in x.split(',')], default=[0.1, 0.1, 0.5, 0.5, 0.5],
                                help='Contains the acceptance sampling tolerances of the hk parameters: I,V,O. '
                                     '(default: %(default)s)', metavar='')
     # Thermal Sensors Sampling Expected Median
@@ -560,9 +560,11 @@ def main():
 
     # Store the values into a dict
     hk_sam_exp_med = {"I": args.hk_sam_exp_med[0], "V": args.hk_sam_exp_med[1],
-                      "O": args.hk_sam_exp_med[2], "M": args.hk_sam_exp_med[3]}
+                      "O": args.hk_sam_exp_med[2], "M": args.hk_sam_exp_med[3],
+                      "P": args.hk_sam_exp_med[4]}
     hk_sam_tolerance = {"I": args.hk_sam_tolerance[0], "V": args.hk_sam_tolerance[1],
-                        "O": args.hk_sam_tolerance[2], "M": args.hk_sam_tolerance[3]}
+                        "O": args.hk_sam_tolerance[2], "M": args.hk_sam_tolerance[3],
+                        "P": args.hk_sam_tolerance[4]}
 
     # Thermal Sensors Sampling Expected Median -------------------------------------------------------------------------
     # Check if the parameter is a float
