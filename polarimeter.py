@@ -964,7 +964,7 @@ class Polarimeter:
             min_val = round(min(self.data[type][exit][begin:end]), 4)
 
             # Plot of DEM/PWR Outputs
-            ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
+            ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*",  markersize=0.005, linestyle=" ")
             # Title
             ax.set_title(f"{exit}\n$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}", size=14)
             # X-Axis
