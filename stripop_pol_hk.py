@@ -200,7 +200,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
                      f"CSV Report updated: HK {np} Table written.\n####################\n")
         # ----------------------------------------------------------------------------------------------------------
 
-        # Plots of the Bias HK (Tensions and Currents) and of the Offsets
+        # Plots of the Bias HK (Voltages and Currents) and of the Offsets
         logging.info(f'Polarimeter {np}: Plotting Bias HK and Offsets.\n')
         for hk_kind in p.hk_list.keys():
             p.Plot_Housekeeping(hk_kind=hk_kind, show=False)

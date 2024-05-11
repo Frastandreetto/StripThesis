@@ -416,7 +416,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                          f"CSV Report updated: HK {np} Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
-            # Plots of HK: Bias Tensions (V) and Currents (I), Offsets (O),
+            # Plots of HK: Bias Voltages (V) and Currents (I), Offsets (O),
             # Modality of biasing (M) and Phase Switch Modality (P)
             logging.info('Plotting Bias HK and Offsets.')
             for hk_kind in p.hk_list.keys():

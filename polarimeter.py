@@ -81,7 +81,7 @@ class Polarimeter:
                         "M": ["POL_MODE"],
                         "P": ["PIN0_CON", "PIN1_CON", "PIN2_CON", "PIN3_CON"]
                         }
-        # Dictionaries for HK parameters: Tensions, Currents, Offsets, Pol_Mode, Pin_Con
+        # Dictionaries for HK parameters: Voltages, Currents, Offsets, Pol_Mode, Pin_Con
         tensions = {}
         currents = {}
         offset = {}
@@ -456,10 +456,10 @@ class Polarimeter:
 
         # Cycle over the HK (excluding the "M": POL_MODE)
         for item in (k for k in self.hk_list.keys() if k not in ["M", "P"]):
-            # Tension V
+            # Voltage V
             if item == "V":
                 unit = "[mV]"
-                title = f"Tension {unit}"
+                title = f"Voltage {unit}"
             # Current I
             elif item == "I":
                 unit = "[&mu;A]"
