@@ -667,7 +667,7 @@ class Polarimeter:
         hk_name = self.hk_list[hk_kind]
 
         fig, axs = plt.subplots(nrows=n_rows, ncols=n_col, constrained_layout=True, figsize=fig_size, sharey='row')
-        fig.suptitle(f'Plot {self.name} Housekeeping parameters: {hk_kind} - Date: {self.gdate[0]}', fontsize=14)
+        fig.suptitle(f'Plot {self.name} Housekeeping parameters: {hk_kind}\nDate: {self.gdate[0]}', fontsize=14)
         for i in range(n_rows):
             for j in range(n_col):
 

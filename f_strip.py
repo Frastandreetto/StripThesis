@@ -1092,8 +1092,9 @@ def data_plot(pol_name: str,
                                         axs[row, col].plot(timestamps[begin:end - 1:2][:- smooth_len],
                                                            mob_mean(dataset[type][exit][begin:end - 1:2],
                                                                     smooth_len=smooth_len)[:-1],
-                                                           color="royalblue", linewidth=0.2, marker=".", markersize=2,
-                                                           alpha=even, label="Even Output")
+                                                           color="royalblue", alpha=even,
+                                                           marker="*", markersize=0.005, linestyle=" ",
+                                                           label="Even Output")
 
                                         # Plot Statistics
                                         # Mean
@@ -1105,8 +1106,9 @@ def data_plot(pol_name: str,
                                         axs[row, col].plot(timestamps[begin + 1:end:2][:- smooth_len],
                                                            mob_mean(dataset[type][exit][begin + 1:end:2],
                                                                     smooth_len=smooth_len)[:-1],
-                                                           color="crimson", linewidth=0.2, marker=".", markersize=2,
-                                                           alpha=odd, label="Odd Output")
+                                                           color="crimson", alpha=odd,
+                                                           marker="*", markersize=0.005, linestyle=" ",
+                                                           label="Odd Output")
                                         # Plot Statistics
                                         # Mean
                                         m += f"\nOdd = {round(np.mean(dataset[type][exit][begin + 1:end:2]), 2)}"
@@ -1117,8 +1119,9 @@ def data_plot(pol_name: str,
                                         axs[row, col].plot(timestamps[begin:end][:- smooth_len],
                                                            mob_mean(dataset[type][exit][begin:end],
                                                                     smooth_len=smooth_len)[:-1],
-                                                           color="forestgreen", linewidth=0.2, marker=".", markersize=2,
-                                                           alpha=all, label="All Output")
+                                                           color="forestgreen", alpha=all,
+                                                           marker="*", markersize=0.005, linestyle=" ",
+                                                           label="All Output")
                                         # Plot Statistics
                                         # Mean
                                         m += f"\nAll = {round(np.mean(dataset[type][exit][begin:end]), 2)}"
