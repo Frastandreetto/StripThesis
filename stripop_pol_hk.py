@@ -3,7 +3,7 @@
 # This file contains the function "pol_hk" that operates an analysis of the Housekeeping of the Polarimeters of Strip.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
 
-# August 18th 2023, Brescia (Italy) - April 15th 2024, Brescia (Italy)
+# August 18th 2023, Brescia (Italy) - May 11th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import csv

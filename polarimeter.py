@@ -4,7 +4,7 @@
 # Part of this code was used in Francesco Andreetto's bachelor thesis (2020) and master thesis (2023).
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
 
-# November 1st 2022, Brescia (Italy) - April 30th 2024, Bologna (Italy)
+# November 1st 2022, Brescia (Italy) - May 11th 2024, Bologna (Italy)
 # Libraries & Modules
 import logging
 import numpy as np
