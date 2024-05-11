@@ -794,6 +794,8 @@ def data_plot(pol_name: str,
     # Initialize the name of the plot
     name_plot = f"{pol_name} "
 
+    # Initialize the marker size in the legend
+    marker_scale = 2.
     # ------------------------------------------------------------------------------------------------------------------
     # Step 1: define the operations: FFT, RMS, OUTPUT
 
@@ -1095,6 +1097,7 @@ def data_plot(pol_name: str,
                                                            color="royalblue", alpha=even,
                                                            marker="*", markersize=0.005, linestyle=" ",
                                                            label="Even Output")
+                                        marker_scale = 1000.
 
                                         # Plot Statistics
                                         # Mean
@@ -1109,6 +1112,8 @@ def data_plot(pol_name: str,
                                                            color="crimson", alpha=odd,
                                                            marker="*", markersize=0.005, linestyle=" ",
                                                            label="Odd Output")
+                                        marker_scale = 1000.
+
                                         # Plot Statistics
                                         # Mean
                                         m += f"\nOdd = {round(np.mean(dataset[type][exit][begin + 1:end:2]), 2)}"
@@ -1122,6 +1127,8 @@ def data_plot(pol_name: str,
                                                            color="forestgreen", alpha=all,
                                                            marker="*", markersize=0.005, linestyle=" ",
                                                            label="All Output")
+                                        marker_scale = 1000.
+
                                         # Plot Statistics
                                         # Mean
                                         m += f"\nAll = {round(np.mean(dataset[type][exit][begin:end]), 2)}"
@@ -1190,11 +1197,12 @@ def data_plot(pol_name: str,
             else:
                 if rms:
                     y_label = "RMS [ADU]"
+
             # Y-Axis label
             axs[row, col].set_ylabel(f"{y_label}", size=10)
 
             # Legend
-            axs[row, col].legend(loc="lower left", markerscale=10., fontsize=10)
+            axs[row, col].legend(loc="lower left", markerscale=marker_scale, fontsize=10)
 
             # Skipping to the following column of the subplot grid
             col += 1
