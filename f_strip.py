@@ -1194,7 +1194,7 @@ def data_plot(pol_name: str,
             axs[row, col].set_ylabel(f"{y_label}", size=10)
 
             # Legend
-            axs[row, col].legend(prop={'size': 10}, loc=7)
+            axs[row, col].legend(loc="lower left", markerscale=10., fontsize=10)
 
             # Skipping to the following column of the subplot grid
             col += 1
