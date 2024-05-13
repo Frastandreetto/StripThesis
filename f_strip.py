@@ -95,14 +95,22 @@ def down_sampling(list1: [], list2: [], label1: str, label2: str) -> ():
         return down_sampled_data, short_v, long_label, short_label
 
 
-def fourier_transformed(times, values, f_max, f_min):
+def fourier_transformed(times, values, nperseg, f_max, f_min):
     """
-    Compute the Fast Fourier Transformed of an array of data.
-    Nicole Grillo's Code - Bachelor Thesis 2023
+    Compute the Fast Fourier Transformed of an array of data (Nicole Grillo's Code - Bachelor Thesis 2023).
+    Parameters:\n
+    - **times** (``list``): array-like objects containing the timestamps of the data;
+    - **values** (``list``): array-like objects containing the data to transform;
+    - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
+    Return:\n
+    - **freq** (``list``): array-like object containing the frequencies (x-axis in FFT plots);
+    - **fft** (``list``): array-like object containing the transformed data.
     """
 
-    freq, fft = scipy.signal.welch(values, 1 / np.median(times[1:] - times[:-1]),
-                                   nperseg=400 * 50)
+    # fs
+    # - **fs** (``int``): sampling frequency of the dataset of values
+    freq, fft = scipy.signal.welch(values, fs=1 / np.median(times[1:] - times[:-1]),
+                                   nperseg=nperseg, scaling="spectrum")
 
     mask = (freq > f_min) & (freq <= f_max)
     freq = freq[mask]
