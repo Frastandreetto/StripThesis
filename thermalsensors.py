@@ -2,7 +2,7 @@
 
 # This file contains the Class Thermal_Sensors
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
-# August 15th 2023, Brescia (Italy) - March 15th 2024, Roma (Italy)
+# August 15th 2023, Brescia (Italy) - April 15th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import logging
@@ -126,6 +126,31 @@ class Thermal_Sensors:
                     # Conversion to list to better handle the data array
                     self.ts["thermal_data"][calib][sensor_name] = list(self.ts["thermal_data"][calib][sensor_name])
 
+    def Clean_TS(self):
+        """
+        Clean all Thermal Sensor measures removing those whose acquisition presents Nan values
+        """
+        # Find TS with Nan values
+        problematic_TS = []
+        for ts_name, array in self.ts["thermal_data"]["calibrated"].items():
+            if np.isnan(array).any():
+                problematic_TS.append(ts_name)
+
+        for ts_name in problematic_TS:
+            # Remove the key of the dictionary: remove TS from the analysis
+            del self.ts["thermal_data"]["calibrated"][ts_name]
+            # Remove the TS name form the list
+            for group in self.ts_names.keys():
+                try:
+                    self.ts_names[group].remove(ts_name)
+                except ValueError:
+                    pass
+
+            # Print & store a warning message
+            msg = f"\nNan Values Found: Thermal Sensors {ts_name} (status {self.status}) removed from the analysis.\n\n"
+            logging.info(msg)
+            self.warnings["time_warning"].append(msg)
+
     def Norm_TS(self) -> []:
         """
         Check if the Timestamps array and the CALIBRATED DATA array have the same length.
@@ -144,14 +169,14 @@ class Thermal_Sensors:
                 len_data = len(self.ts["thermal_data"]["calibrated"][sensor_name])
                 # If Timestamps and Data don't have the same length
                 if len_times != len_data:
-                    # If they differ by 1 unit it means that:
-                    # 1) A datum of the status of the multiplexer hasn't been stored yet in the time interval given,
-                    # but its timestamp was already collected, hence the time array is reduced by one unit
-                    if len_times == len_data + 1:  # and self.status == 1:
-                        self.ts["thermal_times"] = self.ts["thermal_times"][:-1]
+
+                    # 1) A datum hasn't been stored yet but its timestamp had been already collected
+                    # No need of data manipulations
+                    if len_times == len_data + 1:
+                        pass
 
                     # 2) A datum of the status of the multiplexer has been stored in the time interval given,
-                    # but its timestamp was collected before the start_datetime given,
+                    # but its timestamp had been collected before the start_datetime given,
                     # hence a warning is produced and stored
                     else:
                         good_sampling = False
@@ -184,8 +209,8 @@ class Thermal_Sensors:
             logging.error("Invalid status value. Please choose between the values 0 and 1 for a single analysis.")
             SystemExit(1)
 
-        # Assign new Timestamps equally spaced every 20s
-        self.ts["thermal_times"] = start + np.arange(start=0, stop=len(self.ts["thermal_times"]) * 20, step=20)
+        # Convert to seconds the timestamps
+        self.ts["thermal_times"] = start + self.ts["thermal_times"].unix - self.ts["thermal_times"][0].unix
         # Conversion to list to better handle the data array
         self.ts["thermal_times"] = list(self.ts["thermal_times"])
 
@@ -449,7 +474,7 @@ class Thermal_Sensors:
                 axs[i].legend(prop={'size': 9}, loc=7)
 
         # Procedure to save the png of the plot in the correct dir
-        path = f"{self.output_plot_dir}/{self.date_dir}/Thermal_Output/"
+        path = f"{self.output_plot_dir}/Thermal_Output/"
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}Thermal_status_{self.status}.png')
 
@@ -473,7 +498,7 @@ class Thermal_Sensors:
         if all_in:
             fig, axs = plt.subplots(nrows=1, ncols=1, constrained_layout=True, figsize=(15, 10))
         else:
-            fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(15, 10))
+            fig, axs = plt.subplots(nrows=n_rows, ncols=1, constrained_layout=True, figsize=(15, 15))
 
         # Set the title of the figure
         fig.suptitle(f'Plot Thermal Sensors FFT status {self.status}- Date: {self.gdate[0]}', fontsize=15)
@@ -493,10 +518,11 @@ class Thermal_Sensors:
                 # Changing this parameter allow to reach lower freq in the plot: the limInf of the x-axis is fs/nperseg.
                 f, s = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][sensor_name],
                                           fs=fs, nperseg=min(int(fs * 10 ** 4), self.nperseg_thermal,
-                                                             len(self.ts["thermal_data"]["calibrated"][sensor_name])))
+                                                             len(self.ts["thermal_data"]["calibrated"][sensor_name])),
+                                          scaling="spectrum")
                 # All FFT of TS in one plot
                 if all_in:
-                    axs.plot(f[f < 25.], s[f < 25.],
+                    axs.plot(f, s,
                              linewidth=0.2, label=f"{sensor_name}", marker=".", markersize=6)
                     # XY-axis
                     axs.set_yscale("log")
@@ -507,7 +533,7 @@ class Thermal_Sensors:
                     axs.legend(prop={'size': 9}, loc=3)
                 else:
                     # Plot the periodogram (fft)
-                    axs[i].plot(f[f < 25.], s[f < 25.],
+                    axs[i].plot(f, s,
                                 linewidth=0.2, label=f"{sensor_name}", marker=".", markerfacecolor=color, markersize=4)
 
                     # Subplots properties
@@ -522,7 +548,7 @@ class Thermal_Sensors:
                     axs[i].legend(prop={'size': 9}, loc=7)
 
         # Procedure to save the png of the plot in the correct dir
-        path = f"{self.output_plot_dir}/{self.date_dir}/Thermal_Output/FFT/"
+        path = f"{self.output_plot_dir}/Thermal_Output/FFT/"
         Path(path).mkdir(parents=True, exist_ok=True)
 
         # Set figure name
@@ -551,18 +577,22 @@ class Thermal_Sensors:
             - **fft** (``bool``): if true, the code looks for spikes in the fft.
             - **nperseg** (``int``): number of elements of the array on which the fft is calculated
         """
+        # Initializing a bool to see if the caption of the table is already in the report
+        cap = False
+
         # [MD] Initialize a result string to contain the md table
-        md_table = " "
+        rows = ""
+        md_spike_tab = ""
         # [CSV] Initialize a result list to contain the csv table
-        csv_table = []
+        csv_spike_tab = []
 
         # Initialize list for x_data
         x_data = []
 
         for name in self.ts["thermal_data"]["calibrated"].keys():
 
+            # Compute FFT of TS Measures using welch method
             if fft:
-                # Compute FFT of TS Measures
                 x_data, y_data = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][name], fs=ts_sam_exp_med / 60,
                                                     nperseg=min(len(self.ts["thermal_data"]["calibrated"][name]),
                                                                 self.nperseg_thermal),
@@ -577,6 +607,7 @@ class Thermal_Sensors:
                 n_chunk = 10
                 data_type = "FFT"
 
+            # No FFT calculation: using TS outputs
             else:
                 y_data = self.ts["thermal_data"]["calibrated"][name]
                 # Set threshold values for spike research
@@ -598,23 +629,20 @@ class Thermal_Sensors:
 
                 # Spikes in the TS dataset
                 if not fft:
+                    # Create the caption for the table of the spikes in Output
+                    if not cap:
+                        # [MD] Storing Table Heading
+                        md_spike_tab += (
+                            "\n| Spike Number | Data Type | Sensor Name "
+                            "| Gregorian Date | Julian Date [JHD]| Spike Value - Median [ADU]| MAD [ADU] |\n"
+                            "|:------------:|:---------:|:----:"
+                            "|:--------------:|:----------------:|:-------------------------:|:---------:|\n")
 
-                    # Create the heading for the table of the spikes in TS Output
-
-                    # [MD] Heading of the table
-                    md_table += (
-                        "\n| Spike Number | Data Type | Sensor Name "
-                        "| Gregorian Date | Julian Date [JHD]| Spike Value - Median [ADU]| MAD [ADU] |\n"
-                        "|:------------:|:---------:|:----:"
-                        "|:--------------:|:----------------:|:-------------------------:|:---------:|\n")
-
-                    # [CSV] Heading of the table
-                    csv_table.append([""])
-                    csv_table.append(["Spike Number", "Data Type", "Sensor Name",
-                                      "Gregorian Date", "Julian Date [JHD]",
-                                      "Spike Value - Median [ADU]", "MAD [ADU]"
-                                      ])
-                    csv_table.append([""])
+                        # [CSV] Storing Table Heading
+                        csv_spike_tab.append([""])
+                        csv_spike_tab.append(["Spike Number", "Data Type", "Sensor Name", "Gregorian Date",
+                                              "Julian Date [JHD]", "Spike Value - Median [ADU]", "MAD [ADU]", ""])
+                        cap = True
 
                     for idx, item in enumerate(spike_idxs):
                         # Calculate the Gregorian date in which the spike happened
@@ -626,19 +654,18 @@ class Thermal_Sensors:
                         # Convert the Datetime object to a Julian date
                         julian_date = Time(greg_datetime).jd
 
-                        # [MD] Fill the table with TS values
-                        md_table += (f"|{idx + 1}|{data_type}|{name}"
-                                     f"|{greg_date}|{julian_date}"
-                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}"
-                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|"
-                                     f"\n")
+                        # [MD] Fill the table with TS spikes information
+                        rows += f"|{idx + 1}|{data_type}|{name}" \
+                                f"|{greg_date}|{julian_date}" \
+                                f"|{np.round(y_data[item] - np.median(y_data), 6)}" \
+                                f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n"
 
-                        # [CSV] Fill the table with TS values
-                        csv_table.append([f"{idx + 1}", f"{data_type}", f"{name}",
-                                          f"{greg_date}", f"{julian_date}",
-                                          f"{np.round(y_data[item] - np.median(y_data), 6)}",
-                                          f"{np.round(scs.median_abs_deviation(y_data), 6)}"
-                                          ])
+                        # [CSV] Fill the table with TS spikes information
+                        csv_spike_tab.append([f"{idx + 1}", f"{data_type}", f"{name}",
+                                              f"{greg_date}", f"{julian_date}",
+                                              f"{np.round(y_data[item] - np.median(y_data), 6)}",
+                                              f"{np.round(scs.median_abs_deviation(y_data), 6)}"])
+
                 # Spikes in the FFT of TS
                 else:
                     # Select the more relevant spikes
@@ -646,33 +673,34 @@ class Thermal_Sensors:
 
                     # Create the heading for the table of the spikes in TS FFT
                     # [MD] Heading of the table
-                    md_table += (
+                    md_spike_tab += (
                         "\n| Spike Number | Data Type | Sensor Name | Frequency Spike "
                         "|Spike Value - Median [ADU]| MAD [ADU] |\n"
                         "|:------------:|:---------:|:----:|:---------------:"
                         "|:------------------------:|:---------:|\n")
 
                     # [CSV] Heading of the table
-                    csv_table.append([""])
-                    csv_table.append(["Spike Number", "Data Type", "Sensor Name",
-                                      "Frequency Spike", "Spike Value - Median [ADU]", "MAD [ADU]"
-                                      ])
-                    csv_table.append([""])
+                    csv_spike_tab.append([""])
+                    csv_spike_tab.append(["Spike Number", "Data Type", "Sensor Name",
+                                          "Frequency Spike", "Spike Value - Median [ADU]", "MAD [ADU]"])
+                    cap = True
 
                     for idx, item in enumerate(spike_idxs):
                         # [MD] Fill the table with the FFT values
-                        md_table += (f"|{idx + 1}|FFT TS|{name}"
-                                     f"|{np.round(x_data[item], 6)}"
-                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}"
-                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
+                        rows += (f"|{idx + 1}|FFT TS|{name}"
+                                 f"|{np.round(x_data[item], 6)}"
+                                 f"|{np.round(y_data[item] - np.median(y_data), 6)}"
+                                 f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n")
 
                         # [CSV] Fill the table with FFT values
-                        csv_table.append([f"{idx + 1}", "FFT TS", f"{name}",
-                                          f"{np.round(x_data[item], 6)}",
-                                          f"{np.round(y_data[item] - np.median(y_data), 6)}",
-                                          f"{np.round(scs.median_abs_deviation(y_data), 6)}"
-                                          ])
-        # Initialize a dictionary with the two tables: MD and CSV
-        spike_tab = {"md": md_table, "csv": csv_table}
+                        csv_spike_tab.append([f"{idx + 1}", "FFT TS", f"{name}",
+                                              f"{np.round(x_data[item], 6)}",
+                                              f"{np.round(y_data[item] - np.median(y_data), 6)}",
+                                              f"{np.round(scs.median_abs_deviation(y_data), 6)}"])
 
+            if cap:
+                md_spike_tab += rows
+
+        # Initialize a dictionary with the two tables: MD and CSV
+        spike_tab = {"md": md_spike_tab, "csv": csv_spike_tab}
         return spike_tab

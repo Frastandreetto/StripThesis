@@ -3,12 +3,13 @@
 # This file contains the function "tot" that operates a complete analysis of a provided group of polarimeters.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
 
-# August 14th 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# August 14th 2023, Brescia (Italy) - May 11th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import csv
 import logging
 import os
+import time
 
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
@@ -75,9 +76,16 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
         - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
     """
+    logging.info("Starting the Pipeline: Total Operation.")
+
+    # Starting chronometer
+    start_code_time = time.time()
+
     logging.info('\nLoading dir and templates information...')
 
     # REPORTS ----------------------------------------------------------------------------------------------------------
+    # General Report File Name
+    report_name = fz.dir_format(f"00_Report_{start_datetime}__{end_datetime}")
 
     # [MD] Markdown REPORT ---------------------------------------------------------------------------------------------
     # Initializing the data-dict for the md report
@@ -109,7 +117,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     ]
 
     # [CSV] Open and append information
-    with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+    with open(f'{csv_output_dir}/{report_name}.csv',
               'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(csv_general)
@@ -157,7 +165,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             csv_general = sampling_table["csv"]
             # ----------------------------------------------------------------------------------------------------------
             # [CSV] REPORT: write TS sampling in the report ------------------------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -169,7 +177,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # TS SPIKE RESEARCH
             ############################################################################################################
             spike_warn = []
-            csv_general = []
 
             # Looking for spikes in the TS Dataset
             if spike_data:
@@ -179,10 +186,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # [MD]
                 spike_warn.extend(spike_table["md"])
                 # [CSV]
-                csv_general.append(spike_table["csv"])
+                csv_general = spike_table["csv"]
 
                 # [CSV] REPORT: write TS Dataset spikes ----------------------------------------------------------------
-                with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+                with open(f'{csv_output_dir}/{report_name}.csv',
                           'a', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerows(csv_general)
@@ -198,7 +205,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # [MD]
                 spike_warn.extend(spike_table["md"])
                 # [CSV]
-                csv_general.append(spike_table["csv"])
+                csv_general = spike_table["csv"]
 
                 # [CSV] REPORT: write TS FFT spikes --------------------------------------------------------------------
                 with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
@@ -210,6 +217,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # ------------------------------------------------------------------------------------------------------
             ############################################################################################################
 
+            # Cleaning thermal measures
+            logging.info(f'Cleaning TS measures. Status {status}')
+            TS.Clean_TS()
             # Normalizing TS measures
             logging.info(f'Normalizing TS. Status {status}')
             _ = TS.Norm_TS()
@@ -222,7 +232,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # ----------------------------------------------------------------------------------------------------------
 
             # [CSV] REPORT: write TS sampling & time warnings in the report --------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -244,7 +254,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # ----------------------------------------------------------------------------------------------------------
 
             # [CSV] write TS results table in the report ---------------------------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -260,7 +270,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             if fft:
                 logging.info(f'Plotting the FFT of all the TS measures for status {status} of the multiplexer.')
                 # Plot of the FFT of all TS measures
-                TS.Plot_FFT_TS()
+                for all_in in [True, False]:
+                    TS.Plot_FFT_TS(all_in=all_in)
 
             # ----------------------------------------------------------------------------------------------------------
             # REPORT TS
@@ -300,7 +311,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         csv_general = cross_corr_mat["csv"]
 
         # [CSV] write Cross Correlations results in the report ---------------------------------------------------------
-        with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -329,7 +340,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             [""]
         ]
         # [CSV] write which polarimeter is parsed ---------------------------------------------------------
-        with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -378,7 +389,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # ----------------------------------------------------------------------------------------------------------
 
             # [CSV] REPORT: write HK sampling & time warnings in the report --------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -397,7 +408,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # [CSV] Storing the HK results table
             csv_general = HK_table["csv"]
             # [CSV] REPORT: write HK Table in the report ---------------------------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -405,9 +416,10 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                          f"CSV Report updated: HK {np} Table written.\n####################\n")
             # ----------------------------------------------------------------------------------------------------------
 
-            # Plots of the Bias HK (Tensions and Currents) and of the Offsets
+            # Plots of HK: Bias Voltages (V) and Currents (I), Offsets (O),
+            # Modality of biasing (M) and Phase Switch Modality (P)
             logging.info('Plotting Bias HK and Offsets.')
-            for hk_kind in ["I", "V", "O"]:
+            for hk_kind in p.hk_list.keys():
                 p.Plot_Housekeeping(hk_kind=hk_kind, show=False)
 
             # ----------------------------------------------------------------------------------------------------------
@@ -452,7 +464,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # ----------------------------------------------------------------------------------------------------------
 
         # [CSV] REPORT: write Polarimeter Sampling Table (Jumps) in the report -------------------------------------
-        with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -472,7 +484,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write Polarimeter Spikes Table in the report -------------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -490,7 +502,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write Polarimeter FFT Spikes Table in the report ---------------------------------------
-            with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -732,6 +744,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                 output_plot_dir=output_plot_dir)
                         # Loading thermal measures
                         TS.Load_TS()
+                        # Cleaning thermal measures from Nan values
+                        TS.Clean_TS()
                         # Normalizing thermal times
                         _ = TS.Norm_TS()
 
@@ -761,8 +775,33 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             # Output vs TS_status 0 or 1
                             (p.data[type], p.times, f"{np}_{type}", "Output [ADU]",
                              p.hk[item], p.hk_t[item][first_hk],
-                             f"Bias_{item}", f"{unit}")
+                             f"{np}_Bias_{item}", f"{unit}")
                         ])
+
+                # ------------------------------------------------------------------------------------------------------
+                # SCIDATA
+                # DEMODULATED Self Correlation
+                # TOTAL_PWR Self Correlation
+                # ------------------------------------------------------------------------------------------------------
+                if not scientific:
+                    pass
+                else:
+                    for type in ["DEM", "PWR"]:
+                        # Collect only one type of Scidata DEMODULATED or TOTAL PWR
+                        sci_data = {}
+                        # Data name assignment
+                        data_name = "DEMODULATED" if type == "DEM" else "TOTAL_POWER"
+
+                        for exit in ["Q1", "Q2", "U1", "U2"]:
+                            sci_data[exit] = fz.demodulate_array(p.data[type][exit], type)
+                            sci_times = fz.mean_cons(p.times)
+
+                        # Collecting all possible combinations of Output correlations
+                        possible_combos.extend([
+                            # Scidata self correlation
+                            (sci_data, sci_times, f"{np}_{data_name}", " [ADU]", {}, [], "Self_Corr", "[ADU]")
+                        ])
+                # ------------------------------------------------------------------------------------------------------
 
                 # Produce all correlation plots and matrix using all the combinations of the Outputs
                 # d -> data
@@ -780,14 +819,14 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             f'\nCorrelation plot with threshold {corr_t}. '
                             f'\n{n1} - {n2}.')
                         # Store correlation warnings from the correlation plot
-
-                        correlation_warnings = fz_c.correlation_plot(array1=[], array2=[],
+                        correlation_warnings = fz_c.correlation_plot(list1=[], list2=[],
                                                                      dict1=d1, dict2=d2,
                                                                      time1=list(t1), time2=list(t2),
                                                                      data_name1=f"{n1}", data_name2=f"{n2}",
                                                                      measure_unit1=f"{u1}", measure_unit2=f"{u2}",
                                                                      start_datetime=start_datetime,
                                                                      show=False,
+                                                                     down_sampling=True,
                                                                      corr_t=corr_t,
                                                                      plot_dir=output_plot_dir)
                         # [MD] Collecting correlation warnings
@@ -818,7 +857,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     corr_warn.extend(gen_warn)
 
                     # [CSV] REPORT: write Polarimeter Correlation warnings in the report ---------------------------
-                    with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+                    with open(f'{csv_output_dir}/{report_name}.csv',
                               'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerows(csv_general)
@@ -853,13 +892,13 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # Note: time is fixed for all I and V: hence the timestamps are defined by the first HK parameter
                 possible_combos.extend([
                     # I vs V
-                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], "Bias_I", "[µA]",
-                     p.hk["V"], p.hk_t["V"]["VD0_HK"], "Bias_V", "[mV]"),
+                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], f"{np}_Bias_I", "[µA]",
+                     p.hk["V"], p.hk_t["V"]["VD0_HK"], f"{np}_Bias_V", "[mV]"),
                     # I Self Correlations
-                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], "Bias_I", "[µA]",
+                    (p.hk["I"], p.hk_t["I"]["ID0_HK"], f"{np}_Bias_I", "[µA]",
                      {}, [], "Self_Corr", "[µA]"),
                     # V Self Correlations
-                    (p.hk["V"], p.hk_t["V"]["VD0_HK"], "Bias_V", "[mV]",
+                    (p.hk["V"], p.hk_t["V"]["VD0_HK"], f"{np}_Bias_V", "[mV]",
                      {}, [], "Self_Corr", "[mV]")
                 ])
 
@@ -879,26 +918,33 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                                 output_plot_dir=output_plot_dir)
                         # Loading thermal measures
                         TS.Load_TS()
+                        # Cleaning thermal measures
+                        TS.Clean_TS()
                         # Normalizing thermal times
                         _ = TS.Norm_TS()
 
                         # Collecting all possible combinations of Hk with TS
                         possible_combos.extend([
                             # Bias Currents I vs TS status 0 or 1
-                            (p.hk["I"], p.hk_t["I"]["ID0_HK"], "Bias_I", "[µA]",
+                            (p.hk["I"], p.hk_t["I"]["ID0_HK"], f"{np}_Bias_I", "[µA]",
                              TS.ts["thermal_data"]["calibrated"], TS.ts["thermal_times"],
                              f"TS_status_{status}", "Temperature [K]"),
                             # Bias Voltages V vs TS status 0 or 1
-                            (p.hk["V"], p.hk_t["V"]["VD0_HK"], "Bias_V", "[mV]",
+                            (p.hk["V"], p.hk_t["V"]["VD0_HK"], f"{np}_Bias_V", "[mV]",
                              TS.ts["thermal_data"]["calibrated"], TS.ts["thermal_times"],
                              f"TS_status_{status}", "Temperature [K]")
                         ])
 
                 # Produce all correlation plots and matrix using all the combinations
+                # d -> data (dictionary)
+                # t -> timestamps
+                # n -> (data) name
+                # u -> unit of measure
                 for d1, t1, n1, u1, d2, t2, n2, u2 in possible_combos:
 
                     # --------------------------------------------------------------------------------------------------
                     # Correlation Plot
+                    # Specific for the Polarimeter Under Test
                     # --------------------------------------------------------------------------------------------------
                     if corr_plot:
                         logging.warning(
@@ -906,13 +952,14 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             f'\nCorrelation plot with threshold {corr_t}. '
                             f'\n{n1} - {n2}.')
                         # Store correlation warnings from the correlation plot
-                        correlation_warnings = fz_c.correlation_plot(array1=[], array2=[],
+                        correlation_warnings = fz_c.correlation_plot(list1=[], list2=[],
                                                                      dict1=d1, dict2=d2,
                                                                      time1=list(t1), time2=list(t2),
                                                                      data_name1=f"{n1}", data_name2=f"{n2}",
                                                                      measure_unit1=f"{u1}", measure_unit2=f"{u2}",
                                                                      start_datetime=start_datetime,
                                                                      show=False,
+                                                                     down_sampling=True,
                                                                      corr_t=corr_t,
                                                                      plot_dir=output_plot_dir)
                         # [MD] Collecting correlation warnings
@@ -922,6 +969,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                     # --------------------------------------------------------------------------------------------------
                     # Correlation Matrix
+                    # Specific for the Polarimeter Under Test
                     # --------------------------------------------------------------------------------------------------
                     if corr_mat:
                         logging.warning(
@@ -943,7 +991,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     corr_warn.extend(gen_warn)
 
                     # [CSV] REPORT: write Correlation warnings in the report -------------------------------------------
-                    with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+                    with open(f'{csv_output_dir}/{report_name}.csv',
                               'a', newline='') as file:
                         writer = csv.writer(file)
                         writer.writerows(csv_general)
@@ -983,6 +1031,9 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
             # Loading thermal measures
             ts_0.Load_TS()
             ts_1.Load_TS()
+            # Cleaning thermal measures from Nan values
+            ts_0.Clean_TS()
+            ts_1.Clean_TS()
             # Normalizing thermal times
             _ = ts_0.Norm_TS()
             _ = ts_1.Norm_TS()
@@ -1001,7 +1052,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 # TS 1 self correlation
                 (ts_1.ts["thermal_data"]["calibrated"], ts_1.ts["thermal_times"],
                  "TS_status_1", "Temperature [K]",
-                 {}, [], "Self_Corr", "Temperature [K]",)
+                 {}, [], "Self_Corr", "Temperature [K]")
             ])
 
             # Produce all correlation plots and matrix using all the combinations
@@ -1016,8 +1067,8 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         f'\nCorrelation plot with threshold {corr_t}. '
                         f'\n{n1} - {n2}.')
                     # Store correlation warnings from the correlation plot
-                    correlation_warnings = fz_c.correlation_plot(array1=[],
-                                                                 array2=[],
+                    correlation_warnings = fz_c.correlation_plot(list1=[],
+                                                                 list2=[],
                                                                  dict1=d1,
                                                                  dict2=d2,
                                                                  time1=list(t1),
@@ -1060,7 +1111,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 corr_warn.extend(gen_warn)
 
                 # [CSV] REPORT: write Polarimeter Correlation warnings in the report -----------------------------------
-                with open(f'{csv_output_dir}/00_Report_{start_datetime}__{end_datetime}.csv',
+                with open(f'{csv_output_dir}/{report_name}.csv',
                           'a', newline='') as file:
                     writer = csv.writer(file)
                     writer.writerows(csv_general)
@@ -1107,7 +1158,6 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
         # Adding Cross Correlation Bool
         report_data.update({"cross": cross_corr})
         if cross_corr:
-
             # Get png files name from the dir Cross_Corr sorted in alphabetic order
             png_cross_files = sorted([file for file in os.listdir(f"{output_plot_dir}/Cross_Corr/")
                                       if file.lower().endswith('.png')])
@@ -1142,5 +1192,15 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     filename = Path(f"{output_report_dir}/2_report_tot_warnings.md")
     with open(filename, 'w') as outf:
         outf.write(template_w.render(report_data))
+
+    # Stopping chronometer
+    end_code_time = time.time()
+    # Calculate running time of the code
+    elapsed_time = end_code_time - start_code_time
+
+    # Printing the elapsed time
+    logging.info(f"############################################################################################\n"
+                 f"Elapsed Time: {round(elapsed_time, 2)} s ({(round(elapsed_time/60., 2))} min)\n"
+                 "############################################################################################\n")
 
     return

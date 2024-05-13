@@ -3,12 +3,13 @@
 # This file contains the function "thermal_hk" that operates an analysis of the Thermal Sensors (TS) of Strip.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
 
-# August 18th 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# August 18th 2023, Brescia (Italy) - April 15th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import csv
 import logging
 import os
+import time
 
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
@@ -16,6 +17,7 @@ from rich.logging import RichHandler
 
 # My Modules
 import thermalsensors as ts
+import f_strip as fz
 import f_correlation_strip as fz_c
 
 # Use the module logging to produce nice messages on the shell
@@ -57,6 +59,11 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
         - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
     """
+    logging.info("Starting the Pipeline: Total Operation.")
+
+    # Starting chronometer
+    start_code_time = time.time()
+
     logging.info('\nLoading dir and templates information...')
 
     # REPORTS ----------------------------------------------------------------------------------------------------------
@@ -85,7 +92,9 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     ]
 
     # [CSV] Open and append information
-    with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+    # TS Report Name
+    report_name = fz.dir_format(f"TS_Report_{start_datetime}__{end_datetime}")
+    with open(f'{csv_output_dir}/{report_name}.csv',
               'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerows(csv_general)
@@ -136,7 +145,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         csv_general = sampling_table["csv"]
         # --------------------------------------------------------------------------------------------------------------
         # [CSV] REPORT: write TS sampling in the report ----------------------------------------------------------------
-        with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -158,10 +167,10 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             # [MD]
             spike_warn.extend(spike_table["md"])
             # [CSV]
-            csv_general.append(spike_table["csv"])
+            csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write TS Dataset spikes --------------------------------------------------------------------
-            with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -177,10 +186,10 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             # [MD]
             spike_warn.extend(spike_table["md"])
             # [CSV]
-            csv_general.append(spike_table["csv"])
+            csv_general = spike_table["csv"]
 
             # [CSV] REPORT: write TS FFT spikes --------------------------------------------------------------------
-            with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -201,7 +210,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         # --------------------------------------------------------------------------------------------------------------
 
         # [CSV] REPORT: write TS time warnings in the report -----------------------------------------------------------
-        with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -223,7 +232,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         # ----------------------------------------------------------------------------------------------------------
 
         # [CSV] write TS results table in the report ---------------------------------------------------------------
-        with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+        with open(f'{csv_output_dir}/{report_name}.csv',
                   'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerows(csv_general)
@@ -238,7 +247,9 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         # Fourier's analysis if asked
         if fft:
             logging.info(f'Plotting the FFT of all the TS measures for status {stat} of the multiplexer.')
-            TS.Plot_FFT_TS()
+            # Plot of the FFT of all TS measures
+            for all_in in [True, False]:
+                TS.Plot_FFT_TS(all_in=all_in)
 
         # ----------------------------------------------------------------------------------------------------------
         # [MD] REPORT TS
@@ -289,6 +300,9 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
         # Loading thermal measures
         ts_0.Load_TS()
         ts_1.Load_TS()
+        # Cleaning thermal measures from Nan values
+        ts_0.Clean_TS()
+        ts_1.Clean_TS()
         # Normalizing thermal times
         _ = ts_0.Norm_TS()
         _ = ts_1.Norm_TS()
@@ -320,8 +334,8 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
                     f'\nCorrelation plot with threshold {corr_t}. '
                     f'\n{n1} - {n2}.\n\n')
                 # Store correlation warnings from the correlation plot
-                correlation_warnings = fz_c.correlation_plot(array1=[],
-                                                             array2=[],
+                correlation_warnings = fz_c.correlation_plot(list1=[],
+                                                             list2=[],
                                                              dict1=d1,
                                                              dict2=d2,
                                                              time1=list(t1),
@@ -362,7 +376,7 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
             corr_warn.extend(gen_warn)
 
             # [CSV] REPORT: write Polarimeter Correlation warnings in the report -----------------------------------
-            with open(f'{csv_output_dir}/TS_Report_{start_datetime}__{end_datetime}.csv',
+            with open(f'{csv_output_dir}/{report_name}.csv',
                       'a', newline='') as file:
                 writer = csv.writer(file)
                 writer.writerows(csv_general)
@@ -435,5 +449,15 @@ def thermal_hk(path_file: str, start_datetime: str, end_datetime: str,
     filename = Path(f"{output_report_dir}/2_report_tot_warnings.md")
     with open(filename, 'w') as outf:
         outf.write(template_w.render(report_data))
+
+    # Stopping chronometer
+    end_code_time = time.time()
+    # Calculate running time of the code
+    elapsed_time = end_code_time - start_code_time
+
+    # Printing the elapsed time
+    logging.info(f"############################################################################################\n"
+                 f"Elapsed Time: {round(elapsed_time, 2)} s ({(round(elapsed_time/60., 2))} min)\n"
+                 "############################################################################################\n")
 
     return
