@@ -922,6 +922,7 @@ def data_plot(pol_name: str,
                         # ----------------------------------------------------------------------------------------------
                         # Plot of FFT of the RMS of the SciData DEMODULATED/TOTPOWER
                         if fft:
+                            # f, s = fourier_transformed(times, values, nperseg, f_max, f_min)
                             f, s = scipy.signal.welch(rms_sd, fs=50, nperseg=min(len(rms_sd), nperseg),
                                                       scaling="spectrum")
                             axs[row, col].plot(f[f < 25.], s[f < 25.],
@@ -957,10 +958,10 @@ def data_plot(pol_name: str,
                     else:
                         # Plot of the FFT of the SciData DEMODULATED/TOTPOWER ------------------------------------------
                         if fft:
-                            f, s = scipy.signal.welch(sci_data["sci_data"][exit][begin:end], fs=50,
-                                                      nperseg=min(len(sci_data["sci_data"][exit][begin:end]), nperseg),
-                                                      scaling="spectrum")
-                            axs[row, col].plot(f[f < 25.], s[f < 25.],
+                            f, s = fourier_transformed(times=sci_data["times"][begin:end],
+                                                       values=sci_data["sci_data"][exit][begin:end],
+                                                       nperseg=nperseg, f_max=25., f_min=0)
+                            axs[row, col].plot(f, s,
                                                linewidth=0.2, marker=".", markersize=2, color="mediumpurple",
                                                label=f"{name_plot[3:]}")
 
@@ -1086,28 +1087,29 @@ def data_plot(pol_name: str,
                             # Plot of the FFT of the Output DEM/PWR
                             if fft:
                                 if even:
-                                    f, s = scipy.signal.welch(dataset[type][exit][begin:end - 1:2], fs=50,
-                                                              nperseg=min(len(dataset[type][exit][begin:end - 1:2]),
-                                                                          nperseg),
-                                                              scaling="spectrum")
-                                    axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
+                                    f, s = fourier_transformed(times=timestamps[begin:end - 1:2],
+                                                               values=dataset[type][exit][begin:end - 1:2],
+                                                               nperseg=nperseg, f_max=25., f_min=0)
+                                    axs[row, col].plot(f, s,
+                                                       color="royalblue", alpha=even,
                                                        linewidth=0.2, marker=".", markersize=2,
-                                                       alpha=even, label="Even samples")
+                                                       label="Even samples")
                                 if odd:
-                                    f, s = scipy.signal.welch(dataset[type][exit][begin + 1:end:2], fs=50,
-                                                              nperseg=min(len(dataset[type][exit][begin + 1:end:2]),
-                                                                          nperseg),
-                                                              scaling="spectrum")
-                                    axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
+                                    f, s = fourier_transformed(times=timestamps[begin + 1:end:2],
+                                                               values=dataset[type][exit][begin + 1:end:2],
+                                                               nperseg=nperseg, f_max=25., f_min=0)
+                                    axs[row, col].plot(f, s,
+                                                       color="crimson", alpha=odd,
                                                        linewidth=0.2, marker=".", markersize=2,
-                                                       alpha=odd, label="Odd samples")
+                                                       label="Odd samples")
                                 if all:
-                                    f, s = scipy.signal.welch(dataset[type][exit][begin:end], fs=100,
-                                                              nperseg=min(len(dataset[type][exit][begin:end]), nperseg),
-                                                              scaling="spectrum")
-                                    axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
+                                    f, s = fourier_transformed(times=timestamps[begin:end],
+                                                               values=dataset[type][exit][begin:end],
+                                                               nperseg=nperseg, f_max=25., f_min=0)
+                                    axs[row, col].plot(f, s,
+                                                       color="forestgreen", alpha=all,
                                                        linewidth=0.2, marker=".", markersize=2,
-                                                       alpha=all, label="All samples")
+                                                       label="All samples")
                             # ------------------------------------------------------------------------------------------
 
                             # ------------------------------------------------------------------------------------------
