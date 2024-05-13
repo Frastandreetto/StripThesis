@@ -4,7 +4,7 @@
 # Part of this code was used in Francesco Andreetto's bachelor thesis (2020) and master thesis (2023).
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
 
-# November 1st 2022, Brescia (Italy) - March 28th 2024, Bologna (Italy)
+# November 1st 2022, Brescia (Italy) - May 11th 2024, Bologna (Italy)
 # Libraries & Modules
 import logging
 import numpy as np
@@ -12,6 +12,7 @@ import scipy.stats as scs
 import scipy.signal
 
 from astropy.time import Time
+import astropy.units as u
 from datetime import datetime
 from matplotlib import pyplot as plt
 from pathlib import Path
@@ -76,18 +77,24 @@ class Polarimeter:
                               "VG4_HK", "VD4_HK", "VD5_HK", "VG5_HK"],
                         "I": ["IG0_HK", "ID0_HK", "IG1_HK", "ID1_HK", "IG2_HK", "ID2_HK", "IG3_HK", "ID3_HK",
                               "IG4_HK", "ID4_HK", "IG5_HK", "ID5_HK"],
-                        "O": ["DET0_OFFS", "DET1_OFFS", "DET2_OFFS", "DET3_OFFS"]
+                        "O": ["DET0_OFFS", "DET1_OFFS", "DET2_OFFS", "DET3_OFFS"],
+                        "M": ["POL_MODE"],
+                        "P": ["PIN0_CON", "PIN1_CON", "PIN2_CON", "PIN3_CON"]
                         }
-        # Dictionaries for HK parameters: Tensions, Currents and Offsets
+        # Dictionaries for HK parameters: Voltages, Currents, Offsets, Pol_Mode, Pin_Con
         tensions = {}
         currents = {}
         offset = {}
+        pol_mode = {}
+        pin_con = {}
         # Dictionaries for timestamps of HK parameters
         t_tensions = {}
         t_currents = {}
         t_offset = {}
-        self.hk = {"V": tensions, "I": currents, "O": offset}
-        self.hk_t = {"V": t_tensions, "I": t_currents, "O": t_offset}
+        t_pol_mode = {}
+        t_pin_con = {}
+        self.hk = {"V": tensions, "I": currents, "O": offset, "M": pol_mode, "P": pin_con}
+        self.hk_t = {"V": t_tensions, "I": t_currents, "O": t_offset, "M": t_pol_mode, "P": t_pin_con}
 
         # Warnings lists
         time_warning = []
@@ -213,6 +220,16 @@ class Polarimeter:
                 logging.error(msg)
                 self.warnings["eo_warning"].append(msg)
 
+    def Fix_Timestamps(self, j_info: {}):
+        """
+        Fix the timestamps assignment applying a jump forward in time.
+        Parameters:\n **j_info** (``{}``) dictionary obtained from the function `find_jump` in the module `f_strip.py`;
+        """
+        for i in range(0, j_info["n"] - 1, 2):
+            print(i)
+            self.times[j_info["idx"][i] + 1:j_info["idx"][i + 1] + 1] += \
+                u.day * np.mean([np.abs(j_info["value"][i]), np.abs(j_info["value"][i + 1])])
+
     def Norm(self, norm_mode: int):
         """
         Timestamps Normalization\n
@@ -226,7 +243,7 @@ class Polarimeter:
             self.times = np.arange(len(self.times))
         if norm_mode == 1:
             # Outputs vs Seconds
-            self.times = np.arange(len(self.times)) / self.STRIP_SAMPLING_FREQ
+            self.times = self.times.unix - self.times[0].unix
         if norm_mode == 2:
             # Outputs vs JHD
             self.times = self.times.value
@@ -293,12 +310,14 @@ class Polarimeter:
     # ------------------------------------------------------------------------------------------------------------------
     def Load_HouseKeeping(self):
         """
-        Load all House-Keeping parameters using the module load_hk, taking the names from the list in the constructor.
+        Load House-Keeping parameters using the module load_hk of the striptease library.
+        Take the names of the HK parameters from the list in the constructor.
         """
-        group = "BIAS"
+        # Iterate over items I, V, O, M, P
         for item in self.hk_list.keys():
-            if item == "O":
-                group = "DAQ"
+            # Define the correct group of HK
+            group = "DAQ" if item == "O" else "BIAS"
+            # Iterate over specific HK
             for hk_name in self.hk_list[item]:
                 self.hk_t[item][hk_name], self.hk[item][hk_name] = self.ds.load_hk(mjd_range=self.date,
                                                                                    group=group,
@@ -334,17 +353,8 @@ class Polarimeter:
                     # [CSV] Append the name of a problematic HK
                     problematic_hk.append(f"{self.name} - {hk_name}")
 
-                # Normalization Operations - different sampling frequencies
-                # Offset
-                if item == "O":
-                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk[item][hk_name]) * 30, 30)
-                    l1 = len(self.hk_t[item][hk_name])
-                    self.hk_t[item][hk_name] = self.hk_t[item][hk_name][:min(l1, l2)]
-                # Tensions and Currents
-                else:
-                    self.hk_t[item][hk_name] = np.arange(0, len(self.hk[item][hk_name]) * 1.4, 1.4)
-                    l1 = len(self.hk_t[item][hk_name])
-                    self.hk_t[item][hk_name] = self.hk_t[item][hk_name][:min(l1, l2)]
+                # Convert to seconds the timestamps of Housekeeping Parameters: Offsets, Currents and Voltages
+                self.hk_t[item][hk_name] = self.hk_t[item][hk_name].unix - self.hk_t[item][hk_name][0].unix
 
         # In the end if there are no sampling problems a message is printed and stored
         if good_sampling:
@@ -393,7 +403,8 @@ class Polarimeter:
         # Initialize a dict for the results of the analysis of the HK
         results = {"max": hk_max, "min": hk_min, "mean": mean, "dev_std": dev_std, "nan_percent": nan_percent}
 
-        for item in self.hk_list.keys():
+        # Cycle over the HK (excluding the "M": POL_MODE and "P": PIN_CON)
+        for item in (k for k in self.hk_list.keys() if k not in ["M", "P"]):
             for hk_name in self.hk_list[item]:
                 results["nan_percent"][item][hk_name] = 0.
 
@@ -443,11 +454,12 @@ class Polarimeter:
         # Initialize a list to contain the csv table
         csv_table = []
 
-        for item in self.hk_list.keys():
-            # Tension V
+        # Cycle over the HK (excluding the "M": POL_MODE)
+        for item in (k for k in self.hk_list.keys() if k not in ["M", "P"]):
+            # Voltage V
             if item == "V":
                 unit = "[mV]"
-                title = f"Tension {unit}"
+                title = f"Voltage {unit}"
             # Current I
             elif item == "I":
                 unit = "[&mu;A]"
@@ -525,8 +537,9 @@ class Polarimeter:
         # Initialize a boolean variable: if true, no jumps occurred
         good_sampling = True
 
-        # Find jumps in the timestamps of the HK parameters
-        for item in self.hk_list.keys():
+        # Find jumps in the timestamps of the HK parameters: V, I, O
+        # Cycle over the HK (excluding the "M": POL_MODE and "P": PIN_CON)
+        for item in (k for k in self.hk_list.keys() if k not in ["M", "P"]):
             for hk_name in self.hk_list[item]:
                 jumps = fz.find_jump(self.hk_t[item][hk_name],
                                      exp_med=sam_exp_med[item], tolerance=sam_tolerance[item])
@@ -588,21 +601,19 @@ class Polarimeter:
             Parameters:\n
 
             - **hk_kind** (``str``): defines the hk to plot.
-            *V* -> Drain Voltage and Gate Voltage
-
-            *I* -> Drain Current and Gate Current
-
-            *O* -> the Offsets
-
+            *V* -> Drain Voltage and Gate Voltage\n
+            *I* -> Drain Current and Gate Current\n
+            *O* -> the Offsets\n
+            *M* -> POL_MODE: Modality of biasing of the amplifiers: open (5) or closed (3) loop\n
+            *P* -> PIN_CON: Modality of setting the phase switch (four elements of value 5 or 6)
             - **show** (``bool``):
-            *True* -> show the plot and save the figure
-
-            *False* -> save the figure only
+            *True* -> show the plot and save the figure\n
+            *False* -> save the figure only\n
         """
         # --------------------------------------------------------------------------------------------------------------
         # Step 1: define data
-        if hk_kind not in ["V", "I", "O"]:
-            logging.error(f"Wrong name: no HK parameters is defined by {hk_kind}. Choose between V, I or O.")
+        if hk_kind not in ["V", "I", "O", "M", "P"]:
+            logging.error(f"Wrong name: no HK parameters is defined by {hk_kind}. Choose between V, I, O, M or P")
             raise SystemExit(1)
 
         # Voltage
@@ -629,6 +640,22 @@ class Polarimeter:
             n_col = 2
             fig_size = (8, 8)
 
+        # Pol Mode
+        elif hk_kind == "M":
+            col = "crimson"
+            label = "Modality [ADU]"
+            n_rows = 1
+            n_col = 1
+            fig_size = (4, 4)
+
+        # Pin Con
+        elif hk_kind == "P":
+            col = "limegreen"
+            label = "PIN_CON [ADU]"
+            n_rows = 2
+            n_col = 2
+            fig_size = (8, 8)
+
         # Nothing else
         else:
             col = "black"
@@ -640,45 +667,61 @@ class Polarimeter:
         hk_name = self.hk_list[hk_kind]
 
         fig, axs = plt.subplots(nrows=n_rows, ncols=n_col, constrained_layout=True, figsize=fig_size, sharey='row')
-        fig.suptitle(f'Plot {self.name} Housekeeping parameters: {hk_kind} - Date: {self.gdate[0]}', fontsize=14)
+        fig.suptitle(f'Plot {self.name} Housekeeping parameters: {hk_kind}\nDate: {self.gdate[0]}', fontsize=14)
         for i in range(n_rows):
             for j in range(n_col):
 
+                # Set plot title
+                plot_title = f"{hk_name[2 * i + j]}"
+
+                # Check length mismatch
                 l1 = len(self.hk_t[hk_kind][hk_name[2 * i + j]])
                 l2 = len(self.hk[hk_kind][hk_name[2 * i + j]])
-
-                # Check the len of the plotted hk
                 if l1 != l2:
                     msg = f"The House-Keeping: {hk_name[2 * i + j]} has a sampling problem.\n"
                     logging.error(msg)
                     self.warnings["time_warning"].append(msg + "<br />")
 
-                axs[i, j].scatter(self.hk_t[hk_kind][hk_name[2 * i + j]][:min(l1, l2)],
-                                  self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)], marker=".", color=col)
-                # X-Axis
-                axs[i, j].set_xlabel("Time [s]")
-                # Y-Axis
-                axs[i, j].set_ylabel(f"{label}")
+                # Modality of Biasing Open-Closed Loop (one plot only)
+                if hk_kind == "M":
+                    axs.scatter(self.hk_t[hk_kind][hk_name[2 * i + j]][:min(l1, l2)],
+                                self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)], marker=".", color=col)
+                    # X-Axis
+                    axs.set_xlabel("Time [s]")
+                    # Y-Axis
+                    axs.set_ylabel(f"{label}")
+                    # Title
+                    axs.set_title(plot_title, size=10)
 
-                # Calculate Plot Statistics
-                # mean
-                m = round(np.mean(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
-                # std deviation
-                std = round(np.std(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
-                # Max value
-                max_val = round(max(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
-                # Min value
-                min_val = round(min(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
+                # Other HK: V, I, O, P
+                else:
+                    axs[i, j].scatter(self.hk_t[hk_kind][hk_name[2 * i + j]][:min(l1, l2)],
+                                      self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)], marker=".", color=col)
 
-                # Title
-                axs[i, j].set_title(f"{hk_name[2 * i + j]}\n"
-                                    f"$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}", size=10)
+                    if hk_kind in ["I", "V", "O"]:
+                        # Calculate Plot Statistics
+                        # Mean
+                        m = round(np.mean(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
+                        # std deviation
+                        std = round(np.std(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 2)
+                        # Max value
+                        max_val = round(max(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
+                        # Min value
+                        min_val = round(min(self.hk[hk_kind][hk_name[2 * i + j]][:min(l1, l2)]), 4)
+                        plot_title += f"\n$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}"
+
+                    # X-Axis
+                    axs[i, j].set_xlabel("Time [s]")
+                    # Y-Axis
+                    axs[i, j].set_ylabel(f"{label}")
+                    # Title
+                    axs[i, j].set_title(plot_title, size=10)
 
         # Creating the name of the png file
         name_file = f"{self.name}_HK_{hk_kind}"
 
         # Creating the directory path
-        path = f'{self.output_plot_dir}/{self.date_dir}/HK/'
+        path = f'{self.output_plot_dir}/HK/'
         Path(path).mkdir(parents=True, exist_ok=True)
         fig.savefig(f'{path}{name_file}.png')
 
@@ -796,7 +839,7 @@ class Polarimeter:
                     samples_number = samples_number
                 else:
                     # Add 1 s of samples
-                    samples_number += 1*fs
+                    samples_number += 1 * fs
 
                 # Create the frequency array in the range between the f_i and the f_f
                 freq = np.arange(samples_number) * (f_f - f_i) / (samples_number - 1) + f_i
@@ -921,7 +964,7 @@ class Polarimeter:
             min_val = round(min(self.data[type][exit][begin:end]), 4)
 
             # Plot of DEM/PWR Outputs
-            ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*")
+            ax.plot(self.times[begin:end], self.data[type][exit][begin:end], "*",  markersize=0.005, linestyle=" ")
             # Title
             ax.set_title(f"{exit}\n$Mean$={m} - $STD$={std}\n$Max$={max_val} - $Min$={min_val}", size=14)
             # X-Axis
@@ -932,7 +975,7 @@ class Polarimeter:
         plt.tight_layout()
 
         # Create the path for the output dir
-        path = f"{self.output_plot_dir}/{self.date_dir}/OUTPUT/"
+        path = f"{self.output_plot_dir}/OUTPUT/"
         Path(path).mkdir(parents=True, exist_ok=True)
         # Save the figure
         fig.savefig(f'{path}{self.name}_{type}.png', dpi=400)
@@ -1083,7 +1126,7 @@ class Polarimeter:
         for type in self.data.keys():
             for exit in self.data[type].keys():
 
-                # FFT Calculation using welch method
+                # Compute FFT Measures using welch method
                 if fft:
                     x_data, y_data = scipy.signal.welch(self.data[type][exit], fs=100,
                                                         nperseg=min(len(self.data[type][exit]), nperseg),
@@ -1141,12 +1184,12 @@ class Polarimeter:
                             # Datetime object to a Julian date
                             julian_date = Time(greg_datetime).jd
 
-                            # [MD] Storing spikes information
+                            # [MD] Fill the table with spikes information
                             rows += f"|{idx + 1}|{data_name}|{exit}|{greg_date}|{julian_date}" \
                                     f"|{np.round(y_data[item] - np.median(y_data), 6)}" \
                                     f"|{np.round(scs.median_abs_deviation(y_data), 6)}|\n"
 
-                            # [CSV] Storing spikes information
+                            # [CSV] Fill the table with spikes information
                             csv_spike_tab.append([f"{idx + 1}", f"{data_name}", f"{exit}",
                                                   f"{greg_date}", f"{julian_date}",
                                                   f"{np.round(y_data[item] - np.median(y_data), 6)}",
@@ -1172,7 +1215,6 @@ class Polarimeter:
                             csv_spike_tab.append([""])
                             csv_spike_tab.append(["Spike Number", "Data Type", "Exit", "Frequency Spike",
                                                   "Spike Value - Median [ADU]", "MAD [ADU]"])
-
                             cap = True
 
                         for idx, item in enumerate(spike_idxs):

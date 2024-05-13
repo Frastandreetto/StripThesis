@@ -1,13 +1,14 @@
 # -*- encoding: utf-8 -*-
 
-# This file contains the function "pol_hk" that operates an analysis of the Thermal Sensors (TS) of Strip.
+# This file contains the function "pol_hk" that operates an analysis of the Housekeeping of the Polarimeters of Strip.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
 
-# August 18th 2023, Brescia (Italy) - January 31st 2024, Bologna (Italy)
+# August 18th 2023, Brescia (Italy) - May 11th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import csv
 import logging
+import time
 
 from jinja2 import Environment, FileSystemLoader
 from pathlib import Path
@@ -47,6 +48,11 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
         - **output_plot_dir** (`str`): Path from striptease to the dir that contains the plots of the analysis.
         - **report_to_plot** (`str`): Path from the Report dir to the dir that contain the plots of the analysis.
     """
+    logging.info("Starting the Pipeline: Polarimeter Housekeeping Operation.")
+
+    # Starting chronometer
+    start_code_time = time.time()
+
     logging.info('\nLoading dir and templates information...\n')
 
     # REPORTS ----------------------------------------------------------------------------------------------------------
@@ -194,9 +200,9 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
                      f"CSV Report updated: HK {np} Table written.\n####################\n")
         # ----------------------------------------------------------------------------------------------------------
 
-        # Plots of the Bias HK (Tensions and Currents) and of the Offsets
+        # Plots of the Bias HK (Voltages and Currents) and of the Offsets
         logging.info(f'Polarimeter {np}: Plotting Bias HK and Offsets.\n')
-        for hk_kind in ["I", "V", "O"]:
+        for hk_kind in p.hk_list.keys():
             p.Plot_Housekeeping(hk_kind=hk_kind, show=False)
 
         # ----------------------------------------------------------------------------------------------------------
@@ -268,7 +274,7 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
                         f'\nPolarimeter {np}: Correlation plot with threshold {corr_t}. '
                         f'\n{n1} - {n2}.\n')
                     # Store correlation warnings from the correlation plot
-                    correlation_warnings = fz_c.correlation_plot(array1=[], array2=[],
+                    correlation_warnings = fz_c.correlation_plot(list1=[], list2=[],
                                                                  dict1=d1, dict2=d2,
                                                                  time1=list(t1), time2=list(t2),
                                                                  data_name1=f"{n1}", data_name2=f"{n2}",
@@ -332,5 +338,15 @@ def pol_hk(path_file: str, start_datetime: str, end_datetime: str, name_pol: str
     filename = Path(f"{output_report_dir}/2_report_tot_warnings.md")
     with open(filename, 'w') as outf:
         outf.write(template_w.render(report_data))
+
+    # Stopping chronometer
+    end_code_time = time.time()
+    # Calculate running time of the code
+    elapsed_time = end_code_time - start_code_time
+
+    # Printing the elapsed time
+    logging.info(f"############################################################################################\n"
+                 f"Elapsed Time: {round(elapsed_time, 2)} s ({(round(elapsed_time/60., 2))} min)\n"
+                 "############################################################################################\n")
 
     return

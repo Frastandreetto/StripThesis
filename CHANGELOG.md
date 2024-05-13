@@ -1,5 +1,15 @@
 # HEAD
 
+# Version 1.4.0
+New features and fixes in the Pipeline [#11](https://github.com/Frastandreetto/StripThesis/pull/11)
+- Fix Data Normalization into a datetime conversion;
+- Add downsampling features to correlation plots;
+- Add two new HK parameters: POL_MODE and PIN_CON;
+- Fix data visualization in Csv Reports. Fixing reports names;
+- Fix holes in outputs: time jumps topic;
+- Fix plots style
+- Add elapsed time to the pipeline workflow
+
 # Version 1.3.3
 Fixing Userguide for the new version [#10](https://github.com/Frastandreetto/StripThesis/pull/10)
 

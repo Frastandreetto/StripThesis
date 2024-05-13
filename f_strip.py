@@ -1,11 +1,12 @@
 # -*- encoding: utf-8 -*-
-import h5py
+
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2024)
 
 # October 29th 2022, Brescia (Italy) - March 13th 2024, Bologna (Italy)
 
 # Libraries & Modules
+import h5py
 import scipy.signal
 import warnings
 
@@ -49,6 +50,83 @@ def binning_func(data_array, bin_length: int):
         for i in range(chunk_n):
             new_data_array.append(np.mean(data_array[i * bin_length:i * bin_length + bin_length]))
         return new_data_array
+
+
+def down_sampling(list1: [], list2: [], label1: str, label2: str) -> ():
+    """
+    Create a new list operating the down-sampling (using median values) on the longest of the two arrays.
+    Parameters:\n
+   - **list1**, **list2** (``list``): array-like objects
+    - **label1**, **label2** (``str``): names of the dataset. Used for labels for future plots.
+    Return:\n
+    A tuple containing: the interpolated array, the long array and the two data labels.
+    """
+    # Define the lengths of the arrays
+    l1 = len(list1)
+    l2 = len(list2)
+
+    # No down-sampling needed
+    if l1 == l2:
+        # Do nothing, return list1, list2, label1 and label2
+        return list1, list2, label1, label2
+
+    # Down-sampling procedure
+    else:
+        # Define the length of the down-sampled array
+        len_v = max(l1, l2)
+
+        # Points on which the median will be calculated
+        points_med = int(l1 / l2) if l1 > l2 else int(l2 / l1)
+
+        # Define the array that must be down-sampled
+        long_v, short_v = (list1, list2) if len(list1) > len(list2) else (list2, list1)
+        # Define the correct labels
+        long_label, short_label = (label1, label2) if len(list1) > len(list2) else (label2, label1)
+
+        # Down-sampling of the longest array
+        down_sampled_data = []
+        for i in range(0, len_v, points_med):
+            group = long_v[i:i + points_med]
+            down_sampled_data.append(np.median(group))
+
+        # Avoid length mismatch
+        down_sampled_data = down_sampled_data[:min(l1, l2)]
+
+        return down_sampled_data, short_v, long_label, short_label
+
+
+def interpolation(list1: [], list2: [], time1: [], time2: [], label1: str, label2: str) -> ():
+    """
+    Create a new list operating the down-sampling (using median values) on the longest of the two arrays.
+    Parameters:\n
+    - **list1**, **list2** (``list``): array-like objects
+    - **time1**, **time2** (``list``): lists of timestamps: not necessary if the dataset have same length.
+    - **label1**, **label2** (``str``): names of the dataset. Used for labels for future plots.
+    Return:\n
+    A tuple containing: the interpolated array, the long array and the two data labels.
+    """
+    # If the arrays have same lengths, no interpolation needed
+    if len(list1) == len(list2):
+        # Do nothing, return list1, list2, label1 and label2
+        return list1, list2, label1, label2
+
+    # Interpolation procedure
+    else:
+        # Timestamps must be provided
+        if time1 == [] or time2 == []:
+            logging.error("Different sampling frequency: provide timestamps array.")
+            raise SystemExit(1)
+        else:
+            # Find the longest list (x) and the shortest to be interpolated
+            x, short_list, label_x, label_y = (list1, list2, label1, label2) if len(list1) > len(list2) \
+                else (list2, list1, label2, label1)
+            x_t, short_t = (time1, time2) if x is list1 else (time2, time1)
+
+            # Interpolation of the shortest list
+            logging.info("Interpolation of the shortest list.")
+            y = np.interp(x_t, short_t, short_list)
+
+            return x, y, label_x, label_y
 
 
 def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
@@ -134,18 +212,19 @@ def mob_mean(v, smooth_len: int):
 def demodulate_array(array: list, type: str) -> list:
     """
         Demodulation over an array\n
-        Calculate the double demodulation at 50Hz of the dataset provided\n
+        Calculate the double demodulation of the dataset.
+        Depending on the type provided, consecutive means or differences are computed.
             Parameters:\n
-        - **array** (``dict``): array-like dataset
+        - **array** (``list``): array-like dataset
         - **type** (``str``) of data *"DEM"* or *"PWR"*
     """
     data = []
     # Calculate consecutive mean of PWR Outputs -> Get TOTAL POWER Scientific Data
     if type == "PWR":
-        data = mean_cons(array)
+        data = mean_cons(np.array(array))
     # Calculate consecutive differences of DEM Outputs -> Get DEMODULATED Scientific Data
     if type == "DEM":
-        data = diff_cons(array)
+        data = diff_cons(np.array(array))
 
     return data
 
@@ -153,7 +232,8 @@ def demodulate_array(array: list, type: str) -> list:
 def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0, end=-1) -> Dict[str, Any]:
     """
         Demodulation\n
-        Calculate the double demodulation at 50Hz of the dataset provided\n
+        Calculate the double demodulation of the dataset.
+        Depending on the type provided, consecutive means or differences are computed.\n
         Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data\n
             Parameters:\n
         - **dataset** (``dict``): dictionary ({}) containing the dataset with the output of a polarimeter
@@ -714,6 +794,8 @@ def data_plot(pol_name: str,
     # Initialize the name of the plot
     name_plot = f"{pol_name} "
 
+    # Initialize the marker size in the legend
+    marker_scale = 2.
     # ------------------------------------------------------------------------------------------------------------------
     # Step 1: define the operations: FFT, RMS, OUTPUT
 
@@ -819,7 +901,7 @@ def data_plot(pol_name: str,
                             f, s = scipy.signal.welch(rms_sd, fs=50, nperseg=min(len(rms_sd), nperseg),
                                                       scaling="spectrum")
                             axs[row, col].plot(f[f < 25.], s[f < 25.],
-                                               linewidth=0.2, marker=".", color="mediumvioletred",
+                                               linewidth=0.2, marker=".", markersize=2, color="mediumvioletred",
                                                label=f"{name_plot[3:]}")
                         # ----------------------------------------------------------------------------------------------
 
@@ -841,6 +923,7 @@ def data_plot(pol_name: str,
 
                             # Plot RMS
                             axs[row, col].plot(sci_data["times"][begin:len(rms_sd) + begin], rms_sd,
+                                               linewidth=0.2, marker=".", markersize=2,
                                                color="mediumvioletred", label=f"{name_plot[3:]}")
                         # ----------------------------------------------------------------------------------------------
                     # --------------------------------------------------------------------------------------------------
@@ -854,7 +937,7 @@ def data_plot(pol_name: str,
                                                       nperseg=min(len(sci_data["sci_data"][exit][begin:end]), nperseg),
                                                       scaling="spectrum")
                             axs[row, col].plot(f[f < 25.], s[f < 25.],
-                                               linewidth=0.2, marker=".", color="mediumpurple",
+                                               linewidth=0.2, marker=".", markersize=2, color="mediumpurple",
                                                label=f"{name_plot[3:]}")
 
                         # Plot of the SciData DEMODULATED/TOTPOWER -----------------------------------------------------
@@ -874,6 +957,7 @@ def data_plot(pol_name: str,
 
                             # Plot SciData
                             axs[row, col].plot(sci_data["times"][begin:len(y) + begin], y,
+                                               linewidth=0.2, marker=".", markersize=2,
                                                color="mediumpurple", label=f"{name_plot[3:]}")
                     # --------------------------------------------------------------------------------------------------
 
@@ -917,17 +1001,20 @@ def data_plot(pol_name: str,
                                     f, s = scipy.signal.welch(rms_even, fs=50, nperseg=min(len(rms_even), nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
-                                                       linewidth=0.2, marker=".", alpha=even, label=f"Even samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=even, label=f"Even samples")
                                 if odd:
                                     f, s = scipy.signal.welch(rms_odd, fs=50, nperseg=min(len(rms_odd), nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
-                                                       linewidth=0.2, marker=".", alpha=odd, label=f"Odd samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=odd, label=f"Odd samples")
                                 if all:
                                     f, s = scipy.signal.welch(rms_all, fs=100, nperseg=min(len(rms_all), nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
-                                                       linewidth=0.2, marker=".", alpha=all, label="All samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=all, label="All samples")
                             # ------------------------------------------------------------------------------------------
 
                             # ------------------------------------------------------------------------------------------
@@ -936,7 +1023,8 @@ def data_plot(pol_name: str,
                                 if even:
                                     axs[row, col].plot(timestamps[begin:end - 1:2][:-window - smooth_len + 1],
                                                        mob_mean(rms_even, smooth_len=smooth_len)[:-1],
-                                                       color="royalblue", marker=".", alpha=even, label="Even Output")
+                                                       color="royalblue", linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=even, label="Even Output")
                                     # Plot Statistics
                                     # Mean
                                     m += f"\nEven = {round(np.mean(rms_even), 2)}"
@@ -946,7 +1034,8 @@ def data_plot(pol_name: str,
                                 if odd:
                                     axs[row, col].plot(timestamps[begin + 1:end:2][:-window - smooth_len + 1],
                                                        mob_mean(rms_odd, smooth_len=smooth_len)[:-1],
-                                                       color="crimson", marker=".", alpha=odd, label="Odd Output")
+                                                       color="crimson", linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=odd, label="Odd Output")
                                     # Plot Statistics
                                     # Mean
                                     m += f"\nOdd = {round(np.mean(rms_odd), 2)}"
@@ -956,6 +1045,7 @@ def data_plot(pol_name: str,
                                 if all != 0:
                                     axs[row, col].plot(timestamps[begin:end][:-window - smooth_len + 1],
                                                        mob_mean(rms_all, smooth_len=smooth_len)[:-1],
+                                                       linewidth=0.2, marker=".", markersize=2,
                                                        color="forestgreen", alpha=all, label="All Output")
                                     # Plot Statistics
                                     # Mean
@@ -977,20 +1067,23 @@ def data_plot(pol_name: str,
                                                                           nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="royalblue",
-                                                       linewidth=0.2, marker=".", alpha=even, label="Even samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=even, label="Even samples")
                                 if odd:
                                     f, s = scipy.signal.welch(dataset[type][exit][begin + 1:end:2], fs=50,
                                                               nperseg=min(len(dataset[type][exit][begin + 1:end:2]),
                                                                           nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="crimson",
-                                                       linewidth=0.2, marker=".", alpha=odd, label="Odd samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=odd, label="Odd samples")
                                 if all:
                                     f, s = scipy.signal.welch(dataset[type][exit][begin:end], fs=100,
                                                               nperseg=min(len(dataset[type][exit][begin:end]), nperseg),
                                                               scaling="spectrum")
                                     axs[row, col].plot(f[f < 25.], s[f < 25.], color="forestgreen",
-                                                       linewidth=0.2, marker=".", alpha=all, label="All samples")
+                                                       linewidth=0.2, marker=".", markersize=2,
+                                                       alpha=all, label="All samples")
                             # ------------------------------------------------------------------------------------------
 
                             # ------------------------------------------------------------------------------------------
@@ -1001,8 +1094,10 @@ def data_plot(pol_name: str,
                                         axs[row, col].plot(timestamps[begin:end - 1:2][:- smooth_len],
                                                            mob_mean(dataset[type][exit][begin:end - 1:2],
                                                                     smooth_len=smooth_len)[:-1],
-                                                           color="royalblue", marker=".", alpha=even,
+                                                           color="royalblue", alpha=even,
+                                                           marker="*", markersize=0.005, linestyle=" ",
                                                            label="Even Output")
+                                        marker_scale = 1000.
 
                                         # Plot Statistics
                                         # Mean
@@ -1014,7 +1109,11 @@ def data_plot(pol_name: str,
                                         axs[row, col].plot(timestamps[begin + 1:end:2][:- smooth_len],
                                                            mob_mean(dataset[type][exit][begin + 1:end:2],
                                                                     smooth_len=smooth_len)[:-1],
-                                                           color="crimson", marker=".", alpha=odd, label="Odd Output")
+                                                           color="crimson", alpha=odd,
+                                                           marker="*", markersize=0.005, linestyle=" ",
+                                                           label="Odd Output")
+                                        marker_scale = 1000.
+
                                         # Plot Statistics
                                         # Mean
                                         m += f"\nOdd = {round(np.mean(dataset[type][exit][begin + 1:end:2]), 2)}"
@@ -1025,7 +1124,11 @@ def data_plot(pol_name: str,
                                         axs[row, col].plot(timestamps[begin:end][:- smooth_len],
                                                            mob_mean(dataset[type][exit][begin:end],
                                                                     smooth_len=smooth_len)[:-1],
-                                                           color="forestgreen", alpha=all, label="All Output")
+                                                           color="forestgreen", alpha=all,
+                                                           marker="*", markersize=0.005, linestyle=" ",
+                                                           label="All Output")
+                                        marker_scale = 1000.
+
                                         # Plot Statistics
                                         # Mean
                                         m += f"\nAll = {round(np.mean(dataset[type][exit][begin:end]), 2)}"
@@ -1094,11 +1197,12 @@ def data_plot(pol_name: str,
             else:
                 if rms:
                     y_label = "RMS [ADU]"
+
             # Y-Axis label
             axs[row, col].set_ylabel(f"{y_label}", size=10)
 
             # Legend
-            axs[row, col].legend(prop={'size': 10}, loc=7)
+            axs[row, col].legend(loc="lower left", markerscale=marker_scale, fontsize=10)
 
             # Skipping to the following column of the subplot grid
             col += 1
