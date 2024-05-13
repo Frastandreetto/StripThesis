@@ -3,7 +3,7 @@
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2024)
 
-# October 29th 2022, Brescia (Italy) - March 13th 2024, Bologna (Italy)
+# October 29th 2022, Brescia (Italy) - May 13th 2024, Flixbus to Bologna (Italy)
 
 # Libraries & Modules
 import h5py
@@ -54,7 +54,7 @@ def binning_func(data_array, bin_length: int):
 
 def down_sampling(list1: [], list2: [], label1: str, label2: str) -> ():
     """
-    Create a new list operating the down-sampling (using median values) on the longest of the two arrays.
+    Create a new list operating the down-sampling (using median values) on the longest of the two arrays.\n
     Parameters:\n
    - **list1**, **list2** (``list``): array-like objects
     - **label1**, **label2** (``str``): names of the dataset. Used for labels for future plots.
@@ -93,6 +93,22 @@ def down_sampling(list1: [], list2: [], label1: str, label2: str) -> ():
         down_sampled_data = down_sampled_data[:min(l1, l2)]
 
         return down_sampled_data, short_v, long_label, short_label
+
+
+def fourier_transformed(times, values, f_max, f_min):
+    """
+    Compute the Fast Fourier Transformed of an array of data.
+    Nicole Grillo's Code - Bachelor Thesis 2023
+    """
+
+    freq, fft = scipy.signal.welch(values, 1 / np.median(times[1:] - times[:-1]),
+                                   nperseg=400 * 50)
+
+    mask = (freq > f_min) & (freq <= f_max)
+    freq = freq[mask]
+    fft = fft[mask]
+
+    return freq, fft
 
 
 def interpolation(list1: [], list2: [], time1: [], time2: [], label1: str, label2: str) -> ():
