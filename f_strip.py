@@ -15,6 +15,7 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 from numba import njit
 from pathlib import Path
+from scipy.optimize import curve_fit
 from striptease import DataFile, DataStorage
 from typing import Dict, Any
 
@@ -28,10 +29,10 @@ import scipy.ndimage as scn
 
 def binning_func(data_array, bin_length: int):
     """
-        Operates a binning of the data_array by doing a mean of a number of samples equal to bin_length\n
-            Parameters:\n
-        - **data_array** (``list``): array-like object
-        - **bin_length** (``int``): number of elements on which the mean is calculated\n
+    Operates a binning of the data_array by doing a mean of a number of samples equal to bin_length\n
+    Parameters:\n
+    - **data_array** (``list``): array-like object
+    - **bin_length** (``int``): number of elements on which the mean is calculated\n
     """
     # Initialize a new list
     new_data_array = []
@@ -95,9 +96,9 @@ def down_sampling(list1: [], list2: [], label1: str, label2: str) -> ():
         return down_sampled_data, short_v, long_label, short_label
 
 
-def fourier_transformed(times, values, nperseg, f_max, f_min):
+def fourier_transformed(times: list, values: list, nperseg: int, f_max=25., f_min=0.):
     """
-    Compute the Fast Fourier Transformed of an array of data (Nicole Grillo's Code - Bachelor Thesis 2023).
+    Compute the Fast Fourier Transformed of an array of data (update from Nicole Grillo's Bachelor Thesis 2023).
     Parameters:\n
     - **times** (``list``): array-like objects containing the timestamps of the data;
     - **values** (``list``): array-like objects containing the data to transform;
@@ -107,10 +108,8 @@ def fourier_transformed(times, values, nperseg, f_max, f_min):
     - **fft** (``list``): array-like object containing the transformed data.
     """
 
-    # fs
-    # - **fs** (``int``): sampling frequency of the dataset of values
     freq, fft = scipy.signal.welch(values, fs=1 / np.median(times[1:] - times[:-1]),
-                                   nperseg=nperseg, scaling="spectrum")
+                                   nperseg=nperseg)
 
     mask = (freq > f_min) & (freq <= f_max)
     freq = freq[mask]
@@ -155,12 +154,12 @@ def interpolation(list1: [], list2: [], time1: [], time2: [], label1: str, label
 
 def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
     """
-        Create a new file .csv and write the caption of a tabular\n
-            Parameters:\n
-        - **pol_name** (``str``): Name of the polarimeter
-        - **file_name** (``str``): Name of the file to create and in which insert the caption\n
-        - **output_dir** (``str``): Name of the dir where the csv file must be saved
-        This specific function creates a tabular that collects the jumps in the dataset (JT).
+    Create a new file .csv and write the caption of a tabular\n
+    Parameters:\n
+    - **pol_name** (``str``): name of the polarimeter
+    - **file_name** (``str``): name of the file to create and in which insert the caption\n
+    - **output_dir** (``str``): name of the dir where the csv file must be saved
+    This specific function creates a tabular that collects the jumps in the dataset (JT).
     """
     new_file_name = f"JT_{pol_name}_{file_name}.csv"
     cap = [["# Jump", "Jump value [JHD]", "Jump value [s]", "Gregorian Date", "JHD Date"]]
@@ -177,9 +176,9 @@ def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
 
 def pol_list(path_dataset: Path) -> list:
     """
-        Create a list of the polarimeters present in the datafile\n
-            Parameters:\n
-        - **path_dataset** (Path comprehensive of the name of the dataset file)
+    Create a list of the polarimeters present in the datafile\n
+    Parameters:\n
+    - **path_dataset** (Path comprehensive of the name of the dataset file)
     """
     d = DataFile(path_dataset)
     # Read the Datafile
@@ -195,10 +194,10 @@ def pol_list(path_dataset: Path) -> list:
 @njit  # optimize calculations
 def mean_cons(v):
     """
-        Calculate consecutive means between the elements of an array.\n
-            Parameters:\n
-        - **v** is an array-like object\n
-        The mean on each couple of samples of even-odd index is computed.
+    Calculate consecutive means between the elements of an array.\n
+    Parameters:\n
+    - **v** is an array-like object\n
+    The mean on each couple of samples of even-odd index is computed.
     """
     n = (len(v) // 2) * 2
     mean = (v[0:n:2] + v[1:n + 1:2]) / 2
@@ -208,10 +207,10 @@ def mean_cons(v):
 @njit
 def diff_cons(v):
     """
-        Calculate consecutive difference between the elements of an array.\n
-            Parameters:\n
-        - **v** is an array-like object\n
-        The difference between each couple of samples of even-odd index is computed.
+    Calculate consecutive difference between the elements of an array.\n
+    Parameters:\n
+    - **v** is an array-like object\n
+    The difference between each couple of samples of even-odd index is computed.
     """
     n = (len(v) // 2) * 2
     diff = (v[0:n:2] - v[1:n + 1:2])
@@ -221,10 +220,10 @@ def diff_cons(v):
 @njit
 def mob_mean(v, smooth_len: int):
     """
-        Calculate a mobile mean on a number of elements given by smooth_len, used to smooth plots.\n
-            Parameters:\n
-        - **v** is an array-like object
-        - **smooth_len** (int): number of elements on which the mobile mean is calculated
+    Calculate a mobile mean on a number of elements given by smooth_len, used to smooth plots.\n
+    Parameters:\n
+    - **v** is an array-like object
+    - **smooth_len** (int): number of elements on which the mobile mean is calculated
     """
     m = np.zeros(len(v) - smooth_len + 1)
     for i in np.arange(len(m)):
@@ -235,12 +234,12 @@ def mob_mean(v, smooth_len: int):
 
 def demodulate_array(array: list, type: str) -> list:
     """
-        Demodulation over an array\n
-        Calculate the double demodulation of the dataset.
-        Depending on the type provided, consecutive means or differences are computed.
-            Parameters:\n
-        - **array** (``list``): array-like dataset
-        - **type** (``str``) of data *"DEM"* or *"PWR"*
+    Demodulation over an array\n
+    Calculate the double demodulation of the dataset.
+    Depending on the type provided, consecutive means or differences are computed.
+    Parameters:\n
+    - **array** (``list``): array-like dataset
+    - **type** (``str``) of data *"DEM"* or *"PWR"*
     """
     data = []
     # Calculate consecutive mean of PWR Outputs -> Get TOTAL POWER Scientific Data
@@ -255,16 +254,16 @@ def demodulate_array(array: list, type: str) -> list:
 
 def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0, end=-1) -> Dict[str, Any]:
     """
-        Demodulation\n
-        Calculate the double demodulation of the dataset.
-        Depending on the type provided, consecutive means or differences are computed.\n
-        Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data\n
-            Parameters:\n
-        - **dataset** (``dict``): dictionary ({}) containing the dataset with the output of a polarimeter
-        - **timestamps** (``list``): list ([]) containing the Timestamps of the output of a polarimeter
-        - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*\n
-        - **type** (``str``) of data *"DEM"* or *"PWR"*
-        - **begin**, **end** (``int``): interval of dataset that has to be considered
+    Demodulation\n
+    Calculate the double demodulation of the dataset.
+    Depending on the type provided, consecutive means or differences are computed.\n
+    Timestamps are chosen as mean of the two consecutive times of the DEM/PWR data\n
+    Parameters:\n
+    - **dataset** (``dict``): dictionary ({}) containing the dataset with the output of a polarimeter
+    - **timestamps** (``list``): list ([]) containing the Timestamps of the output of a polarimeter
+    - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*\n
+    - **type** (``str``) of data *"DEM"* or *"PWR"*
+    - **begin**, **end** (``int``): interval of dataset that has to be considered
     """
     # Calculate consecutive mean of the Timestamps
     times = mean_cons(timestamps)
@@ -284,13 +283,13 @@ def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0,
 @njit
 def rolling_window(v, window: int):
     """
-        Rolling Window Function\n
-            Parameters:\n
-        -  **v** is an array-like object
-        - **window** (int)
-        Accepts a vector and return a matrix with:\n
-        - A number of element per row fixed by the parameter window
-        - The first element of the row j is the j element of the vector
+    Rolling Window Function\n
+    Parameters:\n
+    -  **v** is an array-like object
+    - **window** (int)
+    Accepts a vector and return a matrix with:\n
+    - A number of element per row fixed by the parameter window
+    - The first element of the row j is the j element of the vector
     """
     shape = v.shape[:-1] + (v.shape[-1] - window + 1, window)
     strides = v.strides + (v.strides[-1],)
@@ -299,16 +298,16 @@ def rolling_window(v, window: int):
 
 def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1) -> []:
     """
-        Calculate the RMS of a vector using the rolling window\n
-            Parameters:\n
-        - **data** is a dictionary with four keys (exits) of a particular type *"DEM"* or *"PWR"*
-        - **window**: number of elements on which the RMS is calculated
-        - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*
-        - **eoa** (``int``): flag used to calculate RMS for:\n
-            - all samples (*eoa=0*), can be used for Demodulated and Total Power scientific data (50Hz)\n
-            - odd samples (*eoa=1*)\n
-            - even samples (*eoa=2*)\n
-        - **begin**, **end** (``int``): interval of dataset that has to be considered
+    Calculate the RMS of a vector using the rolling window\n
+    Parameters:\n
+    - **data** is a dictionary with four keys (exits) of a particular type *"DEM"* or *"PWR"*
+    - **window**: number of elements on which the RMS is calculated
+    - **exit** (``str``) *"Q1"*, *"Q2"*, *"U1"*, *"U2"*
+    - **eoa** (``int``): flag used to calculate RMS for:\n
+        - all samples (*eoa=0*), can be used for Demodulated and Total Power scientific data (50Hz)\n
+        - odd samples (*eoa=1*)\n
+        - even samples (*eoa=2*)\n
+    - **begin**, **end** (``int``): interval of dataset that has to be considered
     """
     rms = []
     if eoa == 0:
@@ -337,12 +336,12 @@ def RMS(data: dict, window: int, exit: str, eoa: int, begin=0, end=-1) -> []:
 
 def EOA(even: int, odd: int, all: int) -> str:
     """
-        Parameters:\n
-        - **even**, **odd**, **all** (``int``)
-        If these variables are different from zero, this function returns a string with the corresponding letters:\n
-        - "E" for even (``int``)\n
-        - "O" for odd (``int``)\n
-        - "A" for all (``int``)\n
+    Parameters:\n
+    - **even**, **odd**, **all** (``int``)
+    If these variables are different from zero, this function returns a string with the corresponding letters:\n
+    - "E" for even (``int``)\n
+    - "O" for odd (``int``)\n
+    - "A" for all (``int``)\n
     """
     eoa = ""
     if even != 0:
@@ -356,12 +355,11 @@ def EOA(even: int, odd: int, all: int) -> str:
 
 def eoa_values(eoa_str: str) -> []:
     """
-        Return a list in which each element is a tuple of 3 values.
-        Those values can be 0 or 1 depending on the letters (e, o, a) provided.
-        Note: if a letter is present in the eoa_str, then that letter will assume both value 0 and 1. Only 0 otherwise.
-
-            Parameters:\n
-        - **eoa_str** (``str``): string of 0,1,2 or 3 letters from a combination of the letters e, o and a
+    Return a list in which each element is a tuple of 3 values.
+    Those values can be 0 or 1 depending on the letters (e, o, a) provided.
+    Note: if a letter is present in the eoa_str, then that letter will assume both value 0 and 1. Only 0 otherwise.
+    Parameters:\n
+    - **eoa_str** (``str``): string of 0,1,2 or 3 letters from a combination of the letters e, o and a
     """
     # Initialize a dictionary with 0 values for e,o,a keys
     eoa_dict = {"E": [0], "O": [0], "A": [0]}
@@ -383,10 +381,9 @@ def eoa_values(eoa_str: str) -> []:
 
 def letter_combo(in_str: str) -> []:
     """
-        Return a list in which each element is a combination of E,O,A letters.
-
-        Parameters:\n
-        - **in_str** (``str``): generic string of max 3 letters
+    Return a list in which each element is a combination of E,O,A letters.
+    Parameters:\n
+    - **in_str** (``str``): generic string of max 3 letters
     """
     result = []
 
@@ -399,14 +396,13 @@ def letter_combo(in_str: str) -> []:
 
 def find_spike(v, data_type: str, threshold=4.4, n_chunk=10) -> []:
     """
-        Look up for 'spikes' in a given array.\n
-        Calculate the median and the mad and uses those to discern spikes.
-
-            Parameters:\n
-        - **v** is an array-like object
-        - **type** (str): if "DEM" look for spikes in two sub arrays (even and odd output) if "FFT" select only spike up
-        - **threshold** (int): value used to discern what a spike is
-        - **n_chunk** (int): n of blocks in which v is divided. On every block the median is computed to find spikes.
+    Look up for 'spikes' in a given array.\n
+    Calculate the median and the mad and uses those to discern spikes.\n
+    Parameters:\n
+    - **v** is an array-like object
+    - **type** (str): if "DEM" look for spikes in two sub arrays (even and odd output) if "FFT" select only spike up
+    - **threshold** (int): value used to discern what a spike is
+    - **n_chunk** (int): n of blocks in which v is divided. On every block the median is computed to find spikes.
     """
     # Initialize a spike list to collect the indexes of the problematic samples
     spike_idx = []
@@ -452,12 +448,11 @@ def find_spike(v, data_type: str, threshold=4.4, n_chunk=10) -> []:
 
 def select_spike(spike_idx: list, s: list, freq: list) -> []:
     """
-        Select the most relevant spikes in an array of FFT data
-
-            Parameters:\n
-        - **spike_idx** (``list``): is an array-like object containing the indexes of the spikes present in the s array
-        - **s** (``list``): is an array-like object that contains spikes
-        - **freq** (``list``): is an array-like object that contains the frequency corresponding to the s values
+    Select the most relevant spikes in an array of FFT data.\n
+    Parameters:\n
+    - **spike_idx** (``list``): is an array-like object containing the indexes of the spikes present in the s array
+    - **s** (``list``): is an array-like object that contains spikes
+    - **freq** (``list``): is an array-like object that contains the frequency corresponding to the s values
     """
     # Select only the most "significant" spikes
     idx_sel = []
@@ -472,21 +467,19 @@ def select_spike(spike_idx: list, s: list, freq: list) -> []:
 
 def find_jump(v, exp_med: float, tolerance: float) -> {}:
     """
-        Find the 'jumps' in a given Time astropy object: the samples should be consequential with a fixed growth rate.
-        Hence, their consecutive differences should have an expected median within a certain tolerance.
-
-            Parameters:\n
-        - **v** is a Time object from astropy => i.e. Polarimeter.times\n
-        - **exp_med** (``float``) expected median (in seconds) of the TimeDelta between two consecutive values of v
-        - **tolerance** (``float``) threshold number of seconds over which a TimeDelta is considered as an error\n
-
-            Return:\n
-        - **jumps** a dictionary containing five keys:
-            - **n** (``int``) is the number of jumps found
-            - **idx** (``int``) index of the jump in the array
-            - **value** (``float``) is the value of the jump in JHD
-            - **s_value** (``float``) is the value of the jump in seconds
-            - **median_ok** (``bool``) True if there is no jump in the vector, False otherwise
+    Find the 'jumps' in a given Time astropy object: the samples should be consequential with a fixed growth rate.
+    Hence, their consecutive differences should have an expected median within a certain tolerance.\n
+    Parameters:\n
+    - **v** is a Time object from astropy => i.e. Polarimeter.times\n
+    - **exp_med** (``float``) expected median (in seconds) of the TimeDelta between two consecutive values of v
+    - **tolerance** (``float``) threshold number of seconds over which a TimeDelta is considered as an error\n
+    Return:\n
+    - **jumps** a dictionary containing five keys:
+        - **n** (``int``) is the number of jumps found
+        - **idx** (``int``) index of the jump in the array
+        - **value** (``float``) is the value of the jump in JHD
+        - **s_value** (``float``) is the value of the jump in seconds
+        - **median_ok** (``bool``) True if there is no jump in the vector, False otherwise
     """
     # Create a TimeDelta object from the Time object given in input
     dt = (v[1:] - v[:-1]).sec  # type: TimeDelta
@@ -530,15 +523,13 @@ def find_jump(v, exp_med: float, tolerance: float) -> {}:
 
 def get_tags_from_iso(dir_path: str, start_time: str, end_time: str) -> []:
     """
-        Get the tags in a given time interval contained in a file dir
-
-            Parameters:\n
-        - **dir_path** (``str``): Path of the data dir\n
-        - **start_time** (``float``): start time in iso format\n
-        - **end_time** (``float``): end time in iso format\n
-
-            Return:\n
-        - **tags** (``list``): List containing the tags contained in the file
+    Get the tags in a given time interval contained in a file dir.\n
+    Parameters:\n
+    - **dir_path** (``str``): Path of the data dir\n
+    - **start_time** (``float``): start time in iso format\n
+    - **end_time** (``float``): end time in iso format\n
+    Return:\n
+    - **tags** (``list``): List containing the tags contained in the file
     """
     # Create Datastorage from the file.hdf5
     ds = DataStorage(dir_path)
@@ -557,12 +548,11 @@ def get_tags_from_iso(dir_path: str, start_time: str, end_time: str) -> []:
 
 def get_tags_from_file(file_path: str) -> []:
     """
-        Get the tags form a given file
-
-            Parameters:\n
-        - **file_path** (``str``): Path of the data file\n
-            Return:\n
-        - **tags** (``list``): List containing the tags contained in the file
+    Get the tags form a given file.\n
+    Parameters:\n
+    - **file_path** (``str``): Path of the data file\n
+    Return:\n
+    - **tags** (``list``): List containing the tags contained in the file
     """
     tags = []
     f = h5py.File(f"{file_path}")
@@ -575,13 +565,12 @@ def get_tags_from_file(file_path: str) -> []:
 
 def get_tag_times(file_path: str, tag_name: str) -> []:
     """
-        Find the start-time and the end-time of a given tag.
-
-            Parameters:\n
-        - **file_path** (``str``): Path of the data file\n
-        - **file_tag** (``str``): Name of the tag of a specific subset of data (i.e. of a test)\n
-            Return:\n
-        - **t_tag** (``list``): List containing 4 elements: start and end time in mjd and iso format
+    Find the start-time and the end-time of a given tag.\n
+    Parameters:\n
+    - **file_path** (``str``): Path of the data file\n
+    - **file_tag** (``str``): Name of the tag of a specific subset of data (i.e. of a test)\n
+    Return:\n
+    - **t_tag** (``list``): List containing 4 elements: start and end time in mjd and iso format
     """
     # Initializing tag times list
     t_tag = []
@@ -621,12 +610,28 @@ def get_tag_times(file_path: str, tag_name: str) -> []:
     return t_tag
 
 
+def delta_method(values: list):
+    """
+    Compute the White Noise level from a dataset (from Nicole Grillo's Bachelor Thesis 2023).\n
+    - **values** (``list``): array-like objects containing the data from which compute the White Noise;
+    Return:\n
+    A floating point number representing the WN level
+    """
+    # Calculate consecutive differences
+    delta_values = values[1:] - values[:-1]
+    # Consider only even values
+    delta_values_even = delta_values[::2]
+    # Delta Method Formula: median of the abs value of the difference between median and values
+    mean_abs_dev = np.median(np.abs(np.median(delta_values_even) - delta_values_even))
+    # Correction due to the propagation of errors
+    return mean_abs_dev / (0.67449 * np.sqrt(2))
+
+
 def dir_format(old_string: str) -> str:
     """
-        Take a string and return a new string changing white spaces into underscores, ":" into "-" and removing ".000"
-
-            Parameters:\n
-        - **old_string** (``str``)
+    Take a string and return a new string changing white spaces into underscores, ":" into "-" and removing ".000"\n
+    Parameters:\n
+    - **old_string** (``str``)
     """
     new_string = old_string.replace(" ", "_")
     new_string = new_string.replace(".000", "")
@@ -634,13 +639,34 @@ def dir_format(old_string: str) -> str:
     return new_string
 
 
+def error_propagation_corr(cov, params: list, wn_level: float) -> float:
+    """
+    Compute the value of the propagation of the errors (from Nicole Grillo's Bachelor Thesis 2023).\n
+    Parameters:\n
+    - **cov** (``Any``):
+    - **params** (``list``)
+    - **wn_level** (``float``)
+    Return:\n
+    A floating point value corresponding to the propagated error.
+    """
+    one_alpha = 1 / params[1]
+    sig_c = (params[0] / wn_level) ** one_alpha
+    der_f = sig_c
+    der_sigma = one_alpha * sig_c * params[2] / wn_level
+    der_alpha = params[2] * sig_c * np.log(params[0] / wn_level) * one_alpha ** 2
+
+    return np.sqrt(
+        der_f ** 2 * cov[2, 2] + der_sigma ** 2 * cov[0, 0] + der_alpha ** 2 * cov[1, 1] +
+        2 * der_f * der_sigma * cov[2, 0] + 2 * der_f * der_alpha * cov[2, 1] + 2 * der_alpha * der_sigma * cov[0, 1])
+
+
 def csv_to_json(csv_file_path: str, json_file_path):
     """
-        Convert a csv file into a json file.
+    Convert a csv file into a json file.
 
-            Parameters:\n
-        - **csv_file_path** (``str``): path of the csv file that have to be converted
-        - **json_file_path** (``str``): path of the json file converted
+        Parameters:\n
+    - **csv_file_path** (``str``): path of the csv file that have to be converted
+    - **json_file_path** (``str``): path of the json file converted
     """
     json_array = []
 
@@ -669,11 +695,10 @@ def csv_to_json(csv_file_path: str, json_file_path):
 
 def merge_report(md_reports_path: str, total_report_path: str):
     """
-        Merge together all the md report files into a single md report file.
-
-            Parameters:\n
-        - **md_reports_path** (``str``): path of the md files that have to be merged
-        - **total_report_path** (``str``): path of the md file merged
+    Merge together all the md report files into a single md report file.\n
+    Parameters:\n
+    - **md_reports_path** (``str``): path of the md files that have to be merged
+    - **total_report_path** (``str``): path of the md file merged
     """
     # Ensure the output directory exists, create it if not
     output_directory = Path(total_report_path).parent
@@ -694,10 +719,9 @@ def merge_report(md_reports_path: str, total_report_path: str):
 
 def name_check(names: list) -> bool:
     """
-        Check if the names of the polarimeters in the list are wrong: not the same as the polarimeters of Strip.
-
-            Parameters:\n
-        - **names** (``list``): list of the names of the polarimeters
+    Check if the names of the polarimeters in the list are wrong: not the same as the polarimeters of Strip.\n
+    Parameters:\n
+    - **names** (``list``): list of the names of the polarimeters
     """
     for n in names:
         # Check if the letter corresponds to one of the tiles of Strip
@@ -723,12 +747,124 @@ def name_check(names: list) -> bool:
     return True
 
 
+def noise_characterisation(times: list, values: dict, nperseg: int,
+                           output_dir: str, pol_name: str, data_type: str,
+                           f_max=50., f_min=0) -> []:
+    """
+    Plot the Fast Fourier Transformed of a dataset and evaluate the White noise level and the 1/f noise.
+    Use two different methods: delta-method and interpolation. (from Nicole Grillo's Bachelor Thesis 2023).\n
+    Parameters:\n
+    - **times** (``list``): array-like objects containing the timestamps of the data;
+    - **values** (``dict``): dict containing the data to transform;
+    - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
+    - **output_dir** (``str``): name of the dir where the plots must be saved
+    - **pol_name** (``str``): name of the polarimeter analyzed
+    - **data_type** (``str``): kind of the data analyzed
+    - **f_max**, **f_min** (``int``): max and min frequency that limits the FFT analysis
+    Return:\n
+    - **result** (``list``): list of synthetic results of the analysis on WN and 1/f noise.
+    """
+
+    # Initialize a list to collect results for the report
+    result = []
+    # Initialize a dict to collect polarimeter results
+    var = {}
+    # Initialize a figure for the plots
+    fig, axs = plt.subplots(nrows=2, ncols=4, constrained_layout=True, figsize=(18, 10))
+    fig.suptitle(f'{pol_name} FFT Plots', fontsize=15)
+
+    for i, exit in enumerate(["Q1", "Q2", "U1", "U2"]):
+        freq, fft = fourier_transformed(times, values=values[exit], nperseg=nperseg, f_max=f_max, f_min=f_min)
+
+        # Fitting section
+        # params: [sigma, alpha, f_knee] see below the function "noise_interpolation"
+        # This list contains the optimal values for the parameters of the function noise_interpolation
+        # so that the sum of the squared residuals of f(xdata, *popt) - ydata is minimized.
+        params, cov = curve_fit(noise_interpolation, freq, fft, maxfev=10000)
+        ps = noise_interpolation(freq, *params)
+        idx = np.argsort(freq)
+
+        # Evaluate White Noise with delta method
+        wn_delta = delta_method(values[exit])
+
+        var[f"err_sigma_interpol_{exit}"] = results_rounding(np.sqrt(cov[0][0]), np.sqrt(cov[0][0]))
+        var[f"err_alpha_interpol_{exit}"] = results_rounding(np.sqrt(cov[1][1]), np.sqrt(cov[1][1]))
+        var[f"err_fknee_interpol_{exit}"] = results_rounding(np.sqrt(cov[2][2]), np.sqrt(cov[2][2]))
+
+        wn_level_pwr = wn_delta ** 2 * 2 / 50
+
+        var[f"sigma_fknee_delta_{exit}"] = results_rounding(error_propagation_corr(cov, params, wn_level_pwr),
+                                                            error_propagation_corr(cov, params, wn_level_pwr))
+        var[f"{exit}_fknee_delta"] = results_rounding(params[2] / (wn_level_pwr / params[0]) ** (1 / params[1]),
+                                                      var[f"sigma_fknee_delta_{exit}"])
+        var[f"{exit}_fknee_interp"] = results_rounding(params[2], var[f"err_fknee_interpol_{exit}"])
+        var[f"{exit}_wn"] = np.sqrt(params[0] * 50) / np.sqrt(2)
+        var[f"sigma{exit}_f"] = results_rounding(params[0], var[f"err_sigma_interpol_{exit}"])
+        var[f"alpha{exit}_f"] = results_rounding(params[1], var[f"err_alpha_interpol_{exit}"])
+        var[f"{exit}_wn_delta"] = wn_delta
+
+        # --------------------------------------------------------------------------------------------------------------
+        # Plot Section
+        # --------------------------------------------------------------------------------------------------------------
+
+        # Interpolation plots
+        axs[0][i].plot(freq[idx], fft[idx], color='royalblue', label='data')
+        axs[0][i].plot(freq[idx], ps[idx], color='black', label='interp method')
+        axs[0][i].set_yscale('log')
+        axs[0][i].set_xscale('log')
+        axs[0][i].set_title(f"{pol_name} - {exit}")
+        axs[0][i].set(xlabel='Frequency [Hz]', ylabel='Power [ADU^2/Hz]')
+        axs[0][i].legend(fontsize="x-small")
+
+        # Delta Method plots
+        # Create a 1D empty array
+        white_noise_delta = np.empty(len(freq))
+        # Fill the array with the white noise pwr level
+        white_noise_delta.fill(wn_level_pwr)
+        one_over_f = (params[0] * (params[2] / freq) ** params[1])
+
+        # FFT Plot
+        axs[1][i].plot(freq, fft, color='royalblue', label='data', marker="*", markersize=2)
+        # One over f Signal
+        axs[1][i].plot(freq, one_over_f, color='black', label='interp method')
+        # WN Delta method
+        axs[1][i].plot(freq, white_noise_delta, color='red', label='delta method')
+        # Knee frequency
+        axs[1][i].plot(var[f"{exit}_fknee_delta"], params[0] * (params[2] / var[f"{exit}_fknee_delta"]) **
+                       params[1], marker="o", markersize=3.5, markerfacecolor="gold")
+        axs[1][i].set_yscale('log')
+        axs[1][i].set_xscale('log')
+        axs[0][i].set_title(f"{pol_name} - {exit}")
+        axs[1][i].set(xlabel='Frequency [Hz]', ylabel='Power [ADU^2/Hz]')
+        axs[1][i].legend(fontsize="x-small")
+
+        # var[f"{data_type}{exit}_plots_file_name"] = str(plot_file_name)
+        result.append(var)
+
+    # Saving figure with the plots of all the exits
+    plot_file_name = f"{output_dir}/WN_{pol_name}_{data_type}.png"
+    plt.savefig(plot_file_name, bbox_inches="tight")
+
+    return result
+
+
+def noise_interpolation(f: list, sigma: float, alpha: float, f_knee: float):
+    """
+    Compute the noise using an interpolation method (from Nicole Grillo's Bachelor Thesis 2023).\n
+    Parameters:\n
+    - **f** (``list``): array-like object containing frequency values
+    - **sigma** (``float``): std deviation
+    - **alpha** (``float``): exponent
+    - **f_knee** (``float``): knee frequency
+    """
+    return sigma * ((f_knee / f) ** alpha + 1)
+
+
 def datetime_check(date_str: str) -> bool:
     """
-        Check if the string is in datatime format "YYYY-MM-DD hh:mm:ss" or not.
-
-            Parameters:\n
-        - **date** (``str``): string with the datetime
+    Check if the string is in datatime format "YYYY-MM-DD hh:mm:ss" or not.
+    Parameters:\n
+    - **date** (``str``): string with the datetime
     """
     date_format = "%Y-%m-%d %H:%M:%S"
     try:
@@ -742,8 +878,7 @@ def date_update(start_datetime: str, n_samples: int, sampling_frequency: int, ms
     """
     Calculates and returns the new Gregorian date in which the analysis begins, given a number of samples that
     must be skipped from the beginning of the dataset.
-
-        Parameters:\n
+    Parameters:\n
     - **start_datetime** (``str``): start time of the dataset
     - **n_samples** (``int``): number of samples that must be skipped\n
     - **sampling_freq** (``int``): number of data collected per second
@@ -766,9 +901,9 @@ def date_update(start_datetime: str, n_samples: int, sampling_frequency: int, ms
 
 def same_length(array1, array2) -> []:
     """
-        Check if the two array are of the same length. If not, the longer becomes as long as the smaller
-            Parameters:\n
-        - **array1**, **array2** (``array``): data arrays.
+    Check if the two array are of the same length. If not, the longer becomes as long as the smaller
+    Parameters:\n
+    - **array1**, **array2** (``array``): data arrays.
     """
     l1 = len(array1)
     l2 = len(array2)
@@ -789,28 +924,27 @@ def data_plot(pol_name: str,
               output_plot_dir: str,
               show: bool):
     """
-        Generic function that create a Plot of the dataset provided.\n
+    Generic function that create a Plot of the dataset provided.\n
+    Parameters:
+    - **pol_name** (``str``): name of the polarimeter we want to analyze
+    - **dataset** (``dict``): dictionary containing the dataset with the output of a polarimeter
+    - **timestamps** (``list``): list containing the Timestamps of the output of a polarimeter
+    - **start_datetime** (``str``): start time
+    - **end_datetime** (``str``): end time
+    - **begin**, **end** (``int``): interval of dataset that has to be considered\n
 
-            Parameters:
-        - **pol_name** (``str``): name of the polarimeter we want to analyze
-        - **dataset** (``dict``): dictionary containing the dataset with the output of a polarimeter
-        - **timestamps** (``list``): list containing the Timestamps of the output of a polarimeter
-        - **start_datetime** (``str``): start time
-        - **end_datetime** (``str``): end time
-        - **begin**, **end** (``int``): interval of dataset that has to be considered\n
+    - **type** (``str``): defines the scientific output, *"DEM"* or *"PWR"*\n
+    - **even**, **odd**, **all** (int): used to set the transparency of the dataset (0=transparent, 1=visible)\n
 
-        - **type** (``str``): defines the scientific output, *"DEM"* or *"PWR"*\n
-        - **even**, **odd**, **all** (int): used to set the transparency of the dataset (0=transparent, 1=visible)\n
+    - **demodulated** (``bool``): if true, demodulated data are computed, if false even-odd-all output are plotted
+    - **rms** (``bool``) if true, the rms are computed
+    - **fft** (``bool``) if true, the fft are computed
 
-        - **demodulated** (``bool``): if true, demodulated data are computed, if false even-odd-all output are plotted
-        - **rms** (``bool``) if true, the rms are computed
-        - **fft** (``bool``) if true, the fft are computed
-
-        - **window** (``int``): number of elements on which the RMS is calculated
-        - **smooth_len** (``int``): number of elements on which the mobile mean is calculated
-        - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
-        - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
-        - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
+    - **window** (``int``): number of elements on which the RMS is calculated
+    - **smooth_len** (``int``): number of elements on which the mobile mean is calculated
+    - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
+    - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
+    - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
     """
     # Initialize the plot directory
     path_dir = ""
@@ -1259,4 +1393,26 @@ def data_plot(pol_name: str,
         plt.show()
     plt.close(fig)
     # ------------------------------------------------------------------------------------------------------------------
-    return 88
+    return 1
+
+
+def results_rounding(value, error) -> list:
+    """
+    Rounding function that avoid nonsense errors associated to ADU measurements.\n
+    Parameters:\n
+
+     - **value** (``list``): array-like object whose elements must be rounded\n
+     - **error** (``list``): array-like object used to round the value one\n
+    Return:\n
+    **result** (``list``): array-like object with rounded elements.
+    """
+    if np.isnan(error) or np.isinf(error) or np.isinf(value) or np.isnan(value):
+
+        return 1
+
+    if error > value:
+        return 1
+
+    result = round(value, int(np.ceil(-np.log10(error))) + 1)
+
+    return result
