@@ -516,10 +516,9 @@ class Thermal_Sensors:
                 # Calculate the periodogram
                 # Choose the length of the data segment (between 10**4 and nperseg provided) on which calculate the fft
                 # Changing this parameter allow to reach lower freq in the plot: the limInf of the x-axis is fs/nperseg.
-                f, s = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][sensor_name],
-                                          fs=fs, nperseg=min(int(fs * 10 ** 4), self.nperseg_thermal,
-                                                             len(self.ts["thermal_data"]["calibrated"][sensor_name])),
-                                          scaling="spectrum")
+                f, s = fz.fourier_transformed(times=self.ts["thermal_times"],
+                                              values=self.ts["thermal_data"]["calibrated"][sensor_name],
+                                              nperseg=min(int(fs * 10 ** 4), self.nperseg_thermal), f_max=25., f_min=0.)
                 # All FFT of TS in one plot
                 if all_in:
                     axs.plot(f, s,
@@ -593,10 +592,13 @@ class Thermal_Sensors:
 
             # Compute FFT of TS Measures using welch method
             if fft:
-                x_data, y_data = scipy.signal.welch(self.ts["thermal_data"]["calibrated"][name], fs=ts_sam_exp_med / 60,
-                                                    nperseg=min(len(self.ts["thermal_data"]["calibrated"][name]),
-                                                                self.nperseg_thermal),
-                                                    scaling="spectrum")
+                x_data, y_data = fz.fourier_transformed(times=self.ts["thermal_times"],
+                                                        values=self.ts["thermal_data"]["calibrated"][name],
+                                                        nperseg=min(len(self.ts["thermal_data"]["calibrated"][name]),
+                                                                    self.nperseg_thermal),
+                                                        f_max=25., f_min=0)
+            # fs=ts_sam_exp_med / 60,
+
                 # Limit the FFT values below 25Hz: we are interested in long periodic behaviour, hence small frequencies
                 x_data = [x for x in x_data if x < 25.]
                 # Limit the Power Spectral Density values to the frequencies that are < 25Hz

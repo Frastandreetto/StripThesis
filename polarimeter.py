@@ -4,7 +4,8 @@
 # Part of this code was used in Francesco Andreetto's bachelor thesis (2020) and master thesis (2023).
 # Use this Class with the new version of the pipeline for functional verification of LSPE-STRIP (2024).
 
-# November 1st 2022, Brescia (Italy) - May 11th 2024, Bologna (Italy)
+# November 1st 2022, Brescia (Italy) - May 13th 2024, Bologna (Italy)
+
 # Libraries & Modules
 import logging
 import numpy as np
@@ -1128,9 +1129,8 @@ class Polarimeter:
 
                 # Compute FFT Measures using welch method
                 if fft:
-                    x_data, y_data = scipy.signal.welch(self.data[type][exit], fs=100,
-                                                        nperseg=min(len(self.data[type][exit]), nperseg),
-                                                        scaling="spectrum")
+                    x_data, y_data = fz.fourier_transformed(times=self.times, values=self.data[type][exit],  # fs=100,
+                                                            nperseg=min(len(self.data[type][exit]), nperseg))
                     x_data = [x for x in x_data if x < 25.]
                     y_data = y_data[:len(x_data)]
                     threshold = 3
