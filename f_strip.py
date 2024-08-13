@@ -89,7 +89,7 @@ def csv_to_json(csv_file_path: str, json_file_path):
 def data_plot(pol_name: str,
               dataset: dict,
               timestamps: list,
-              start_datetime: str, end_datetime: str,
+              start_datetime: str,
               begin: int, end: int,
               type: str,
               even: str, odd: str, all: str,
@@ -104,7 +104,6 @@ def data_plot(pol_name: str,
     - **dataset** (``dict``): dictionary containing the dataset with the output of a polarimeter
     - **timestamps** (``list``): list containing the Timestamps of the output of a polarimeter
     - **start_datetime** (``str``): start time
-    - **end_datetime** (``str``): end time
     - **begin**, **end** (``int``): interval of dataset that has to be considered\n
 
     - **type** (``str``): defines the scientific output, *"DEM"* or *"PWR"*\n
@@ -1232,6 +1231,7 @@ def noise_characterisation(times: list, values: dict, nperseg: int,
         white_noise_delta = np.empty(len(freq))
         # Fill the array with the white noise pwr level
         white_noise_delta.fill(wn_level_pwr)
+        # Calculate the 1/f signal
         one_over_f = (params[0] * (params[2] / freq) ** params[1])
 
         # FFT Plot

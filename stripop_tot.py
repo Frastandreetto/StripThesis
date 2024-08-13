@@ -3,7 +3,7 @@
 # This file contains the function "tot" that operates a complete analysis of a provided group of polarimeters.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
 
-# August 14th 2023, Brescia (Italy) - May 11th 2024, Brescia (Italy)
+# August 14th 2023, Brescia (Italy) - May 13th 2024, Brescia (Italy)
 
 # Libraries & Modules
 import csv
@@ -541,7 +541,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                         # Plot of Even-Odd-All Outputs
                         logging.info(f'Plotting Even Odd All Outputs. Type {type}.')
                         fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                     start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                     start_datetime=start_datetime,  begin=0, end=-1,
                                      type=type, even=combo[0], odd=combo[1], all=combo[2],
                                      demodulated=False, rms=False, fft=False,
                                      window=window, smooth_len=smooth, nperseg=nperseg,
@@ -553,7 +553,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             # Plotting Even Odd All Outputs RMS
                             logging.info(f'Plotting Even Odd All Outputs RMS. Type {type}.')
                             fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                         start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                         start_datetime=start_datetime,  begin=0, end=-1,
                                          type=type, even=combo[0], odd=combo[1], all=combo[2],
                                          demodulated=False, rms=True, fft=False,
                                          window=window, smooth_len=smooth, nperseg=nperseg,
@@ -567,7 +567,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                             # Plotting Even Odd All FFT
                             logging.info(f'Plotting Even Odd All FFT. Type {type}.')
                             fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                         start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                         start_datetime=start_datetime,  begin=0, end=-1,
                                          type=type, even=combo[0], odd=combo[1], all=combo[2],
                                          demodulated=False, rms=False, fft=True,
                                          window=window, smooth_len=smooth, nperseg=nperseg,
@@ -579,7 +579,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                 # Plotting Even Odd All FFT of the RMS
                                 logging.info(f'Plotting Even Odd All FFT of the RMS. Type {type}.')
                                 fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                             start_datetime=start_datetime, end_datetime=end_datetime,
+                                             start_datetime=start_datetime,
                                              begin=0, end=-1,
                                              type=type, even=combo[0], odd=combo[1], all=combo[2],
                                              demodulated=False, rms=True, fft=True,
@@ -634,7 +634,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
 
                 # Plot of Scientific Data
                 fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                             start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                             start_datetime=start_datetime,  begin=0, end=-1,
                              type=type, even=1, odd=1, all=1,
                              demodulated=True, rms=False, fft=False,
                              window=window, smooth_len=smooth, nperseg=nperseg,
@@ -645,7 +645,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                 if rms:
                     logging.info(f'Plot of RMS of Scientific Data. Type {type}.')
                     fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                 start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                 start_datetime=start_datetime,  begin=0, end=-1,
                                  type=type, even=1, odd=1, all=1,
                                  demodulated=True, rms=True, fft=False,
                                  window=window, smooth_len=smooth, nperseg=nperseg,
@@ -658,7 +658,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                     "\nSpectral Analysis Scientific Data.")
                     logging.info(f'Plot of FFT of Scientific Data. Type {type}.')
                     fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                 start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                 start_datetime=start_datetime,  begin=0, end=-1,
                                  type=type, even=1, odd=1, all=1,
                                  demodulated=True, rms=False, fft=True,
                                  window=window, smooth_len=smooth, nperseg=nperseg,
@@ -669,7 +669,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                     if rms:
                         logging.info(f'Plot of FFT of the RMS of Scientific Data. Type {type}.')
                         fz.data_plot(pol_name=np, dataset=p.data, timestamps=p.times,
-                                     start_datetime=start_datetime, end_datetime=end_datetime, begin=0, end=-1,
+                                     start_datetime=start_datetime,  begin=0, end=-1,
                                      type=type, even=1, odd=1, all=1,
                                      demodulated=True, rms=True, fft=True,
                                      window=window, smooth_len=smooth, nperseg=nperseg,
