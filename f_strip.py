@@ -3,7 +3,7 @@
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2024)
 
-# October 29th 2022, Brescia (Italy) - May 15th 2024, Bologna (Italy)
+# October 29th 2022, Brescia (Italy) - December 4th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import h5py
@@ -93,13 +93,14 @@ def data_plot(pol_name: str,
               begin: int, end: int,
               type: str,
               even: str, odd: str, all: str,
-              demodulated: bool, rms: bool, fft: bool,
+              demodulated: bool, rms: bool,
+              fft: bool, noise_level: bool,
               window: int, smooth_len: int, nperseg: int,
               output_plot_dir: str,
               show: bool):
     """
     Generic function that create a Plot of the dataset provided.\n
-    Parameters:
+    Parameters:\n
     - **pol_name** (``str``): name of the polarimeter we want to analyze
     - **dataset** (``dict``): dictionary containing the dataset with the output of a polarimeter
     - **timestamps** (``list``): list containing the Timestamps of the output of a polarimeter
@@ -111,7 +112,9 @@ def data_plot(pol_name: str,
 
     - **demodulated** (``bool``): if true, demodulated data are computed, if false even-odd-all output are plotted
     - **rms** (``bool``) if true, the rms are computed
+
     - **fft** (``bool``) if true, the fft are computed
+    - **noise_level** (``bool``) if true, 1/f slope and white noise level are plotted on FFT plots computed;
 
     - **window** (``int``): number of elements on which the RMS is calculated
     - **smooth_len** (``int``): number of elements on which the mobile mean is calculated
@@ -268,9 +271,37 @@ def data_plot(pol_name: str,
                             f, s = fourier_transformed(times=sci_data["times"][begin:end],
                                                        values=sci_data["sci_data"][exit][begin:end],
                                                        nperseg=nperseg, f_max=25., f_min=0)
+
                             axs[row, col].plot(f, s,
                                                linewidth=0.2, marker=".", markersize=2, color="mediumpurple",
                                                label=f"{name_plot[3:]}")
+
+                            # Computing Noise Level: WN + 1/f
+                            if noise_level:
+                                # Filter the fft to get the WN level
+                                freq_fil, fft_fil = wn_filter_fft(f[50:], s[50:], mad_number=6.0)
+                                # Create the WN array
+                                wn = np.ones(len(f)) * np.median(fft_fil)
+                                # Filtered the fft to get the 1/f noise curve
+                                x_fil_data, y_fil_data = one_f_filter_fft(f, s)
+                                # Get the fitted y values
+                                y_fit, slope = get_y_fit_data(x_fil_data=x_fil_data, y_fil_data=y_fil_data)
+                                # Get the knee frequency
+                                knee_f = get_knee_freq(x=x_fil_data, y=y_fit, target_y=wn[0])
+
+                                # Plotting the WN and 1/f
+                                # 1/f Fitted
+                                axs[row, col].plot(x_fil_data, y_fit, color="limegreen",
+                                                   label=f"1/f fitted data. Slope: {np.round(slope, 2)}")
+                                # WN level
+                                axs[row, col].plot(f, wn,  color="orange",
+                                                   label=f"WN level: {np.round(wn[0], 2)} ADU**2/Hz")
+                                # Knee_freq
+                                axs[row, col].plot(knee_f, wn[0], "*", color="black",
+                                                   label=f"Knee Frequency = {np.round(knee_f, 2)}GHz")
+                                # Set xy scale log
+                                axs[row, col].set_xscale('log')
+                                axs[row, col].set_yscale('log')
 
                         # Plot of the SciData DEMODULATED/TOTPOWER -----------------------------------------------------
                         elif not fft:
@@ -417,6 +448,7 @@ def data_plot(pol_name: str,
                                                        color="forestgreen", alpha=all,
                                                        linewidth=0.2, marker=".", markersize=2,
                                                        label="All samples")
+
                             # ------------------------------------------------------------------------------------------
 
                             # ------------------------------------------------------------------------------------------
@@ -684,6 +716,24 @@ def demodulate_array(array: list, type: str) -> list:
     return data
 
 
+def double_dem(dataset: list, type: str):
+    """
+    Calculate the double demodulation of the dataset.
+    - **dataset** (``list``): numpy array
+    - **type** (``str``) of data *"DEM"* or *"PWR"*
+    If PWR calculates consecutive means, if DEM calculates consecutive differences
+    """
+    if type == "PWR":
+        dataset = mean_cons(dataset)
+    # Calculate consecutive differences of DEM Outputs -> Get DEMODULATED Scientific Data
+    elif type == "DEM":
+        dataset = diff_cons(dataset)
+    else:
+        logging.error("No PWR or DEM detected")
+
+    return dataset
+
+
 def demodulation(dataset: dict, timestamps: list, type: str, exit: str, begin=0, end=-1) -> Dict[str, Any]:
     """
     Demodulation\n
@@ -937,6 +987,62 @@ def fourier_transformed(times: list, values: list, nperseg: int, f_max=25., f_mi
     return freq, fft
 
 
+def get_y_fit_data(x_fil_data: list, y_fil_data: list) -> (list, float):
+    """
+    Compute a logarithmic transformation of the data and calculate a regression line on those transformed data.
+    Returns a list of the y fitted values and the slope of that regression line.\n
+    Parameters:\n
+    - **x_fil_data**, **y_fil_data** (`list`): lists of data to be converted and fitted.
+    """
+    # Logarithmic transformation
+    log_x = np.log10(x_fil_data)
+    log_y = np.log10(y_fil_data)
+
+    # Compute the regression line on transformed data
+    # Linear Fit on log-log
+    coefficients = np.polyfit(log_x, log_y, 1)
+    slope, intercept = coefficients
+
+    # Compute the y values for the regression line
+    log_y_fit = slope * log_x + intercept
+    # Get back to the original scale
+    y_fit = 10 ** log_y_fit
+
+    return y_fit, slope
+
+
+def get_knee_freq(x: list, y: list, target_y: float):
+    """
+    Extrapolate the x value corresponding to a given y value on a log-log plot.\n
+    Parameters:\n
+    - **x** (`list`): array of x-values (data points);
+    - **y** (`list`): array of y-values (data points) that should correspond to x-values;
+    - target_y (`float`): The y-value for which the x-value is to be extrapolated.
+    """
+    # Convert inputs to numpy arrays
+    x = np.asarray(x)
+    y = np.asarray(y)
+    # Check that x and y have the same length
+    if len(x) != len(y):
+        raise ValueError("x and y arrays must have the same length!")
+
+    # Convert x and y to log scale
+    log_x = np.log10(x)
+    log_y = np.log10(y)
+
+    # Fit a linear model to the log-transformed data
+    slope, intercept, r_value, p_value, std_err = scs.linregress(log_y, log_x)
+
+    # Convert the target_y to log scale
+    log_target_y = np.log10(target_y)
+
+    # Calculate the x-value for the given y-value
+    log_x_target = slope * log_target_y + intercept
+    x_target = 10 ** log_x_target
+
+    return x_target
+
+
 def get_tags_from_file(file_path: str) -> []:
     """
     Get the tags form a given file.\n
@@ -1030,8 +1136,8 @@ def interpolation(list1: [], list2: [], time1: [], time2: [], label1: str, label
     """
     Create a new list operating the down-sampling (using median values) on the longest of the two arrays.
     Parameters:\n
-    - **list1**, **list2** (``list``): array-like objects
-    - **time1**, **time2** (``list``): lists of timestamps: not necessary if the dataset have same length.
+    - **list1**, **list2** (``list``): array-like objects;
+    - **time1**, **time2** (``list``): lists of timestamps: not necessary if the dataset have same length;
     - **label1**, **label2** (``str``): names of the dataset. Used for labels for future plots.
     Return:\n
     A tuple containing: the interpolated array, the long array and the two data labels.
@@ -1164,7 +1270,7 @@ def noise_characterisation(times: list, values: dict, nperseg: int,
     Plot the Fast Fourier Transformed of a dataset and evaluate the White noise level and the 1/f noise.
     Use two different methods: delta-method and interpolation. (from Nicole Grillo's Bachelor Thesis 2023).\n
     Parameters:\n
-    - **times** (``list``): array-like objects containing the timestamps of the data;
+    - **times** (``list``): array-like object ts containing the timestamps of the data;
     - **values** (``dict``): dict containing the data to transform;
     - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
     - **output_dir** (``str``): name of the dir where the plots must be saved
@@ -1263,12 +1369,40 @@ def noise_interpolation(f: list, sigma: float, alpha: float, f_knee: float):
     """
     Compute the noise using an interpolation method (from Nicole Grillo's Bachelor Thesis 2023).\n
     Parameters:\n
-    - **f** (``list``): array-like object containing frequency values
-    - **sigma** (``float``): std deviation
-    - **alpha** (``float``): exponent
-    - **f_knee** (``float``): knee frequency
+    - **f** (``list``): array-like object containing frequency values;
+    - **sigma** (``float``): std deviation;
+    - **alpha** (``float``): exponent;
+    - **f_knee** (``float``): knee frequency.
     """
     return sigma * ((f_knee / f) ** alpha + 1)
+
+
+def one_f_filter_fft(x_data: list, y_data: list):
+    """
+    Returns two lists ``x_filtered_data`` and ``y_filtered_data`` containing the filtered data received in input.\n
+    The filtering operation is iterative: it parses the input list `y`. The 1st value is skipped, the 2nd is stored.
+    The following values are stored only if they are smaller than the previous one, rejected if they are larger.
+
+    Parameters:\n
+    - **x_data**, **y_data** (``list``): input data lists.
+    """
+    x_filtered_data = []
+    y_filtered_data = []
+
+    ref_value = y_data[1]
+    # Appending the first value of the list
+    y_filtered_data.append(ref_value)
+    x_filtered_data.append(x_data[1])
+
+    for idx, cur_value in enumerate(y_data[2:]):
+        # If the current value is smaller than the previous one accept it, else reject it
+        if cur_value <= ref_value:
+            y_filtered_data.append(cur_value)
+            x_filtered_data.append(x_data[idx + 2])
+
+            ref_value = cur_value
+
+    return x_filtered_data[:-1], y_filtered_data[:-1]
 
 
 def pol_list(path_dataset: Path) -> list:
@@ -1288,7 +1422,7 @@ def pol_list(path_dataset: Path) -> list:
     return pols
 
 
-def results_rounding(value, error) -> list:
+def results_rounding(value: list, error: list) -> list:
     """
     Rounding function that avoid nonsense errors associated to ADU measurements.\n
     Parameters:\n
@@ -1299,7 +1433,6 @@ def results_rounding(value, error) -> list:
     **result** (``list``): array-like object with rounded elements.
     """
     if np.isnan(error) or np.isinf(error) or np.isinf(value) or np.isnan(value):
-
         return 1
 
     if error > value:
@@ -1416,3 +1549,28 @@ def tab_cap_time(pol_name: str, file_name: str, output_dir: str) -> str:
         writer.writerows(cap)
 
     return cap
+
+
+def wn_filter_fft(x_data: list, y_data: list, mad_number=1.0) -> (list, list):
+    """
+    Returns two lists ``x_filtered_data`` and ``y_filtered_data`` containing the filtered lists received in input.\n
+    The filtering operation is done removing from the input lists the values that are away from the median more than
+    the specified number of mad (Median Absolute Deviation): mad_number.
+
+    Parameters:\n
+    - **x_data**, **y_data** (``list``): input data lists;
+    - **mad_number** (``float``): number of mad within which a sample is accepted and not removed form the filter.\n
+    """
+    x_filtered_data = []
+    y_filtered_data = []
+
+    ref_value = y_data[0]
+    mad = scipy.stats.median_abs_deviation(y_data)
+
+    for val_x, val_y in zip(x_data, y_data):
+        if val_x >= 0.5:
+            if ref_value + mad_number * mad >= val_y >= ref_value - mad_number * mad:
+                x_filtered_data.append(val_x)
+                y_filtered_data.append(val_y)
+
+    return x_filtered_data, y_filtered_data
