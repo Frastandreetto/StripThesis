@@ -4,7 +4,7 @@
 # This file contains the new LSPE-Strip official pipeline for functional verification.
 # It includes different analysis modalities: total analysis, housekeeping analysis and thermal analysis
 
-# July 23rd 2023, Brescia (Italy) - April 30th 2024, Brescia (Italy)
+# July 23rd 2023, Brescia (Italy) - December 5th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import argparse
@@ -713,7 +713,8 @@ def main():
                     ts_sam_exp_med=args.ts_sam_exp_med, ts_sam_tolerance=args.ts_sam_tolerance,
                     name_pol=args.name_pol, eoa=args.even_odd_all, scientific=args.scientific, rms=args.rms,
                     smooth=args.smooth, window=args.window,
-                    fft=args.fourier, nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
+                    fft=args.fourier, noise_level=args.noise_level,
+                    nperseg=args.nperseg, nperseg_thermal=args.nperseg_thermal,
                     spike_data=args.spike_data, spike_fft=args.spike_fft,
                     corr_plot=args.corr_plot, corr_mat=args.corr_mat, corr_t=args.corr_t, cross_corr=args.cross_corr,
                     output_plot_dir=args.output_plot_dir, output_report_dir=args.output_report_dir,

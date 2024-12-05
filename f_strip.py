@@ -3,7 +3,7 @@
 # This file contains the main functions used in the bachelor thesis of Francesco Andreetto (2020)
 # updated to be used on the new version of the pipeline for functional verification of LSPE-STRIP (2024)
 
-# October 29th 2022, Brescia (Italy) - December 4th 2024, Bologna (Italy)
+# October 29th 2022, Brescia (Italy) - December 5th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import h5py
@@ -96,7 +96,7 @@ def data_plot(pol_name: str,
               demodulated: bool, rms: bool,
               fft: bool, noise_level: bool,
               window: int, smooth_len: int, nperseg: int,
-              output_plot_dir: str,
+              output_plot_dir: str, output_report_dir: str,
               show: bool):
     """
     Generic function that create a Plot of the dataset provided.\n
@@ -119,7 +119,8 @@ def data_plot(pol_name: str,
     - **window** (``int``): number of elements on which the RMS is calculated
     - **smooth_len** (``int``): number of elements on which the mobile mean is calculated
     - **nperseg** (``int``): number of elements of the array of scientific data on which the fft is calculated
-    - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis.
+    - **output_plot_dir** (`str`): Path from the pipeline dir to the dir that contains the plots of the analysis
+    - **output_report_dir** (`str`): Path from the pipeline dir to the dir that contains the reports of the analysis
     - **show** (``bool``): *True* -> show the plot and save the figure, *False* -> save the figure only
     """
     # Initialize the plot directory
@@ -139,6 +140,8 @@ def data_plot(pol_name: str,
         name_plot += " FFT"
         # Update the name of the plot directory
         path_dir += "/FFT"
+        if noise_level and demodulated:
+            name_plot += "+Noise_Level"
     else:
         pass
 
@@ -288,6 +291,17 @@ def data_plot(pol_name: str,
                                 y_fit, slope = get_y_fit_data(x_fil_data=x_fil_data, y_fil_data=y_fil_data)
                                 # Get the knee frequency
                                 knee_f = get_knee_freq(x=x_fil_data, y=y_fit, target_y=wn[0])
+
+                                # Write info on the file only the 2nd time
+                                if row == 1:
+                                    # Define the name of the noise report file
+                                    noise_report_name = dir_format(f"Noise_Report_{start_datetime}.txt")
+                                    # Write the info about the current polarimeter
+                                    with open(f"{output_report_dir}/{noise_report_name}", "a") as file:
+                                        file.write(f"{pol_name}\t{name_plot[20:]}\t{exit}\t"
+                                                   f"{np.round(wn[0], 2)}\t"
+                                                   f"{np.round(slope, 2)}\t"
+                                                   f"{np.round(knee_f, 2)}\n")
 
                                 # Plotting the WN and 1/f
                                 # 1/f Fitted

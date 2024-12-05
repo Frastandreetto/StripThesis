@@ -1,5 +1,12 @@
 # HEAD
 
+# Version 1.5.1 [#13](https://github.com/Frastandreetto/StripThesis/pull/13)
+The WN level and the knee frequency of the FFT of the Scientific Data are stored in a txt file.
+
+# Version 1.5.0
+New features and fixes in the Pipeline [#12](https://github.com/Frastandreetto/StripThesis/pull/12):
+- Adding new flag `noise_level`: if it is enabled, the code will calculate the WN level and the 1/f of the FFT of the Scientific Data.
+
 # Version 1.4.0
 New features and fixes in the Pipeline [#11](https://github.com/Frastandreetto/StripThesis/pull/11)
 - Fix Data Normalization into a datetime conversion;
