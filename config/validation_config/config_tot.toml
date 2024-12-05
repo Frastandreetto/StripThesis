@@ -48,6 +48,7 @@ sam_tolerance=0.005
 
 # Spectral Analysis
 fourier="true"
+noise_level="true"
 # To reach a min freq of ~10^-3 these are the nperseg requested
 nperseg=100_000
 nperseg_thermal=50

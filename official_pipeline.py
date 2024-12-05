@@ -274,6 +274,12 @@ def main():
     # FFT
     parser_A.add_argument('--fourier', '-fft', action="store_true",
                           help='If true, the code will compute the power spectra of the scientific data.')
+
+    # noise level
+    parser_A.add_argument('--noise_level', '-nl', action="store_true",
+                          help='If true, the code will compute the White Noise level and 1/f noise '
+                               'of the FFT of scientific data.')
+
     # nperseg FFT data
     parser_A.add_argument('--nperseg', '-nps', type=int, default=256,
                           help='int value that defines the number of elements of the array of scientific data'
