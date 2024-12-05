@@ -3,7 +3,7 @@
 # This file contains the function "tot" that operates a complete analysis of a provided group of polarimeters.
 # This function will be used during the system level test campaign of the LSPE-Strip instrument.
 
-# August 14th 2023, Brescia (Italy) - May 13th 2024, Brescia (Italy)
+# August 14th 2023, Brescia (Italy) - December 5th 2024, Bologna (Italy)
 
 # Libraries & Modules
 import csv
@@ -143,6 +143,16 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
     env = Environment(loader=FileSystemLoader(templates_dir))
 
     logging.info('\nReady to analyze Strip.')
+
+    ####################################################################################################################
+    # Noise Level Report - WN and 1/f
+    # Initialize noise report name
+    noise_report_name = fz.dir_format(f"Noise_Report_{start_datetime}.txt")
+    # Writing the header of the file
+    with open(f"{output_report_dir}/{noise_report_name}", "w") as file:
+        file.write("Polarimeter_Name\tData_Type\tChannel\tWN_level\t1_f_slope\tknee_freq\n")
+
+    ####################################################################################################################
 
     ####################################################################################################################
     # Thermal Sensors Analysis
@@ -547,7 +557,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                      type=type, even=combo[0], odd=combo[1], all=combo[2],
                                      demodulated=False, rms=False, fft=False, noise_level=noise_level,
                                      window=window, smooth_len=smooth, nperseg=nperseg,
-                                     output_plot_dir=output_plot_dir,
+                                     output_plot_dir=output_plot_dir, output_report_dir=output_report_dir,
                                      show=False)
 
                         # Plot of Even-Odd-All RMS
@@ -559,7 +569,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                          type=type, even=combo[0], odd=combo[1], all=combo[2],
                                          demodulated=False, rms=True, fft=False, noise_level=noise_level,
                                          window=window, smooth_len=smooth, nperseg=nperseg,
-                                         output_plot_dir=output_plot_dir,
+                                         output_plot_dir=output_plot_dir, output_report_dir=output_report_dir,
                                          show=False)
 
                         # Plot of FFT of Even-Odd-All Outputs
@@ -573,7 +583,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                          type=type, even=combo[0], odd=combo[1], all=combo[2],
                                          demodulated=False, rms=False, fft=True, noise_level=noise_level,
                                          window=window, smooth_len=smooth, nperseg=nperseg,
-                                         output_plot_dir=output_plot_dir,
+                                         output_plot_dir=output_plot_dir, output_report_dir=output_report_dir,
                                          show=False)
 
                             # Plot of FFT of RMS of Even-Odd-All Outputs
@@ -586,7 +596,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                              type=type, even=combo[0], odd=combo[1], all=combo[2],
                                              demodulated=False, rms=True, fft=True, noise_level=noise_level,
                                              window=window, smooth_len=smooth, nperseg=nperseg,
-                                             output_plot_dir=output_plot_dir,
+                                             output_plot_dir=output_plot_dir, output_report_dir=output_report_dir,
                                              show=False)
 
                 # --------------------------------------------------------------------------------------------------
@@ -640,7 +650,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                              type=type, even=1, odd=1, all=1,
                              demodulated=True, rms=False, fft=False, noise_level=noise_level,
                              window=window, smooth_len=smooth, nperseg=nperseg,
-                             output_plot_dir=output_plot_dir,
+                             output_plot_dir=output_plot_dir, output_report_dir=output_report_dir,
                              show=False)
 
                 # Plot of RMS of Scientific Data
@@ -651,7 +661,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  type=type, even=1, odd=1, all=1,
                                  demodulated=True, rms=True, fft=False, noise_level=noise_level,
                                  window=window, smooth_len=smooth, nperseg=nperseg,
-                                 output_plot_dir=output_plot_dir,
+                                 output_plot_dir=output_plot_dir, output_report_dir=output_report_dir,
                                  show=False)
 
                 # Plot of FFT of Scientific Data
@@ -664,7 +674,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                  type=type, even=1, odd=1, all=1,
                                  demodulated=True, rms=False, fft=True, noise_level=noise_level,
                                  window=window, smooth_len=smooth, nperseg=nperseg,
-                                 output_plot_dir=output_plot_dir,
+                                 output_plot_dir=output_plot_dir, output_report_dir=output_report_dir,
                                  show=False)
 
                     # Plot of FFT of the RMS of Scientific Data
@@ -675,7 +685,7 @@ def tot(path_file: str, start_datetime: str, end_datetime: str, name_pol: str,
                                      type=type, even=1, odd=1, all=1,
                                      demodulated=True, rms=True, fft=True, noise_level=noise_level,
                                      window=window, smooth_len=smooth, nperseg=nperseg,
-                                     output_plot_dir=output_plot_dir,
+                                     output_plot_dir=output_plot_dir, output_report_dir=output_report_dir,
                                      show=False)
 
                 # --------------------------------------------------------------------------------------------------
